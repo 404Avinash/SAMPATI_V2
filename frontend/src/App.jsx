@@ -1,13 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Masthead from "./components/Masthead";
 import KpiStrip from "./components/KpiStrip";
-import VerdictHistoryChart from "./components/VerdictHistoryChart";
 import ControlBar from "./components/ControlBar";
 import NetworkConstellation from "./components/NetworkConstellation";
 import LiveFeed from "./components/LiveFeed";
 import VerdictDonut from "./components/VerdictDonut";
 import CaseDrawer from "./components/CaseDrawer";
-import { useWebSocket } from "./hooks/useWebSocket";
 import { api } from "./services/api";
 
 export default function App() {
@@ -25,42 +23,6 @@ export default function App() {
   const [live, setLive] = useState(false);
   const [sensitivity, setSensitivity] = useState(1.0);
   const seenTotals = useRef({ allowed: 0, held: 0, blocked: 0 });
-
-  // Time-series history sliding buffer for Recharts VerdictHistoryChart (capped to last 40 points)
-  const [verdictHistory, setVerdictHistory] = useState([
-    {
-      time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
-      timestamp: Date.now(),
-      ALLOW: 0,
-      HOLD: 0,
-      BLOCK: 0,
-      allowed: 0,
-      held: 0,
-      blocked: 0,
-    },
-  ]);
-
-  const appendVerdictHistory = useCallback((currentCounts) => {
-    const timeStr = new Date().toLocaleTimeString("en-IN", { hour12: false });
-    const allowVal = currentCounts.ALLOW ?? currentCounts.allowed ?? 0;
-    const holdVal = currentCounts.HOLD ?? currentCounts.held ?? 0;
-    const blockVal = currentCounts.BLOCK ?? currentCounts.blocked ?? 0;
-
-    setVerdictHistory((prev) => {
-      const newPoint = {
-        time: timeStr,
-        timestamp: Date.now(),
-        ALLOW: allowVal,
-        HOLD: holdVal,
-        BLOCK: blockVal,
-        allowed: allowVal,
-        held: holdVal,
-        blocked: blockVal,
-      };
-      const updated = [...prev, newPoint];
-      return updated.slice(-40);
-    });
-  }, []);
 
   const refreshCases = useCallback(async () => {
     try {
@@ -92,53 +54,6 @@ export default function App() {
     }
   }, []);
 
-  // WebSocket Live Event Handlers
-  const handleWsNewCase = useCallback(
-    (newCase, incomingStats) => {
-      if (newCase) {
-        setCases((prev) => [newCase, ...prev.slice(0, 99)]);
-      }
-      if (incomingStats) {
-        setStats((prev) => ({
-          ...prev,
-          evaluated: incomingStats.evaluated ?? prev.evaluated,
-          allowed: incomingStats.allowed ?? prev.allowed,
-          held: incomingStats.held ?? prev.held,
-          blocked: incomingStats.blocked ?? prev.blocked,
-          rings: incomingStats.rings ?? prev.rings,
-          dpip: incomingStats.dpip ?? prev.dpip,
-        }));
-        appendVerdictHistory(incomingStats);
-      }
-    },
-    [appendVerdictHistory]
-  );
-
-  const handleWsStatsUpdate = useCallback(
-    (incomingStats) => {
-      if (!incomingStats) return;
-      setStats((prev) => ({
-        ...prev,
-        evaluated: incomingStats.evaluated ?? prev.evaluated,
-        allowed: incomingStats.allowed ?? prev.allowed,
-        held: incomingStats.held ?? prev.held,
-        blocked: incomingStats.blocked ?? prev.blocked,
-        rings: incomingStats.rings ?? prev.rings,
-        dpip: incomingStats.dpip ?? prev.dpip,
-      }));
-      appendVerdictHistory(incomingStats);
-    },
-    [appendVerdictHistory]
-  );
-
-  const { connected } = useWebSocket({
-    onNewCase: handleWsNewCase,
-    onStatsUpdate: handleWsStatsUpdate,
-    onOpen: () => setLive(true),
-    onClose: () => setLive(false),
-    enabled: true,
-  });
-
   const runSimulation = useCallback(
     async (count, fraudRatio) => {
       setBusy(true);
@@ -146,21 +61,20 @@ export default function App() {
       try {
         const result = await api.simulate(count, fraudRatio);
         const v = result.verdicts || {};
-        const allowed = seenTotals.current.allowed + (v.ALLOW || 0);
-        const held = seenTotals.current.held + (v.HOLD || 0);
-        const blocked = seenTotals.current.blocked + (v.BLOCK || 0);
-        seenTotals.current = { allowed, held, blocked };
-
-        setStats((prev) => ({
-          ...prev,
-          evaluated: prev.evaluated + (result.processed || 0),
-          allowed,
-          held,
-          blocked,
-          rings: result.detected_rings ?? prev.rings,
-        }));
-
-        appendVerdictHistory({ allowed, held, blocked });
+        setStats((prev) => {
+          const allowed = seenTotals.current.allowed + (v.ALLOW || 0);
+          const held = seenTotals.current.held + (v.HOLD || 0);
+          const blocked = seenTotals.current.blocked + (v.BLOCK || 0);
+          seenTotals.current = { allowed, held, blocked };
+          return {
+            ...prev,
+            evaluated: prev.evaluated + (result.processed || 0),
+            allowed,
+            held,
+            blocked,
+            rings: result.detected_rings ?? prev.rings,
+          };
+        });
         await Promise.all([refreshCases(), refreshStats()]);
       } catch (err) {
         console.error("simulate failed", err);
@@ -168,7 +82,7 @@ export default function App() {
         setBusy(false);
       }
     },
-    [refreshCases, refreshStats, appendVerdictHistory]
+    [refreshCases, refreshStats]
   );
 
   const runFederation = useCallback(async () => {
@@ -197,15 +111,9 @@ export default function App() {
   );
 
   const openCase = useCallback(async (c) => {
-    if (!c) return;
     try {
-      const caseId = c.case_id || (typeof c === "string" ? c : null);
-      if (caseId) {
-        const full = await api.case(caseId);
-        setSelectedCase(full);
-      } else {
-        setSelectedCase(c);
-      }
+      const full = await api.case(c.case_id);
+      setSelectedCase(full);
     } catch {
       setSelectedCase(c);
     }
@@ -224,12 +132,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface-muted pb-10">
-      <Masthead sensitivity={sensitivity} live={live || connected} />
+      <Masthead sensitivity={sensitivity} live={live} />
 
       <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
         <KpiStrip stats={stats} />
-
-        <VerdictHistoryChart history={verdictHistory} />
 
         <ControlBar onSimulate={runSimulation} onFederate={runFederation} busy={busy} />
 
@@ -242,7 +148,7 @@ export default function App() {
             <span className="text-xs text-muted font-mono">{cases.length} rings tracked</span>
           </div>
           <div className="h-[420px] p-3">
-            <NetworkConstellation cases={cases} onSelectCase={openCase} />
+            <NetworkConstellation cases={cases} />
           </div>
         </div>
 
