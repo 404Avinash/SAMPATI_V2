@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc.bak
+.pytest_cache/
+node_modules/
+*.log
+.venv/
+.venv_check/
+extract_src.py
+extracted.txt
+make_stubs.py
+commit.ps1
+commit.sh
+*.db
