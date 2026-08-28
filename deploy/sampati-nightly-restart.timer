@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly restart timer for SAMPATI container (02:00 IST / 20:30 UTC)
+
+[Timer]
+OnCalendar=*-*-* 20:30:00 UTC
+Persistent=true
+Unit=sampati-nightly-restart.service
+
+[Install]
+WantedBy=timers.target

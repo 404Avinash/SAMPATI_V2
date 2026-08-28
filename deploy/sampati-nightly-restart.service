@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly restart of SAMPATI Docker container
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker restart sampati
+
+[Install]
+WantedBy=multi-user.target
