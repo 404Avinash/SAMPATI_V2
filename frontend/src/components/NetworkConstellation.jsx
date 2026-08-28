@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 /**
  * Canvas-based animated force-directed graph of mule-network topology.
@@ -8,6 +8,7 @@ import React, { useEffect, useRef } from "react";
 export default function NetworkConstellation({ cases }) {
   const canvasRef = useRef(null);
   const stateRef = useRef({ nodes: new Map(), edges: [], raf: null });
+  const [nodeCount, setNodeCount] = useState(0);
 
   // Rebuild graph model whenever the case list changes.
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function NetworkConstellation({ cases }) {
 
     stateRef.current.nodes = nodes;
     stateRef.current.edges = edges;
+    setNodeCount(nodes.size);
   }, [cases]);
 
   useEffect(() => {
@@ -217,8 +219,6 @@ export default function NetworkConstellation({ cases }) {
       window.removeEventListener("resize", resize);
     };
   }, []);
-
-  const nodeCount = stateRef.current.nodes.size;
 
   return (
     <div className="relative w-full h-full overflow-hidden rounded-md bg-[#f8f9fc]">
