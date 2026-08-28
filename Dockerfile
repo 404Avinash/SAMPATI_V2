@@ -1,12 +1,4 @@
-# ── Stage 1: build React frontend ────────────────────────────────────────────
-FROM node:20-alpine AS frontend-build
-WORKDIR /build
-COPY frontend/package*.json ./
-RUN npm ci --prefer-offline
-COPY frontend/ .
-RUN npm run build
-
-# ── Stage 2: production Python image ─────────────────────────────────────────
+# Frontend is pre-built and committed at frontend/dist/ — no Node stage needed.
 FROM python:3.14-slim
 
 # system deps for matplotlib/Pillow
@@ -24,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/        ./app/
 COPY backend/    ./backend/
 
-# Copy built frontend
-COPY --from=frontend-build /build/dist ./frontend/dist
+# Pre-built frontend assets
+COPY frontend/dist ./frontend/dist
 
 # Expose port
 EXPOSE 8000

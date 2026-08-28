@@ -1,0 +1,7 @@
+frontend/node_modules
+**/__pycache__/*.pyc.bak
+*.pyc.orig
+.git
+.pytest_cache
+extracted.txt
+extract_src.py
