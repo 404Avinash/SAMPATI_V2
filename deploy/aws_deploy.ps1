@@ -12,6 +12,12 @@
 #   powershell -File deploy\aws_deploy.ps1
 # ─────────────────────────────────────────────────────────────────────────────
 
+[CmdletBinding()]
+param(
+    [Parameter(Position = 0)]
+    [string]$AlertEmail = "operator@example.com"
+)
+
 $ErrorActionPreference = "Stop"
 
 # ── CONFIG — edit these ──────────────────────────────────────────────────────
@@ -22,6 +28,7 @@ $SecurityGroup  = "sampati-sg"
 $InstanceName   = "sampati-upi"
 
 Write-Host "=== SAMPATI AWS Deployment ===" -ForegroundColor Cyan
+
 
 # ── 0. Resolve latest Amazon Linux 2023 AMI for the region ──────────────────
 Write-Host "Resolving latest Amazon Linux 2023 AMI..."
@@ -86,6 +93,52 @@ $PublicIp = aws ec2 describe-instances `
   --region $AwsRegion `
   --query "Reservations[0].Instances[0].PublicIpAddress" --output text
 
+# ── 4. Set up CloudWatch Billing Alarm ($15 Threshold) ──────────────────────
+Write-Host ""
+Write-Host "Setting up AWS CloudWatch Billing Alarm ($15 threshold)..."
+$BillingRegion = "us-east-1"
+$SnsTopicName  = "sampati-billing-alerts"
+$AlarmName     = "sampati-billing-alarm-15usd"
+$Threshold     = 15
+
+if ($AlertEmail -ne "operator@example.com" -and (-not [string]::IsNullOrWhiteSpace($AlertEmail))) {
+    $TopicArn = (aws sns create-topic `
+        --name $SnsTopicName `
+        --region $BillingRegion `
+        --query "TopicArn" `
+        --output text).Trim()
+
+    if (-not $TopicArn -or $TopicArn -eq "None") {
+        throw "Failed to create or retrieve SNS Topic ARN."
+    }
+
+    aws sns subscribe `
+        --topic-arn $TopicArn `
+        --protocol email `
+        --notification-endpoint $AlertEmail `
+        --region $BillingRegion | Out-Null
+
+    aws cloudwatch put-metric-alarm `
+        --alarm-name $AlarmName `
+        --alarm-description "Trigger alarm when AWS monthly estimated charges exceed $Threshold USD" `
+        --metric-name "EstimatedCharges" `
+        --namespace "AWS/Billing" `
+        --statistic "Maximum" `
+        --period 21600 `
+        --threshold $Threshold `
+        --comparison-operator "GreaterThanThreshold" `
+        --dimensions "Name=Currency,Value=USD" `
+        --evaluation-periods 1 `
+        --alarm-actions $TopicArn `
+        --region $BillingRegion
+
+    Write-Host "  Billing alarm created for EstimatedCharges > `$$Threshold USD ($AlertEmail)" -ForegroundColor Green
+    Write-Host "  [!] Please confirm the subscription email sent by AWS SNS to $AlertEmail." -ForegroundColor Yellow
+} else {
+    Write-Host "  [INFO] Default AlertEmail detected. To configure the `$15 billing alarm, run:" -ForegroundColor Yellow
+    Write-Host "         powershell -File deploy\billing_alarm.ps1 -AlertEmail your-email@domain.com" -ForegroundColor Yellow
+}
+
 Write-Host ""
 Write-Host "=== Deployment Complete ===" -ForegroundColor Green
 Write-Host "Instance ID : $InstanceId"
@@ -97,3 +150,7 @@ Write-Host "  API Docs : http://$PublicIp/docs"
 Write-Host ""
 Write-Host "SSH (if you have an OpenSSH client / WSL / PuTTY):"
 Write-Host "  ssh -i path\to\$KeyName.pem ec2-user@$PublicIp"
+Write-Host ""
+Write-Host "To verify reboot resilience:"
+Write-Host "  ssh -i path\to\$KeyName.pem ec2-user@$PublicIp '/opt/sampati/deploy/verify_reboot.sh'"
+
