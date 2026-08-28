@@ -23,6 +23,7 @@ from tests.frontend_contracts_test import (
     TestFrontendMathematicalContracts,
     TestFrontendSourceCodeContracts,
 )
+from tests.test_cicd_pipeline import TestCiCdPipeline
 from tests.test_tier1_features import Tier1FeatureTests
 from tests.test_tier2_boundary import Tier2BoundaryTests
 from tests.test_tier3_combinations import Tier3CombinationTests
@@ -41,7 +42,7 @@ def build_suite(tier: int | None = None, feature: str | None = None) -> unittest
     loader = unittest.TestLoader()
 
     tier_map = {
-        1: [Tier1FeatureTests, TestFrontendMathematicalContracts, TestFrontendSourceCodeContracts],
+        1: [Tier1FeatureTests, TestFrontendMathematicalContracts, TestFrontendSourceCodeContracts, TestCiCdPipeline],
         2: [Tier2BoundaryTests],
         3: [Tier3CombinationTests],
         4: [Tier4ScenarioTests],

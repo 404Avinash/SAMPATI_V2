@@ -102,6 +102,36 @@ When EC2 boots:
 
 ---
 
+### Automated CI/CD Pipeline & GitHub Secrets Setup
+
+SAMPATI V2 includes a fully automated GitHub Actions CI/CD workflow defined in `.github/workflows/deploy.yml`. On every push to the `main` branch:
+1. **CI Stage (`test`)**: Spins up an ephemeral PostgreSQL 15 service container (`postgres:15-alpine`), waits for healthy database readiness, sets `DATABASE_URL`, and executes the complete Python E2E verification test suite.
+2. **CD Stage (`deploy`)**: Executes only if the `test` stage passes (`needs: test`). Connects securely to the AWS EC2 instance over SSH, pulls the latest code from `main`, stops/removes the existing container, builds the new Docker image, and restarts the `sampati` container with production environment persistence (`/opt/sampati/.env`).
+
+#### Required GitHub Repository Secrets
+
+To enable automated SSH deployments from GitHub Actions to your EC2 instance, configure the following three repository secrets:
+
+| Secret Name | Value Description | Example / Format |
+| :--- | :--- | :--- |
+| `EC2_HOST` | The public IPv4 address or public DNS hostname of your AWS EC2 instance. | `13.233.xxx.xxx` or `ec2-13-233-xxx-xxx.ap-south-1.compute.amazonaws.com` |
+| `EC2_USERNAME` | The SSH username for logging into the EC2 instance (for Amazon Linux 2023, default is `ec2-user`). | `ec2-user` |
+| `EC2_SSH_KEY` | The raw PEM private key matching the EC2 key pair (e.g. `sampati-key.pem`). Paste the entire file contents including header and footer. | `-----BEGIN RSA PRIVATE KEY-----`<br>`MIIEowIBAAKCAQEA0...`<br>`-----END RSA PRIVATE KEY-----` |
+
+#### Step-by-Step Guide: Adding Secrets to GitHub
+
+1. Open your repository on GitHub: `https://github.com/<owner>/SAMPATI_V2`.
+2. Navigate to **Settings** (top navigation tab of the repository).
+3. In the left sidebar, expand **Secrets and variables** and click **Actions**.
+4. Click the green **New repository secret** button.
+5. Add each of the 3 secrets:
+   - **Secret 1**: Name = `EC2_HOST`, Secret = `<Your EC2 Public IP>` -> Click **Add secret**.
+   - **Secret 2**: Name = `EC2_USERNAME`, Secret = `ec2-user` -> Click **Add secret**.
+   - **Secret 3**: Name = `EC2_SSH_KEY`, Secret = `<Contents of your .pem private key>` -> Click **Add secret**.
+6. Once configured, every push to the `main` branch automatically validates the code and deploys the latest version to EC2. You can also trigger the workflow manually from the **Actions** tab using the **Run workflow** button.
+
+---
+
 ## 4. Application Endpoints & Access URLs
 
 Replace `<PUBLIC_IP>` with the public IPv4 address printed at the end of the deployment script:

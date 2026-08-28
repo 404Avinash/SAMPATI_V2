@@ -1,0 +1,86 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run E2E Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: sampati_user
+          POSTGRES_PASSWORD: sampati_password
+          POSTGRES_DB: sampatidb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Execute E2E Test Suite
+        env:
+          DATABASE_URL: postgresql+asyncpg://sampati_user:sampati_password@localhost:5432/sampatidb
+          DB_POOL_SIZE: "5"
+          DB_MAX_OVERFLOW: "10"
+        run: |
+          python tests/test_e2e_suite.py --verbose
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Execute deployment commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/sampati
+            git pull origin main
+            docker build -t sampati:latest .
+            docker stop sampati || true
+            docker rm sampati || true
+            if [ -f /opt/sampati/.env ]; then
+              docker run -d \
+                --name sampati \
+                --restart unless-stopped \
+                --env-file /opt/sampati/.env \
+                -p 8000:8000 \
+                sampati:latest
+            else
+              docker run -d \
+                --name sampati \
+                --restart unless-stopped \
+                -p 8000:8000 \
+                sampati:latest
+            fi
