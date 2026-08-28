@@ -26,8 +26,14 @@ export default function App() {
 
   const refreshCases = useCallback(async () => {
     try {
-      const data = await api.cases({ page: 1, limit: 60 });
-      const list = Array.isArray(data) ? data : data.cases || data.items || [];
+      const data = await api.cases();
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.cases)
+        ? data.cases
+        : [];
       setCases(list);
     } catch (err) {
       console.error("cases refresh failed", err);

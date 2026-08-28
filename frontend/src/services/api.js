@@ -66,6 +66,6 @@ export function formatTime(iso) {
 }
 
 export function shortVpa(vpa) {
-  if (!vpa) return "—";
+  if (!vpa || typeof vpa !== "string") return vpa == null ? "—" : String(vpa);
   return vpa.length > 22 ? `${vpa.slice(0, 10)}…${vpa.slice(-8)}` : vpa;
 }

@@ -32,45 +32,55 @@ export default function NetworkConstellation({ cases }) {
       return nodes.get(id);
     }
 
-    const ringCases = (cases || []).filter((c) => c.topology || c.ring_members_vpas);
+    const asArray = (x) => (Array.isArray(x) ? x : []);
 
-    ringCases.slice(0, 14).forEach((c) => {
-      const topo = c.topology || {};
-      const trigger = topo.trigger_txn || c.trigger_txn || {};
-      const collector = trigger.payee_vpa || `ring-${c.case_id}`;
-      ensureNode(collector, "hub").flagged = true;
+    const ringCases = asArray(cases).filter((c) => c && (c.topology || c.ring_members_vpas));
 
-      const fanIn = topo.fan_in || [];
-      const hops = topo.hops || [];
-      const fanOut = topo.fan_out || [];
-      const members = c.ring_members_vpas || [];
+    asArray(ringCases)
+      .slice(0, 14)
+      .forEach((c) => {
+        const topo = (c && typeof c.topology === "object" && c.topology) || {};
+        const trigger = (typeof topo.trigger_txn === "object" && topo.trigger_txn) || c.trigger_txn || {};
+        const collector = trigger.payee_vpa || `ring-${c.case_id}`;
+        ensureNode(collector, "hub").flagged = true;
 
-      const layerIn = fanIn.length ? fanIn : members.slice(0, Math.ceil(members.length / 3));
-      const layerOut = fanOut.length
-        ? fanOut
-        : members.slice(Math.ceil((members.length * 2) / 3));
+        const fanIn = asArray(topo.fan_in);
+        const hops = asArray(topo.hops);
+        const fanOut = asArray(topo.fan_out);
+        const members = asArray(c.ring_members_vpas);
 
-      layerIn.slice(0, 10).forEach((v) => {
-        const vpa = typeof v === "string" ? v : v.payer_vpa || v.vpa;
-        if (!vpa) return;
-        const n = ensureNode(vpa, "victim");
-        edges.push({ a: vpa, b: collector, flagged: true });
+        const layerIn = fanIn.length ? fanIn : members.slice(0, Math.ceil(members.length / 3));
+        const layerOut = fanOut.length
+          ? fanOut
+          : members.slice(Math.ceil((members.length * 2) / 3));
+
+        asArray(layerIn)
+          .slice(0, 10)
+          .forEach((v) => {
+            const vpa = typeof v === "string" ? v : v && (v.payer_vpa || v.vpa);
+            if (!vpa) return;
+            ensureNode(vpa, "victim");
+            edges.push({ a: vpa, b: collector, flagged: true });
+          });
+
+        asArray(hops)
+          .slice(0, 10)
+          .forEach((v) => {
+            const vpa = typeof v === "string" ? v : v && (v.vpa || v.payee_vpa);
+            if (!vpa) return;
+            ensureNode(vpa, "hop");
+            edges.push({ a: collector, b: vpa, flagged: true });
+          });
+
+        asArray(layerOut)
+          .slice(0, 10)
+          .forEach((v) => {
+            const vpa = typeof v === "string" ? v : v && (v.payee_vpa || v.vpa);
+            if (!vpa) return;
+            ensureNode(vpa, "cashout");
+            edges.push({ a: collector, b: vpa, flagged: true });
+          });
       });
-
-      hops.slice(0, 10).forEach((v) => {
-        const vpa = typeof v === "string" ? v : v.vpa || v.payee_vpa;
-        if (!vpa) return;
-        ensureNode(vpa, "hop");
-        edges.push({ a: collector, b: vpa, flagged: true });
-      });
-
-      layerOut.slice(0, 10).forEach((v) => {
-        const vpa = typeof v === "string" ? v : v.payee_vpa || v.vpa;
-        if (!vpa) return;
-        ensureNode(vpa, "cashout");
-        edges.push({ a: collector, b: vpa, flagged: true });
-      });
-    });
 
     stateRef.current.nodes = nodes;
     stateRef.current.edges = edges;

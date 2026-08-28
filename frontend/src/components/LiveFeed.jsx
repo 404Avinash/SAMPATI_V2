@@ -9,7 +9,7 @@ const VERDICT_STYLE = {
 };
 
 export default function LiveFeed({ cases, onSelect }) {
-  const rows = (cases || []).slice(0, 40);
+  const rows = (Array.isArray(cases) ? cases : []).slice(0, 40);
 
   return (
     <div className="relative h-full overflow-y-auto font-mono text-[13px]">
