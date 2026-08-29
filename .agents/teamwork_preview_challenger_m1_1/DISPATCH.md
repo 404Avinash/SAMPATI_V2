@@ -1,22 +1,22 @@
-## 2026-08-28T19:18:47Z
+## 2026-08-29T15:45:36Z
+You are Challenger 1 (teamwork_preview_challenger_m1_1) for SAMPATI V2.
+Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_m1_1/
+The project root is: /home/avi/Downloads/Sampati_v2
 
-You are Challenger 1 for Milestone M1 (Backend RDS PostgreSQL Persistence).
-
-Your working directory is:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_challenger_m1_1\
-
-Project workspace:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2
-
-Original User Request:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\ORIGINAL_REQUEST.md
-
-Project Specification:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\PROJECT.md
+Please read:
+1. /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md
+2. /home/avi/Downloads/Sampati_v2/PROJECT.md
 
 Your Task:
-Adversarially challenge and stress-test the persistence implementation (R1 / M1):
-1. Stress-test connection pooling under simulated concurrent traffic (verify no connection leaks or max_connections exhaustion).
-2. Stress-test process restart persistence: populate cases via simulation, simulate full process termination and restart, query `/upi/cases` and `/upi/stats` to verify data persistence.
-3. Test resilience under malformed inputs, large SAR markdowns, and DB disconnects.
-4. Record findings and verdict (APPROVE or REQUEST_CHANGES) in `handoff.md` and send message to parent.
+1. Empirically verify correctness, boundary conditions, and contract invariants across:
+   - CI/CD workflow YAML structure and failure modes.
+   - Backend endpoint mathematical invariants (total_flagged == total_held + total_blocked; min <= p50 <= p90 <= p99 <= max).
+   - Case status state machine transitions (reviewed, escalated, dismissed, invalid states, 404s).
+   - Frontend mathematical projections (point_to_segment_distance, continuous risk gradient, INR grouping).
+2. Execute boundary and combination tests:
+   - `python3 tests/test_e2e_suite.py --tier 1 --verbose`
+   - `python3 tests/test_e2e_suite.py --tier 2 --verbose`
+   - `python3 tests/test_e2e_suite.py --tier 3 --verbose`
+   - `python3 tests/test_e2e_suite.py --tier 4 --verbose`
+3. Record empirical findings and final verdict (APPROVE or FAIL).
+4. Write your handoff report to /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_m1_1/handoff.md and notify parent via send_message.

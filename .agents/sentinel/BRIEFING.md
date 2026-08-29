@@ -1,13 +1,13 @@
-# BRIEFING — 2026-08-29T01:13:20+05:30
+# BRIEFING — 2026-08-29T08:01:00Z
 
 ## Mission
-Monitor and route SAMPATI V2 upgrade to AWS RDS PostgreSQL persistence, WebSocket real-time push, interactive graph visualization, and verdict history line chart.
+Coordinate extension of SAMPATI (AEGIS-Lite) codebase with hardened CI/CD pipeline and multi-page React dashboard.
 
 ## 🔒 My Identity
 - Archetype: sentinel
-- Working directory: c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\sentinel
-- Orchestrator: 60e4794c-c081-4b25-afa6-3a9c8cb2a5ce (completed)
-- Victory Auditor: 419d850c-95b9-426a-874d-f39b228042ed (completed)
+- Working directory: /home/avi/Downloads/Sampati_v2/.agents/sentinel
+- Orchestrator: 2ca17de6-f623-4ca4-be0a-d2981e8f7908
+- Victory Auditor: to be spawned on victory claim
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
@@ -16,15 +16,17 @@ Monitor and route SAMPATI V2 upgrade to AWS RDS PostgreSQL persistence, WebSocke
 - Forward full audit report on VICTORY REJECTED to resume team
 
 ## User Context
-- **Last user request**: Full upgrade of SAMPATI V2 covering R1 (RDS PostgreSQL migration), R2 (Real-time WebSocket push), R3 (Interactive Constellation Visualizer), and R4 (Verdict History Line Chart).
-- **Pending clarifications**: None
-- **Delivered results**: SAMPATI V2 upgrade complete and independently verified (189/189 tests passing, 0 errors, full RDS/WS/Interactive Canvas/Recharts integration).
+- **Last user request**: CI/CD pipeline hardening (ghcr.io, health-check, rollback, commit status, linting), Multi-Page React Dashboard (React Router, Overview, Investigations, Analytics, System Health, Settings), and Backend endpoints (`/stats/analytics`, `/health/detailed`, `PATCH /cases/{case_id}/status`) with comprehensive tests.
+- **Pending clarifications**: none
+- **Delivered results**: Previous RDS/WS/Graph release completed. Active orchestrator Gen 3 running.
 
 ## Project Status
 - **Phase**: complete
 - **Chosen Route**: General (teamwork_preview_orchestrator)
-- **Active Orchestrator**: 60e4794c-c081-4b25-afa6-3a9c8cb2a5ce (completed)
-- **Victory Auditor**: 419d850c-95b9-426a-874d-f39b228042ed (completed)
+- **Active Orchestrator**: 2ca17de6-f623-4ca4-be0a-d2981e8f7908 (completed)
+- **Victory Auditor**: e679d367-fa04-4a2f-b2a6-178f8dc5bd9e (completed)
+- **Progress Cron**: task-21 (cancelled)
+- **Liveness Cron**: task-23 (cancelled)
 
 ## Victory Audit Status
 - **Triggered**: yes
@@ -32,5 +34,9 @@ Monitor and route SAMPATI V2 upgrade to AWS RDS PostgreSQL persistence, WebSocke
 - **Retry count**: 0
 
 ## Artifact Index
-- c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\ORIGINAL_REQUEST.md — Verbatim original user request
-- c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_victory_auditor_sentinel_1\handoff.md — Independent Victory Audit Report
+- /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md — Verbatim original user request
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_orchestrator_3/handoff.md — Master Orchestrator Handoff
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_victory_auditor_sentinel_2/handoff.md — Independent Victory Audit Report
+
+## Artifact Index
+- /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md — Authoritative record of user request

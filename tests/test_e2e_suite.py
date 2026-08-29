@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 SAMPATI V2 — Master End-to-End Test Suite Runner & Orchestrator
-Executes all 4 tiers of tests covering F1 through F15, validates interface contracts,
-measures scoring latencies, and verifies database & WebSocket behaviors.
+Executes all 5 tiers of tests covering R1 (CI/CD), R2 (Multi-page Frontend Dashboard),
+R3 (Backend Endpoints & Telemetry), F1 through F16, boundary conditions, combinations,
+real-world scenarios, and adversarial stress hardening.
 """
 from __future__ import annotations
 
@@ -18,12 +19,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+import tests.mock_env
+
 # Import test suites
 from tests.frontend_contracts_test import (
     TestFrontendMathematicalContracts,
     TestFrontendSourceCodeContracts,
+    TestFrontendRoutingAndPagesContracts,
 )
 from tests.test_cicd_pipeline import TestCiCdPipeline
+from tests.test_analytics import TestAnalyticsEngine
+from tests.test_health_detailed import TestHealthDetailed
+from tests.test_case_status import TestCaseStatusWorkflow
 from tests.test_tier1_features import Tier1FeatureTests
 from tests.test_tier2_boundary import Tier2BoundaryTests
 from tests.test_tier3_combinations import Tier3CombinationTests
@@ -42,7 +49,16 @@ def build_suite(tier: int | None = None, feature: str | None = None) -> unittest
     loader = unittest.TestLoader()
 
     tier_map = {
-        1: [Tier1FeatureTests, TestFrontendMathematicalContracts, TestFrontendSourceCodeContracts, TestCiCdPipeline],
+        1: [
+            Tier1FeatureTests,
+            TestFrontendMathematicalContracts,
+            TestFrontendSourceCodeContracts,
+            TestFrontendRoutingAndPagesContracts,
+            TestCiCdPipeline,
+            TestAnalyticsEngine,
+            TestHealthDetailed,
+            TestCaseStatusWorkflow,
+        ],
         2: [Tier2BoundaryTests],
         3: [Tier3CombinationTests],
         4: [Tier4ScenarioTests],
@@ -66,7 +82,7 @@ def build_suite(tier: int | None = None, feature: str | None = None) -> unittest
         for test in tests:
             test_name = test._testMethodName
             if feature is not None:
-                # Filter by feature (e.g. F1, F12)
+                # Filter by feature (e.g. F1, F12, R1, R2, R3)
                 f_tag = feature.lower()
                 if f_tag not in test_name.lower():
                     continue
@@ -120,7 +136,7 @@ def run_e2e_suite(tier: int | None = None, feature: str | None = None, verbose: 
 def main():
     parser = argparse.ArgumentParser(description="SAMPATI V2 E2E Test Suite Runner")
     parser.add_argument("--tier", type=int, choices=[1, 2, 3, 4, 5], help="Run tests for a specific tier (1-5)")
-    parser.add_argument("--feature", type=str, help="Filter tests for a specific feature (e.g. F1, F12)")
+    parser.add_argument("--feature", type=str, help="Filter tests for a specific feature (e.g. F1, F12, R1)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose test execution output")
 
     args = parser.parse_args()

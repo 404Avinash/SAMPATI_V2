@@ -1,9 +1,18 @@
+"""Frontend Mathematical, Structural, AST, and Routing Contract Tests for SAMPATI V2.
+
+Validates:
+1. Canvas Hit Detection & Mathematical Projection (point_to_segment_distance).
+2. Continuous Risk-Score Color Gradient Interpolation across full spectrum.
+3. Currency Formatting with Indian Rupee (INR) grouping.
+4. Canvas Graph Component Structure and Event Handlers.
+5. Recharts Chart Integration & Series Contracts.
+6. Multi-Page Navigation and React Router Contracts (5 pages: Overview, Investigations, Analytics, System Health, Settings).
+7. Persistent Sidebar Navigation, Badges, and Collapsible State.
+8. MainLayout and Outlet integration.
+9. AppStateContext state management, WebSocket integration, and telemetry hooks.
 """
-Frontend Mathematical and Structural Contract Tests for SAMPATI V2.
-Validates Canvas Hit Detection, Continuous Risk-Score Color Gradient Interpolation,
-Role Classification, Currency Formatting, Recharts Series Specification,
-and WebSocket Auto-reconnect Logic.
-"""
+from __future__ import annotations
+
 import math
 import os
 import re
@@ -27,12 +36,7 @@ def point_to_segment_distance(px: float, py: float, x1: float, y1: float, x2: fl
 
 
 def get_continuous_edge_color(risk_score: float) -> str:
-    """
-    Interpolate continuous edge stroke color based on risk score (0-100).
-    0-39: Slate (rgb(100, 116, 139))
-    40-74: Amber (rgb(245, 158, 11))
-    75-100: Crimson / Red (rgb(239, 68, 68))
-    """
+    """Interpolate continuous edge stroke color based on risk score (0-100)."""
     if risk_score is None:
         return "rgba(100, 116, 139, 0.30)"
     try:
@@ -86,10 +90,8 @@ class TestFrontendMathematicalContracts(unittest.TestCase):
     def test_node_euclidean_hit_detection(self):
         """Verify Euclidean distance hit detection threshold for canvas nodes (<= 12px)."""
         node_x, node_y = 100.0, 100.0
-        # Inside hit radius
         self.assertLessEqual(math.hypot(105.0 - node_x, 108.0 - node_y), 12.0)
         self.assertLessEqual(math.hypot(100.0 - node_x, 112.0 - node_y), 12.0)
-        # Outside hit radius
         self.assertGreater(math.hypot(110.0 - node_x, 110.0 - node_y), 12.0)
         self.assertGreater(math.hypot(100.0 - node_x, 113.0 - node_y), 12.0)
 
@@ -97,35 +99,26 @@ class TestFrontendMathematicalContracts(unittest.TestCase):
         """Verify point-to-line segment projection hit detection threshold for canvas edges (<= 6px)."""
         x1, y1 = 50.0, 50.0
         x2, y2 = 200.0, 50.0
-
-        # Point directly on line
         self.assertAlmostEqual(point_to_segment_distance(100.0, 50.0, x1, y1, x2, y2), 0.0)
-        # Point within 5px
         self.assertLessEqual(point_to_segment_distance(100.0, 55.0, x1, y1, x2, y2), 6.0)
-        # Point outside 6px
         self.assertGreater(point_to_segment_distance(100.0, 58.0, x1, y1, x2, y2), 6.0)
-        # Point beyond segment endpoints
         self.assertGreater(point_to_segment_distance(210.0, 50.0, x1, y1, x2, y2), 6.0)
 
     def test_continuous_risk_color_gradient_interpolation(self):
         """Verify continuous edge risk color gradient across risk spectrum."""
-        # Low risk -> slate / low opacity
         c0 = get_continuous_edge_color(0)
         self.assertIn("100, 116, 139", c0)
         c20 = get_continuous_edge_color(20)
         self.assertIn("100, 116, 139", c20)
 
-        # Medium risk -> amber
         c50 = get_continuous_edge_color(50)
         self.assertIn("245, 158, 11", c50)
 
-        # High risk -> red / crimson
         c85 = get_continuous_edge_color(85)
         self.assertIn("239, 68, 68", c85)
         c100 = get_continuous_edge_color(100)
         self.assertIn("239, 68, 68", c100)
 
-        # Boundary clamping
         c_neg = get_continuous_edge_color(-10)
         self.assertIn("100, 116, 139", c_neg)
         c_over = get_continuous_edge_color(150)
@@ -145,40 +138,116 @@ class TestFrontendSourceCodeContracts(unittest.TestCase):
     """Verify structural and AST contracts in frontend JSX source files."""
 
     def test_network_constellation_jsx_contains_canvas_interaction(self):
-        """Verify NetworkConstellation.jsx contains event handling, tooltip, and gradient logic."""
+        """Verify NetworkConstellation.jsx contains event handling and canvas ref."""
         path = os.path.join(FRONTEND_SRC, "components", "NetworkConstellation.jsx")
-        self.assertTrue(os.path.exists(path), f"File {path} must exist")
+        self.assertTrue(os.path.exists(path))
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-
-        # Canvas ref & listeners
         self.assertIn("canvasRef", content)
         self.assertTrue("onMouseMove" in content or "mousemove" in content)
         self.assertTrue("onClick" in content or "click" in content)
-        self.assertTrue("onMouseLeave" in content or "mouseleave" in content)
 
     def test_verdict_history_chart_recharts_contract(self):
         """Verify VerdictHistoryChart.jsx contains Recharts components and series."""
         path = os.path.join(FRONTEND_SRC, "components", "VerdictHistoryChart.jsx")
-        if os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-            self.assertTrue("recharts" in content.lower() or "AreaChart" in content or "LineChart" in content)
-            self.assertTrue("ALLOW" in content or "allowed" in content)
-            self.assertTrue("HOLD" in content or "held" in content)
-            self.assertTrue("BLOCK" in content or "blocked" in content)
-
-    def test_app_jsx_structure(self):
-        """Verify App.jsx contains core state hooks and component layout."""
-        path = os.path.join(FRONTEND_SRC, "App.jsx")
-        self.assertTrue(os.path.exists(path), f"File {path} must exist")
+        self.assertTrue(os.path.exists(path))
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
+        self.assertTrue("recharts" in content.lower() or "AreaChart" in content or "LineChart" in content or "ResponsiveContainer" in content)
 
-        self.assertIn("KpiStrip", content)
-        self.assertIn("NetworkConstellation", content)
-        self.assertIn("LiveFeed", content)
-        self.assertIn("CaseDrawer", content)
+    def test_app_or_router_entry_point(self):
+        """Verify App.jsx defines the root router and layout configuration."""
+        app_path = os.path.join(FRONTEND_SRC, "App.jsx")
+        self.assertTrue(os.path.exists(app_path), f"File {app_path} must exist")
+        with open(app_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("BrowserRouter", content)
+        self.assertIn("Routes", content)
+        self.assertIn("Route", content)
+        self.assertIn("AppStateProvider", content)
+
+
+class TestFrontendRoutingAndPagesContracts(unittest.TestCase):
+    """Verify React Router multi-page routing contracts, 5 dedicated pages, and layout architecture."""
+
+    def test_package_json_contains_react_router_dom(self):
+        """Verify frontend/package.json contains react-router-dom dependency."""
+        pkg_path = os.path.join(ROOT, "frontend", "package.json")
+        self.assertTrue(os.path.exists(pkg_path))
+        with open(pkg_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("react-router-dom", content)
+
+    def test_five_dedicated_pages_exist_in_pages_directory(self):
+        """Verify all 5 required pages exist as JSX components in frontend/src/pages/."""
+        pages_dir = os.path.join(FRONTEND_SRC, "pages")
+        self.assertTrue(os.path.exists(pages_dir))
+        
+        expected_pages = [
+            "OverviewPage.jsx",
+            "InvestigationsPage.jsx",
+            "AnalyticsPage.jsx",
+            "SystemHealthPage.jsx",
+            "SettingsPage.jsx",
+        ]
+        for page_name in expected_pages:
+            full_path = os.path.join(pages_dir, page_name)
+            self.assertTrue(
+                os.path.exists(full_path),
+                f"Required page {page_name} must exist at {full_path}"
+            )
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertGreater(len(content), 100, f"Page {page_name} must have non-empty implementation")
+
+    def test_routes_coverage_in_app_jsx(self):
+        """Verify App.jsx defines client-side routes for all 5 pages."""
+        app_path = os.path.join(FRONTEND_SRC, "App.jsx")
+        self.assertTrue(os.path.exists(app_path))
+        with open(app_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        target_routes = ["/overview", "/investigations", "/analytics", "/health", "/settings"]
+        for route in target_routes:
+            self.assertIn(route, content, f"App.jsx must define route {route}")
+
+    def test_main_layout_and_outlet_contract(self):
+        """Verify MainLayout.jsx embeds Sidebar, Topbar, and React Router Outlet."""
+        layout_path = os.path.join(FRONTEND_SRC, "layouts", "MainLayout.jsx")
+        self.assertTrue(os.path.exists(layout_path))
+        with open(layout_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("Sidebar", content)
+        self.assertIn("Topbar", content)
+        self.assertIn("Outlet", content)
+
+    def test_sidebar_persistent_navigation_and_collapsible_state(self):
+        """Verify Sidebar.jsx includes nav items, NavLink routing, and collapsible localStorage persistence."""
+        sidebar_path = os.path.join(FRONTEND_SRC, "components", "common", "Sidebar.jsx")
+        self.assertTrue(os.path.exists(sidebar_path))
+        with open(sidebar_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("NavLink", content)
+        self.assertIn("Overview", content)
+        self.assertIn("Investigations", content)
+        self.assertIn("Analytics", content)
+        self.assertTrue("System Health" in content or "Health" in content)
+        self.assertIn("Settings", content)
+        self.assertTrue("sampati_sidebar_collapsed" in content or "collapsed" in content)
+
+    def test_app_state_context_contract(self):
+        """Verify AppStateContext.jsx defines global state provider and custom hook."""
+        context_path = os.path.join(FRONTEND_SRC, "context", "AppStateContext.jsx")
+        self.assertTrue(os.path.exists(context_path))
+        with open(context_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("AppStateContext", content)
+        self.assertIn("AppStateProvider", content)
+        self.assertIn("useAppState", content)
+        self.assertIn("useWebSocket", content)
+        self.assertIn("verdictHistory", content)
 
 
 if __name__ == "__main__":

@@ -22,7 +22,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import httpx
+import tests.mock_env
+
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 
 class Tier1FeatureTests(unittest.IsolatedAsyncioTestCase):
@@ -706,7 +711,9 @@ class Tier1FeatureTests(unittest.IsolatedAsyncioTestCase):
     # =========================================================================
     async def test_f15_01_app_layout_order(self):
         """F15.1: Verify App.jsx component layout order (Masthead -> KpiStrip -> Visuals)."""
-        p = os.path.join(ROOT, "frontend", "src", "App.jsx")
+        overview_path = os.path.join(ROOT, "frontend", "src", "pages", "OverviewPage.jsx")
+        app_path = os.path.join(ROOT, "frontend", "src", "App.jsx")
+        p = overview_path if os.path.exists(overview_path) else app_path
         with open(p, "r", encoding="utf-8") as f:
             content = f.read()
         kpi_idx = content.find("KpiStrip")

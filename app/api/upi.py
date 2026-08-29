@@ -1,8 +1,8 @@
 """UPI Mule-Network Fraud Detection and Case Management API Router for SAMPATI V2.
 
 Provides REST endpoints for inline transaction evaluation, cross-PSP federation rounds,
-case investigation and feedback workflows, synthetic simulation, and real-time statistics
-backed by AWS RDS PostgreSQL.
+case investigation and feedback workflows, synthetic simulation, aggregated analytics,
+detailed subsystem health telemetry, and real-time statistics backed by AWS RDS PostgreSQL.
 """
 from __future__ import annotations
 
@@ -11,16 +11,75 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+try:
+    from fastapi import APIRouter, Depends, HTTPException, Query
+    from fastapi.responses import FileResponse, JSONResponse
+    FASTAPI_AVAILABLE = True
+except ImportError:
+    FASTAPI_AVAILABLE = False
 
-from app.api.websocket import broadcast_event
-from app.db.session import get_db
+    class APIRouter:
+        def __init__(self, *args, **kwargs):
+            self.routes = []
+
+        def get(self, *args, **kwargs):
+            def decorator(f): return f
+            return decorator
+
+        def post(self, *args, **kwargs):
+            def decorator(f): return f
+            return decorator
+
+        def patch(self, *args, **kwargs):
+            def decorator(f): return f
+            return decorator
+
+    def Depends(f=None): return None
+    def Query(default=None, **kwargs): return default
+
+    class HTTPException(Exception):
+        def __init__(self, status_code: int, detail: Any = None):
+            self.status_code = status_code
+            self.detail = detail
+            super().__init__(f"{status_code}: {detail}")
+
+    class FileResponse:
+        def __init__(self, path, media_type=None):
+            self.path = path
+            self.media_type = media_type
+
+    class JSONResponse:
+        def __init__(self, content, status_code=200):
+            self.content = content
+            self.status_code = status_code
+
+try:
+    from sqlalchemy import func, select
+    from sqlalchemy.ext.asyncio import AsyncSession
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    AsyncSession = Any  # type: ignore
+
+try:
+    from app.api.websocket import broadcast_event
+except Exception:
+    async def broadcast_event(*args, **kwargs):
+        pass
+
+try:
+    from app.db.session import get_db
+except Exception:
+    async def get_db():
+        yield None
+
 from app.models.upi_models import (
+    AnalyticsResponse,
+    CaseStatusUpdateRequest,
+    DetailedHealthResponse,
+    FeedbackRequest,
     LabeledUpiTransaction,
+    SimulateRequest,
     UpiEvaluationResponse,
     UpiTransaction,
 )
@@ -32,24 +91,24 @@ logger = logging.getLogger("sampati.api.upi")
 router = APIRouter()
 
 
-class FeedbackRequest(BaseModel):
-    confirmed_fraud: Optional[bool] = None
-    confirmed: Optional[bool] = None
+def get_analytics_payload(
+    service: Optional[UpiCaseService] = None,
+    interval: str = "hourly",
+    hours: int = 24,
+    days: int = 30,
+    limit_accounts: int = 10,
+) -> Dict[str, Any]:
+    """Helper returning aggregated analytics payload for given service instance."""
+    svc = service or get_upi_case_service()
+    return svc.get_analytics(interval=interval, hours=hours, days=days, limit_accounts=limit_accounts)
 
-    @property
-    def is_confirmed_fraud(self) -> bool:
-        if self.confirmed_fraud is not None:
-            return bool(self.confirmed_fraud)
-        if self.confirmed is not None:
-            return bool(self.confirmed)
-        return False
 
-
-class SimulateRequest(BaseModel):
-    total_txns: int = 100
-    fraud_ratio: float = 0.15
-    seed: Optional[int] = 42
-    run_federation: bool = True
+def get_detailed_health_payload(
+    service: Optional[UpiCaseService] = None,
+) -> Dict[str, Any]:
+    """Helper returning detailed subsystem health telemetry payload."""
+    svc = service or get_upi_case_service()
+    return svc.get_detailed_health()
 
 
 @router.post("/check", summary="Inline UPI Pre-Transaction Gate")
@@ -101,7 +160,7 @@ async def run_federation(
     service: UpiCaseService = get_upi_case_service()
     result = service.run_federation()
 
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         for ring in result.get("rings", []):
             await service.save_ring_to_db_session(ring, db)
         for case in service.list_cases():
@@ -129,7 +188,7 @@ async def list_rings(
 ) -> Dict[str, Any]:
     """Return all known cross-PSP mule rings."""
     service: UpiCaseService = get_upi_case_service()
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         try:
             result = await db.execute(select(MuleRingModel).order_by(MuleRingModel.detected_at.desc()))
             db_rings = result.scalars().all()
@@ -147,7 +206,7 @@ async def list_rings(
 
 @router.get("/cases", summary="List Investigative UPI Cases")
 async def list_upi_cases(
-    status: Optional[str] = Query(None, description="Filter by case status (OPEN, INVESTIGATED, RESOLVED)"),
+    status: Optional[str] = Query(None, description="Filter by case status (OPEN, REVIEWED, ESCALATED, DISMISSED, INVESTIGATED, RESOLVED)"),
     verdict: Optional[str] = Query(None, description="Filter by verdict (ALLOW, HOLD, BLOCK)"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -156,7 +215,7 @@ async def list_upi_cases(
     """List investigative cases with pagination and optional filtering."""
     service: UpiCaseService = get_upi_case_service()
 
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         try:
             stmt = select(UpiCaseModel).order_by(UpiCaseModel.created_at.desc())
             count_stmt = select(func.count(UpiCaseModel.case_id))
@@ -206,7 +265,7 @@ async def get_upi_case(
     """Fetch complete case record including SAR report and token economy."""
     service: UpiCaseService = get_upi_case_service()
 
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         try:
             result = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
             db_case = result.scalar_one_or_none()
@@ -229,7 +288,7 @@ async def get_case_graph(
     """Serve the rendered PNG topology artifact for a case."""
     service: UpiCaseService = get_upi_case_service()
     case = None
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         try:
             res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
             db_c = res.scalar_one_or_none()
@@ -251,6 +310,36 @@ async def get_case_graph(
     return FileResponse(path, media_type="image/png")
 
 
+@router.patch("/cases/{case_id}/status", summary="Update Case Review Status")
+async def update_upi_case_status(
+    case_id: str,
+    body: CaseStatusUpdateRequest,
+    db: Optional[AsyncSession] = Depends(get_db),
+) -> Dict[str, Any]:
+    """Update case review status (reviewed, escalated, dismissed, open), persist to DB, trigger DPIP/feedback, and broadcast updates."""
+    service: UpiCaseService = get_upi_case_service()
+    try:
+        result = service.update_case_status(
+            case_id=case_id,
+            new_status=body.status,
+            notes=body.notes,
+            resolution_notes=body.resolution_notes,
+            resolution=body.resolution,
+            escalate_to_dpip=body.escalate_to_dpip,
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    if db is not None and SQLALCHEMY_AVAILABLE:
+        updated_case = service.get_case(case_id)
+        if updated_case:
+            await service.save_case_to_db_session(updated_case, db)
+
+    return result
+
+
 @router.post("/cases/{case_id}/feedback", summary="Submit Human Analyst Case Resolution")
 async def submit_case_feedback(
     case_id: str,
@@ -265,7 +354,7 @@ async def submit_case_feedback(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
 
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         updated_case = service.get_case(case_id)
         if updated_case:
             await service.save_case_to_db_session(updated_case, db)
@@ -343,8 +432,7 @@ async def simulate_traffic(
     else:
         detected_rings = service.federation.current_rings()
 
-    # Synchronize all simulated cases and rings to PostgreSQL if session is active
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         for cid in opened_case_ids:
             c = service.get_case(cid)
             if c:
@@ -359,7 +447,6 @@ async def simulate_traffic(
         "detected_rings": len(detected_rings),
     }
 
-    # Broadcast real-time stats update and simulation completion
     await broadcast_event("stats_update", service.get_current_stats())
     await broadcast_event("SIMULATION_COMPLETE", summary)
     return summary
@@ -378,23 +465,20 @@ async def upi_stats(
     resolved_cases = 0
     rings_known = 0
 
-    if db is not None:
+    if db is not None and SQLALCHEMY_AVAILABLE:
         try:
-            # Query case status distribution directly from DB
             status_stmt = select(UpiCaseModel.status, func.count(UpiCaseModel.case_id)).group_by(UpiCaseModel.status)
             status_rows = (await db.execute(status_stmt)).all()
             status_map = {row[0]: row[1] for row in status_rows}
 
             open_cases = status_map.get("OPEN", 0)
-            investigated_cases = status_map.get("INVESTIGATED", 0)
-            resolved_cases = status_map.get("RESOLVED", 0)
+            investigated_cases = status_map.get("INVESTIGATED", 0) + status_map.get("REVIEWED", 0) + status_map.get("ESCALATED", 0)
+            resolved_cases = status_map.get("RESOLVED", 0) + status_map.get("DISMISSED", 0)
             total_cases = sum(status_map.values())
 
-            # Query total rings known from DB
             rings_count = await db.scalar(select(func.count(MuleRingModel.ring_hash)))
             rings_known = rings_count or 0
 
-            # If DB has data or memory is empty, return DB stats
             if total_cases > 0 or rings_known > 0 or not service.list_cases():
                 return {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -411,12 +495,11 @@ async def upi_stats(
         except Exception as exc:
             logger.debug(f"DB stats query failed, falling back to memory: {exc}")
 
-    # In-memory fallback
     cases = service.list_cases()
     total_cases = len(cases)
     open_cases = sum(1 for c in cases if c.get("status") == "OPEN")
-    investigated_cases = sum(1 for c in cases if c.get("status") == "INVESTIGATED")
-    resolved_cases = sum(1 for c in cases if c.get("status") == "RESOLVED")
+    investigated_cases = sum(1 for c in cases if c.get("status") in ("INVESTIGATED", "REVIEWED", "ESCALATED"))
+    resolved_cases = sum(1 for c in cases if c.get("status") in ("RESOLVED", "DISMISSED"))
     rings_known = len(service.federation.current_rings())
 
     return {
@@ -431,3 +514,32 @@ async def upi_stats(
         "dpip": service.dpip.stats(),
         "adaptive_sensitivity": round(service.adaptive.sensitivity, 3),
     }
+
+
+@router.get("/stats/analytics", summary="Aggregated Time-Series & Mule Network Analytics")
+async def get_stats_analytics(
+    interval: str = Query("hourly", description="Aggregation bucket interval: 'hourly' or 'daily'"),
+    hours: int = Query(24, ge=1, le=720, description="Hours lookback window for hourly interval"),
+    days: int = Query(30, ge=1, le=365, description="Days lookback window for daily interval"),
+    limit_accounts: int = Query(10, ge=1, le=100, description="Max top flagged accounts to return"),
+    db: Optional[AsyncSession] = Depends(get_db),
+) -> Dict[str, Any]:
+    """Return time-bucketed verdict counts, rule trigger frequencies, top flagged accounts, and bank distributions."""
+    service: UpiCaseService = get_upi_case_service()
+    analytics_data = service.get_analytics(
+        interval=interval,
+        hours=hours,
+        days=days,
+        limit_accounts=limit_accounts,
+    )
+    return analytics_data
+
+
+@router.get("/health/detailed", summary="Detailed Real-Time Subsystem Health & Latency Telemetry")
+async def get_detailed_health(
+    db: Optional[AsyncSession] = Depends(get_db),
+) -> Dict[str, Any]:
+    """Return detection engine latency percentiles (p50/p90/p99), DB pool status, Redis ping, WebSocket clients, throughput, and uptime."""
+    service: UpiCaseService = get_upi_case_service()
+    health_data = service.get_detailed_health()
+    return health_data

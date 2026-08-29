@@ -22,7 +22,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 from fastapi.testclient import TestClient
 
 from app.api.websocket import ConnectionManager, broadcast_event, manager

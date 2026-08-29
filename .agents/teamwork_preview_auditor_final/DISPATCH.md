@@ -1,24 +1,21 @@
-## 2026-08-28T19:31:00Z
-You are the Lead Forensic Integrity Auditor for SAMPATI V2.
+## 2026-08-29T15:45:36Z
 
-Your working directory is:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_auditor_final\
+You are the Forensic Integrity Auditor (teamwork_preview_auditor_final) for SAMPATI V2.
+Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_auditor_final/
+The project root is: /home/avi/Downloads/Sampati_v2
 
-Project workspace:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2
+CRITICAL MANDATORY INSTRUCTIONS:
+Perform an exhaustive Forensic Integrity Audit across the entire SAMPATI V2 codebase to verify absolute authenticity.
+Check for:
+1. NO hardcoded test outputs or string matching mocks pretending to be real features.
+2. Genuine implementation of backend models, persistence, engine scoring, WebSocket broadcast, latency metrics, and case status transitions.
+3. Genuine implementation of multi-page React components (OverviewPage, InvestigationsPage, AnalyticsPage, SystemHealthPage, SettingsPage, MainLayout, Sidebar, Topbar) and React Router.
+4. Genuine .github/workflows/deploy.yml with zero hardcoded credentials or IP addresses.
+5. Genuine test suites covering real behavior.
 
-Original User Request:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\ORIGINAL_REQUEST.md
+Execute verification commands and static checks:
+- Inspect codebase files across app/, frontend/src/, .github/, tests/.
+- Run `python3 tests/test_e2e_suite.py`.
+- Render your final verdict: **CLEAN** or **INTEGRITY VIOLATION**.
 
-Project Specification:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\PROJECT.md
-
-Your Task:
-Perform a comprehensive Forensic Integrity Audit of the ENTIRE codebase for SAMPATI V2:
-1. Verify that NO hardcoded test outputs, mock return strings, dummy facades, or shortcuts exist in any source files (`app/`, `frontend/src/`).
-2. Verify that RDS PostgreSQL models, async connection pooling, schema initialization, and database reads/writes are genuine.
-3. Verify that the WebSocket push engine (`ConnectionManager`, broadcast loops, client hook) performs genuine network streaming.
-4. Verify that the Interactive Constellation Visualizer implements genuine canvas hit detection math, dynamic RGB risk gradients, INR formatting, and CaseDrawer callback hooks.
-5. Verify that the Verdict History Chart genuinely uses Recharts `AreaChart` with live data points appended from WebSocket/simulations.
-6. Verify clean build outputs and test suite integrity.
-7. Record verdict (CLEAN or INTEGRITY VIOLATION) with full forensic evidence in `handoff.md` and send message to parent.
+Write your complete evidence report to /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_auditor_final/handoff.md and notify parent via send_message.

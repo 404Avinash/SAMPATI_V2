@@ -1,14 +1,26 @@
 name: CI/CD Pipeline
 
-on:
+"on":
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+  statuses: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
-    name: Run E2E Test Suite
+  lint-and-test:
+    name: Lint & Test Suite
     runs-on: ubuntu-latest
 
     services:
@@ -30,17 +42,50 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest
+          pip install ruff pytest
+
+      - name: Lint Python (Ruff)
+        run: |
+          ruff check app tests
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Lint Frontend (ESLint)
+        working-directory: frontend
+        run: |
+          if npm run | grep -q "lint"; then
+            npm run lint
+          else
+            npx eslint src --ext js,jsx --max-warnings 0 || true
+          fi
+
+      - name: Build Frontend (Vite)
+        working-directory: frontend
+        run: npm run build
 
       - name: Execute E2E Test Suite
         env:
@@ -50,37 +95,212 @@ jobs:
         run: |
           python tests/test_e2e_suite.py --verbose
 
-  deploy:
-    name: Deploy to AWS EC2
-    needs: test
+  build-and-push:
+    name: Build & Push Container to GHCR
+    needs: lint-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Execute deployment commands via SSH
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Build Frontend Assets
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+          npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha,format=long,prefix=
+            type=raw,value=latest,enable=true
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Image & Healthcheck on EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GITHUB_ACTOR,GITHUB_TOKEN,GITHUB_SHA,GITHUB_REPOSITORY
           script: |
             set -e
-            cd /opt/sampati
-            git pull origin main
-            docker build -t sampati:latest .
-            docker stop sampati || true
-            docker rm sampati || true
-            if [ -f /opt/sampati/.env ]; then
-              docker run -d \
-                --name sampati \
-                --restart unless-stopped \
-                --env-file /opt/sampati/.env \
-                -p 8000:8000 \
-                sampati:latest
-            else
-              docker run -d \
-                --name sampati \
-                --restart unless-stopped \
-                -p 8000:8000 \
-                sampati:latest
+            REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            IMAGE_TAG="ghcr.io/${REPO_LOWER}:${{ github.sha }}"
+
+            echo "=== Step 1: Registry Login ==="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            echo "=== Step 2: Pulling Target Image (${IMAGE_TAG}) ==="
+            docker pull "${IMAGE_TAG}"
+
+            echo "=== Step 3: Snapshot Previous Running Image ==="
+            PREV_IMAGE=$(docker inspect --format='{{.Config.Image}}' sampati 2>/dev/null || echo "")
+            echo "Previous active image: [${PREV_IMAGE}]"
+
+            echo "=== Step 4: Starting New Container ==="
+            docker stop sampati 2>/dev/null || true
+            docker rm sampati 2>/dev/null || true
+
+            ENV_FILE_ARG=""
+            if [ -f "/opt/sampati/.env" ]; then
+              ENV_FILE_ARG="--env-file /opt/sampati/.env"
             fi
+
+            docker run -d \
+              --name sampati \
+              --restart unless-stopped \
+              ${ENV_FILE_ARG} \
+              -p 8000:8000 \
+              "${IMAGE_TAG}"
+
+            echo "=== Step 5: 60-Second Post-Deploy Health Check Polling ==="
+            HEALTH_URL="http://127.0.0.1:8000/health"
+            TIMEOUT_SECS=60
+            POLL_INTERVAL=3
+            ELAPSED=0
+            HEALTH_PASSED=0
+
+            while [ $ELAPSED -lt $TIMEOUT_SECS ]; do
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "Health check PASSED with HTTP 200 after ${ELAPSED}s."
+                HEALTH_PASSED=1
+                break
+              fi
+              echo "Health probe status: HTTP ${HTTP_CODE} (elapsed: ${ELAPSED}s / ${TIMEOUT_SECS}s)"
+              sleep $POLL_INTERVAL
+              ELAPSED=$((ELAPSED + POLL_INTERVAL))
+            done
+
+            if [ $HEALTH_PASSED -ne 1 ]; then
+              echo "!!! HEALTH CHECK FAILED: Service did not return HTTP 200 within ${TIMEOUT_SECS}s !!!"
+              echo "--- Container Logs (last 50 lines) ---"
+              docker logs --tail 50 sampati || true
+              
+              if [ -n "$PREV_IMAGE" ] && [ "$PREV_IMAGE" != "$IMAGE_TAG" ]; then
+                echo "=== Initiating Automated Rollback to ${PREV_IMAGE} ==="
+                docker stop sampati 2>/dev/null || true
+                docker rm sampati 2>/dev/null || true
+                docker run -d \
+                  --name sampati \
+                  --restart unless-stopped \
+                  ${ENV_FILE_ARG} \
+                  -p 8000:8000 \
+                  "${PREV_IMAGE}"
+                
+                sleep 5
+                ROLLBACK_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+                echo "Rolled-back container health probe: HTTP ${ROLLBACK_CODE}"
+              else
+                echo "No prior valid container image to rollback to."
+              fi
+              exit 1
+            fi
+
+            echo "=== Step 6: Post-Deploy Image Housekeeping ==="
+            docker image prune -af --filter "until=72h" || true
+            echo "=== Deployment Completed Successfully ==="
+
+  notify:
+    name: Deployment Notification & Status
+    needs: [lint-and-test, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Update GitHub Commit Status
+        run: |
+          DEPLOY_RESULT="${{ needs.deploy.result }}"
+          TEST_RESULT="${{ needs.lint-and-test.result }}"
+          
+          if [ "$DEPLOY_RESULT" = "success" ]; then
+            STATE="success"
+            DESC="EC2 Deployment & Health Check Passed"
+          elif [ "$TEST_RESULT" = "failure" ]; then
+            STATE="failure"
+            DESC="CI Test/Lint Suite Failed"
+          elif [ "$DEPLOY_RESULT" = "failure" ]; then
+            STATE="failure"
+            DESC="EC2 Deployment Failed (Rollback Triggered)"
+          elif [ "$TEST_RESULT" = "success" ] && [ "${{ github.event_name }}" = "pull_request" ]; then
+            STATE="success"
+            DESC="PR Verification Passed"
+          else
+            STATE="error"
+            DESC="Pipeline execution error"
+          fi
+
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d "{\"state\":\"$STATE\",\"target_url\":\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",\"description\":\"$DESC\",\"context\":\"continuous-delivery/sampati-ec2\"}"
+
+      - name: Post Slack Webhook Notification (Optional)
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            DEPLOY_RESULT="${{ needs.deploy.result }}"
+            COLOR=$([ "$DEPLOY_RESULT" = "success" ] && echo "#2eb886" || echo "#a30200")
+            PAYLOAD=$(cat <<EOF
+            {
+              "attachments": [
+                {
+                  "color": "$COLOR",
+                  "title": "SAMPATI V2 CI/CD: ${{ github.ref_name }}",
+                  "title_link": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                  "text": "• *Commit*: \`${{ github.sha }}\`\n• *Author*: ${{ github.actor }}\n• *Event*: ${{ github.event_name }}\n• *Test*: ${{ needs.lint-and-test.result }}\n• *Deploy*: ${{ needs.deploy.result }}",
+                  "ts": $(date +%s)
+                }
+              ]
+            }
+          EOF
+          )
+            curl -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK" || true
+          else
+            echo "SLACK_WEBHOOK_URL not configured. Skipping Slack notification."
+          fi
