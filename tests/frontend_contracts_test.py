@@ -211,20 +211,19 @@ class TestFrontendRoutingAndPagesContracts(unittest.TestCase):
             self.assertIn(route, content, f"App.jsx must define route {route}")
 
     def test_main_layout_and_outlet_contract(self):
-        """Verify MainLayout.jsx embeds Sidebar, Topbar, and React Router Outlet."""
+        """Verify MainLayout.jsx embeds Navbar and React Router Outlet."""
         layout_path = os.path.join(FRONTEND_SRC, "layouts", "MainLayout.jsx")
         self.assertTrue(os.path.exists(layout_path))
         with open(layout_path, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("Sidebar", content)
-        self.assertIn("Topbar", content)
+        self.assertIn("Navbar", content)
         self.assertIn("Outlet", content)
 
-    def test_sidebar_persistent_navigation_and_collapsible_state(self):
-        """Verify Sidebar.jsx includes nav items, NavLink routing, and collapsible localStorage persistence."""
-        sidebar_path = os.path.join(FRONTEND_SRC, "components", "common", "Sidebar.jsx")
-        self.assertTrue(os.path.exists(sidebar_path))
-        with open(sidebar_path, "r", encoding="utf-8") as f:
+    def test_navbar_navigation_state(self):
+        """Verify Navbar.jsx includes nav items and NavLink routing."""
+        navbar_path = os.path.join(FRONTEND_SRC, "components", "common", "Navbar.jsx")
+        self.assertTrue(os.path.exists(navbar_path))
+        with open(navbar_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         self.assertIn("NavLink", content)
@@ -233,7 +232,6 @@ class TestFrontendRoutingAndPagesContracts(unittest.TestCase):
         self.assertIn("Analytics", content)
         self.assertTrue("System Health" in content or "Health" in content)
         self.assertIn("Settings", content)
-        self.assertTrue("sampati_sidebar_collapsed" in content or "collapsed" in content)
 
     def test_app_state_context_contract(self):
         """Verify AppStateContext.jsx defines global state provider and custom hook."""
