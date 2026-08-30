@@ -5,19 +5,16 @@ and failure modes with >= 5 tests per feature (Total: 80+ tests).
 """
 from __future__ import annotations
 
-import asyncio
 import json
-import math
 import os
 import sys
 import unittest
-from datetime import datetime, timezone
+import inspect
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import tests.mock_env
 
 try:
     import httpx
@@ -439,7 +436,6 @@ class Tier2BoundaryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_f10_b02_empty_vpa_string_tooltip(self):
         """F10.B2: Empty VPA string renders '—' placeholder."""
-        from tests.frontend_contracts_test import format_inr
         vpa = "" or "—"
         self.assertEqual(vpa, "—")
 
@@ -642,7 +638,6 @@ class Tier2BoundaryTests(unittest.IsolatedAsyncioTestCase):
     async def test_f15_b05_window_resize_layout_stability(self):
         """F15.B5: Responsive container handles dynamic window resize."""
         width = 1280
-        height = 720
         is_responsive = width > 768
         self.assertTrue(is_responsive)
 
