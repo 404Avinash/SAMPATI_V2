@@ -25,16 +25,20 @@ def install_mock_dependencies():
 
     # 1. Starlette exceptions
     if "starlette.exceptions" not in sys.modules:
-        starlette_exc_mod = types.ModuleType("starlette.exceptions")
-        class StarletteHTTPException(Exception):
-            def __init__(self, status_code: int = 500, detail: str = ""):
-                self.status_code = status_code
-                self.detail = detail
-        starlette_exc_mod.HTTPException = StarletteHTTPException
-        sys.modules["starlette.exceptions"] = starlette_exc_mod
-        starlette_mod = types.ModuleType("starlette")
-        starlette_mod.exceptions = starlette_exc_mod
-        sys.modules["starlette"] = starlette_mod
+        try:
+            import starlette.exceptions
+        except ImportError:
+            starlette_exc_mod = types.ModuleType("starlette.exceptions")
+            class StarletteHTTPException(Exception):
+                def __init__(self, status_code: int = 500, detail: str = ""):
+                    self.status_code = status_code
+                    self.detail = detail
+            starlette_exc_mod.HTTPException = StarletteHTTPException
+            sys.modules["starlette.exceptions"] = starlette_exc_mod
+            if "starlette" not in sys.modules:
+                starlette_mod = types.ModuleType("starlette")
+                starlette_mod.exceptions = starlette_exc_mod
+                sys.modules["starlette"] = starlette_mod
 
     # 2. Pydantic
     if "pydantic" not in sys.modules:
