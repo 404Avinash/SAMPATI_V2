@@ -29,9 +29,13 @@ class Tier4ScenarioTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         try:
             from app.main import app
+            from app.db.session import init_db
+            
             self.app = app
             self.transport = httpx.ASGITransport(app=self.app)
             self.client = httpx.AsyncClient(transport=self.transport, base_url="http://testserver")
+            
+            await init_db()
         except Exception as e:
             self.app = None
             self.transport = None
@@ -41,6 +45,11 @@ class Tier4ScenarioTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         if self.client:
             await self.client.aclose()
+        try:
+            from app.db.session import close_db
+            await close_db()
+        except Exception:
+            pass
 
     async def test_scenario_1_coordinated_multi_hop_mule_ring_attack(self):
         """Scenario 1: Coordinated Multi-Hop Mule Ring Attack (Fan-In -> Hub -> Layering Hops -> Cash-Out)."""

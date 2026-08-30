@@ -33,9 +33,14 @@ class Tier1FeatureTests(unittest.IsolatedAsyncioTestCase):
         # Lazy load FastAPI app to support dynamic mocking and environment overrides
         try:
             from app.main import app
+            from app.db.session import init_db
+            
             self.app = app
             self.transport = httpx.ASGITransport(app=self.app)
             self.client = httpx.AsyncClient(transport=self.transport, base_url="http://testserver")
+            
+            # Ensure DB is initialized (tables created) before tests run
+            await init_db()
         except Exception as e:
             self.app = None
             self.transport = None
@@ -45,6 +50,11 @@ class Tier1FeatureTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         if self.client:
             await self.client.aclose()
+        try:
+            from app.db.session import close_db
+            await close_db()
+        except Exception:
+            pass
 
     # =========================================================================
     # FEATURE F1: RDS PostgreSQL Persistence Models

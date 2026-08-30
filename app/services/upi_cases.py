@@ -1120,45 +1120,51 @@ class UpiCaseService:
         else:
             investigated_at_dt = investigated_at_val
 
-        if existing:
-            existing.status = case_data.get("status", getattr(existing, "status", "OPEN"))
-            existing.verdict = case_data.get("verdict", getattr(existing, "verdict", "HOLD"))
-            existing.risk_score = case_data.get("risk_score", getattr(existing, "risk_score", 0))
-            existing.ring_hash = case_data.get("ring_hash", getattr(existing, "ring_hash", None))
-            existing.ring_members_vpas = case_data.get("ring_members_vpas", getattr(existing, "ring_members_vpas", []))
-            existing.token_economy = case_data.get("token_economy", getattr(existing, "token_economy", None))
-            existing.sar_markdown = case_data.get("sar_markdown", getattr(existing, "sar_markdown", None))
-            existing.visual_path = case_data.get("visual_path", getattr(existing, "visual_path", None))
-            existing.topology = case_data.get("topology", getattr(existing, "topology", None))
-            existing.resolution = case_data.get("resolution", getattr(existing, "resolution", None))
-            existing.investigated_at = investigated_at_dt
-            existing.resolution_notes = case_data.get("resolution_notes", getattr(existing, "resolution_notes", None))
-        else:
-            new_case = UpiCaseModel(
-                case_id=cid,
-                created_at=created_at_dt,
-                status=case_data.get("status", "OPEN"),
-                verdict=case_data.get("verdict", "HOLD"),
-                risk_score=case_data.get("risk_score", 0),
-                payer_vpa=case_data.get("payer_vpa"),
-                payee_vpa=case_data.get("payee_vpa"),
-                amount=case_data.get("amount"),
-                trigger_txn=case_data.get("trigger_txn", {}),
-                rule_hits=case_data.get("rule_hits", []),
-                adaptive_score=case_data.get("adaptive_score", 0.0),
-                network_score=case_data.get("network_score", 0.0),
-                ring_hash=case_data.get("ring_hash"),
-                ring_members_vpas=case_data.get("ring_members_vpas", []),
-                token_economy=case_data.get("token_economy"),
-                sar_markdown=case_data.get("sar_markdown"),
-                visual_path=case_data.get("visual_path"),
-                topology=case_data.get("topology"),
-                resolution=case_data.get("resolution"),
-                investigated_at=investigated_at_dt,
-                resolution_notes=case_data.get("resolution_notes"),
-            )
-            session.add(new_case)
-        await session.flush()
+        from sqlalchemy.exc import IntegrityError
+        try:
+            async with session.begin_nested():
+                if existing:
+                    existing.status = case_data.get("status", getattr(existing, "status", "OPEN"))
+                    existing.verdict = case_data.get("verdict", getattr(existing, "verdict", "HOLD"))
+                    existing.risk_score = case_data.get("risk_score", getattr(existing, "risk_score", 0))
+                    existing.ring_hash = case_data.get("ring_hash", getattr(existing, "ring_hash", None))
+                    existing.ring_members_vpas = case_data.get("ring_members_vpas", getattr(existing, "ring_members_vpas", []))
+                    existing.token_economy = case_data.get("token_economy", getattr(existing, "token_economy", None))
+                    existing.sar_markdown = case_data.get("sar_markdown", getattr(existing, "sar_markdown", None))
+                    existing.visual_path = case_data.get("visual_path", getattr(existing, "visual_path", None))
+                    existing.topology = case_data.get("topology", getattr(existing, "topology", None))
+                    existing.resolution = case_data.get("resolution", getattr(existing, "resolution", None))
+                    existing.investigated_at = investigated_at_dt
+                    existing.resolution_notes = case_data.get("resolution_notes", getattr(existing, "resolution_notes", None))
+                else:
+                    new_case = UpiCaseModel(
+                        case_id=cid,
+                        created_at=created_at_dt,
+                        status=case_data.get("status", "OPEN"),
+                        verdict=case_data.get("verdict", "HOLD"),
+                        risk_score=case_data.get("risk_score", 0),
+                        payer_vpa=case_data.get("payer_vpa"),
+                        payee_vpa=case_data.get("payee_vpa"),
+                        amount=case_data.get("amount"),
+                        trigger_txn=case_data.get("trigger_txn", {}),
+                        rule_hits=case_data.get("rule_hits", []),
+                        adaptive_score=case_data.get("adaptive_score", 0.0),
+                        network_score=case_data.get("network_score", 0.0),
+                        ring_hash=case_data.get("ring_hash"),
+                        ring_members_vpas=case_data.get("ring_members_vpas", []),
+                        token_economy=case_data.get("token_economy"),
+                        sar_markdown=case_data.get("sar_markdown"),
+                        visual_path=case_data.get("visual_path"),
+                        topology=case_data.get("topology"),
+                        resolution=case_data.get("resolution"),
+                        investigated_at=investigated_at_dt,
+                        resolution_notes=case_data.get("resolution_notes"),
+                    )
+                    session.add(new_case)
+                await session.flush()
+        except IntegrityError:
+            # Concurrent insert happened, safe to ignore
+            pass
 
     async def save_ring_to_db_session(self, ring_data: Dict[str, Any], session: AsyncSession) -> None:
         """Persist or upsert MuleRingModel using an active AsyncSession."""
@@ -1179,24 +1185,29 @@ class UpiCaseService:
         else:
             detected_at_dt = detected_at_val or datetime.now(timezone.utc)
 
-        if existing:
-            existing.size = ring_data.get("size", getattr(existing, "size", 0))
-            existing.members = ring_data.get("members", getattr(existing, "members", []))
-            existing.psps = ring_data.get("psps", getattr(existing, "psps", []))
-            existing.total_amount = ring_data.get("total_amount", getattr(existing, "total_amount", 0.0))
-            existing.status = ring_data.get("status", getattr(existing, "status", "ACTIVE"))
-        else:
-            new_ring = MuleRingModel(
-                ring_hash=r_hash,
-                detected_at=detected_at_dt,
-                size=ring_data.get("size", len(ring_data.get("members", []))),
-                members=ring_data.get("members", []),
-                psps=ring_data.get("psps", []),
-                total_amount=ring_data.get("total_amount", 0.0),
-                status=ring_data.get("status", "ACTIVE"),
-            )
-            session.add(new_ring)
-        await session.flush()
+        from sqlalchemy.exc import IntegrityError
+        try:
+            async with session.begin_nested():
+                if existing:
+                    existing.size = ring_data.get("size", getattr(existing, "size", 0))
+                    existing.members = ring_data.get("members", getattr(existing, "members", []))
+                    existing.psps = ring_data.get("psps", getattr(existing, "psps", []))
+                    existing.total_amount = ring_data.get("total_amount", getattr(existing, "total_amount", 0.0))
+                    existing.status = ring_data.get("status", getattr(existing, "status", "ACTIVE"))
+                else:
+                    new_ring = MuleRingModel(
+                        ring_hash=r_hash,
+                        detected_at=detected_at_dt,
+                        size=ring_data.get("size", len(ring_data.get("members", []))),
+                        members=ring_data.get("members", []),
+                        psps=ring_data.get("psps", []),
+                        total_amount=ring_data.get("total_amount", 0.0),
+                        status=ring_data.get("status", "ACTIVE"),
+                    )
+                    session.add(new_ring)
+                await session.flush()
+        except IntegrityError:
+            pass
 
     async def save_feedback_to_db_session(self, feedback_data: Dict[str, Any], session: AsyncSession) -> None:
         """Persist CaseFeedbackModel using an active AsyncSession."""
