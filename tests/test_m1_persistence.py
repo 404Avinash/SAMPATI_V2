@@ -16,33 +16,23 @@ from __future__ import annotations
 
 import asyncio
 import os
-import tempfile
 from datetime import datetime, timezone
 
 import pytest
+from app.synthetic.upi_generator import generate_labeled_stream
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 
 import backend  # noqa: F401
 from app.db.session import (
     check_db_health,
     close_db,
-    get_db,
-    get_engine,
-    get_sessionmaker,
     init_db,
 )
 from app.main import app
-from app.models.upi_models import UpiTransaction
 from app.models.upi_persistence import (
-    AggregateStatsModel,
     Base,
-    CaseFeedbackModel,
-    MuleRingModel,
-    UpiCaseModel,
 )
 from app.services.upi_cases import get_upi_case_service
-from app.synthetic.upi_generator import generate_labeled_stream
 
 
 @pytest.fixture(autouse=True)

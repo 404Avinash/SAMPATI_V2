@@ -11,7 +11,8 @@ export default function MetricCard({
   isNumeric = true,
   className = "",
 }) {
-  const animatedValue = isNumeric && typeof value === "number" ? useCountUp(value) : value;
+  const _counted = useCountUp(typeof value === "number" ? value : 0);
+  const animatedValue = isNumeric && typeof value === "number" ? _counted : value;
 
   const toneStyles = {
     default: "text-ink-900 bg-white border-hairline",

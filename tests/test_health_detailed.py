@@ -12,19 +12,15 @@ Verifies:
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
 import unittest
-from datetime import datetime, timezone
-from typing import Any, Dict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from app.models.upi_models import UpiTransaction
-from app.services.upi_cases import UpiCaseService, get_upi_case_service
+from app.services.upi_cases import get_upi_case_service
 
 
 class TestHealthDetailed(unittest.TestCase):

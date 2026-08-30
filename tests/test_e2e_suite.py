@@ -12,34 +12,32 @@ import os
 import sys
 import time
 import unittest
-from typing import Dict, List, Tuple
 
 # Ensure workspace root is in sys.path
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import tests.mock_env
 
 # Import test suites
 from tests.frontend_contracts_test import (
     TestFrontendMathematicalContracts,
-    TestFrontendSourceCodeContracts,
     TestFrontendRoutingAndPagesContracts,
+    TestFrontendSourceCodeContracts,
 )
-from tests.test_cicd_pipeline import TestCiCdPipeline
 from tests.test_analytics import TestAnalyticsEngine
-from tests.test_health_detailed import TestHealthDetailed
 from tests.test_case_status import TestCaseStatusWorkflow
+from tests.test_cicd_pipeline import TestCiCdPipeline
+from tests.test_health_detailed import TestHealthDetailed
 from tests.test_tier1_features import Tier1FeatureTests
 from tests.test_tier2_boundary import Tier2BoundaryTests
 from tests.test_tier3_combinations import Tier3CombinationTests
 from tests.test_tier4_scenarios import Tier4ScenarioTests
 from tests.test_tier5_adversarial import (
-    TestWebSocketPoolAdversarial,
     TestCanvasHitDetectionMathAdversarial,
     TestDatabaseConnectionPoolAdversarial,
     TestProcessKillAndResumeAdversarial,
+    TestWebSocketPoolAdversarial,
 )
 
 
@@ -96,7 +94,7 @@ def run_e2e_suite(tier: int | None = None, feature: str | None = None, verbose: 
     print("=" * 80)
     print("                SAMPATI V2 END-TO-END VERIFICATION SUITE")
     print("=" * 80)
-    print(f"Target: SAMPATI UPI Mule-Network Detection Platform")
+    print("Target: SAMPATI UPI Mule-Network Detection Platform")
     print(f"Workspace: {ROOT}")
     if tier:
         print(f"Filter: Tier {tier}")

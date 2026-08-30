@@ -6,23 +6,19 @@ WebSocket event models, and frontend component logic.
 """
 from __future__ import annotations
 
-import asyncio
 import inspect
 import json
 import math
 import os
-import re
 import sys
 import unittest
 from datetime import datetime, timezone
-from typing import Any, Dict, List
 
 # Add workspace root to sys.path
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import tests.mock_env
 
 try:
     import httpx
@@ -517,7 +513,6 @@ class Tier1FeatureTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_f10_03_short_vpa_truncation(self):
         """F10.3: Verify shortVpa formatting function truncates addresses cleanly."""
-        shortVpa = lambda v: v
         long_vpa = "very_long_victim_account_number@okhdfcbank"
         if len(long_vpa) > 22:
             formatted = f"{long_vpa[:10]}…{long_vpa[-8:]}"

@@ -6,10 +6,11 @@ and graceful cross-dialect compatibility.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 try:
     from sqlalchemy import (
+        JSON,
         Boolean,
         Column,
         DateTime,
@@ -17,7 +18,6 @@ try:
         ForeignKey,
         Index,
         Integer,
-        JSON,
         Numeric,
         String,
         Text,

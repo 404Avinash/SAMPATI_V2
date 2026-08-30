@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 try:
-    from sqlalchemy import select, update, func
+    from sqlalchemy import func, select, update
     from sqlalchemy.ext.asyncio import AsyncSession
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
@@ -34,13 +34,10 @@ from app.forensics.upi_sar import (
     generate_upi_sar,
     render_ring_png,
 )
+
 from app.models.upi_models import (
-    LabeledUpiTransaction,
-    MuleRingSummary,
-    RuleHit,
     UpiEvaluationResponse,
     UpiTransaction,
-    VerdictAction,
 )
 from app.models.upi_persistence import (
     CaseFeedbackModel,
@@ -323,7 +320,6 @@ class UpiCaseService:
             log = list(self._txn_log)
             cases_dict = {cid: dict(c) for cid, c in self._cases.items()}
             eval_count = self._eval_count or len(log)
-            allow_count = self._allow_count
             hold_count = self._hold_count
             block_count = self._block_count
 

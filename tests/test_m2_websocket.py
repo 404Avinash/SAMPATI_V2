@@ -16,7 +16,6 @@ import os
 import sys
 import unittest
 from datetime import datetime, timezone
-from typing import Any, Dict, List
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -28,7 +27,7 @@ except ImportError:
     httpx = None
 from fastapi.testclient import TestClient
 
-from app.api.websocket import ConnectionManager, broadcast_event, manager
+from app.api.websocket import ConnectionManager, manager
 from app.main import app
 from app.models.upi_models import UpiTransaction
 from app.services.upi_cases import get_upi_case_service

@@ -73,19 +73,17 @@ except Exception:
     async def get_db():
         yield None
 
+from app.synthetic.upi_generator import generate_labeled_stream
+
 from app.models.upi_models import (
-    AnalyticsResponse,
     CaseStatusUpdateRequest,
-    DetailedHealthResponse,
     FeedbackRequest,
-    LabeledUpiTransaction,
     SimulateRequest,
     UpiEvaluationResponse,
     UpiTransaction,
 )
 from app.models.upi_persistence import MuleRingModel, UpiCaseModel
 from app.services.upi_cases import UpiCaseService, get_upi_case_service
-from app.synthetic.upi_generator import UpiWorld, generate_labeled_stream
 
 logger = logging.getLogger("sampati.api.upi")
 router = APIRouter()

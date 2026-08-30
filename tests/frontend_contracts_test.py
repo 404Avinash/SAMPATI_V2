@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import math
 import os
-import re
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -182,7 +181,7 @@ class TestFrontendRoutingAndPagesContracts(unittest.TestCase):
         """Verify all 5 required pages exist as JSX components in frontend/src/pages/."""
         pages_dir = os.path.join(FRONTEND_SRC, "pages")
         self.assertTrue(os.path.exists(pages_dir))
-        
+
         expected_pages = [
             "OverviewPage.jsx",
             "InvestigationsPage.jsx",

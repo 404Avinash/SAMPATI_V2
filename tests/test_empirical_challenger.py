@@ -14,21 +14,21 @@ import random
 import re
 import sys
 import unittest
-import yaml
 from datetime import datetime, timezone
+
+import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import tests.mock_env
 
 from app.models.upi_models import UpiTransaction
-from app.services.upi_cases import UpiCaseService, get_upi_case_service, extract_bank_and_psp
+from app.services.upi_cases import UpiCaseService
 from tests.frontend_contracts_test import (
-    point_to_segment_distance,
-    get_continuous_edge_color,
     format_inr,
+    get_continuous_edge_color,
+    point_to_segment_distance,
 )
 
 

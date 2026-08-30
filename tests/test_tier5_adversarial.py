@@ -20,7 +20,7 @@ import threading
 import time
 import unittest
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # Ensure project root is on sys.path
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -41,7 +41,7 @@ except ImportError:
 
 try:
     from sqlalchemy import select, text
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 except ImportError:
     select = text = None
     AsyncSession = create_async_engine = async_sessionmaker = None
@@ -132,7 +132,7 @@ except Exception:
 
 def point_to_segment_distance(px: float, py: float, x1: float, y1: float, x2: float, y2: float) -> float:
     """Mathematical projection of point (px, py) to line segment (x1, y1)-(x2, y2).
-    
+
     Replicates pointToSegmentDistance from NetworkConstellation.jsx.
     """
     dx = x2 - x1
@@ -140,7 +140,7 @@ def point_to_segment_distance(px: float, py: float, x1: float, y1: float, x2: fl
     len_sq = dx * dx + dy * dy
     if len_sq == 0 or math.isnan(len_sq):
         return math.hypot(px - x1, py - y1)
-    
+
     t = ((px - x1) * dx + (py - y1) * dy) / len_sq
     t = max(0.0, min(1.0, t))
     proj_x = x1 + t * dx
@@ -150,21 +150,21 @@ def point_to_segment_distance(px: float, py: float, x1: float, y1: float, x2: fl
 
 def get_edge_stroke(risk_score: Any, is_hovered: bool = False) -> str:
     """Computes continuous edge stroke color based on risk score (0-100).
-    
+
     Replicates getEdgeStroke from NetworkConstellation.jsx.
     """
     if is_hovered:
         return "rgba(255, 120, 0, 1.0)"
     if risk_score is None:
         return "rgba(100, 116, 139, 0.30)"
-    
+
     try:
         num = float(risk_score)
         if math.isnan(num) or math.isinf(num):
             return "rgba(100, 116, 139, 0.30)"
     except (ValueError, TypeError):
         return "rgba(100, 116, 139, 0.30)"
-    
+
     clamped = max(0.0, min(100.0, num))
     if clamped < 40.0:
         ratio = clamped / 40.0
@@ -279,7 +279,7 @@ class TestWebSocketPoolAdversarial(unittest.IsolatedAsyncioTestCase):
 
     async def test_03_hostile_faulty_subscribers_and_dead_socket_pruning(self):
         """Stress: Mixed pool of 40 healthy clients and 40 hostile/failing clients.
-        
+
         Manager must deliver to healthy clients and cleanly prune failing ones without lock deadlock.
         """
         mgr = ConnectionManager()
@@ -426,7 +426,7 @@ class TestCanvasHitDetectionMathAdversarial(unittest.TestCase):
 
     def test_01_zero_length_segments(self):
         """Edge Case: Line segment with x1 == x2 and y1 == y2 (length == 0).
-        
+
         Must return exact Euclidean distance to the single point without division by zero.
         """
         x1, y1 = 100.0, 100.0
@@ -652,7 +652,7 @@ class TestDatabaseConnectionPoolAdversarial(unittest.IsolatedAsyncioTestCase):
 
     async def test_01_rapid_concurrent_query_burst_exceeding_pool_size(self):
         """Stress: 60 concurrent database operations against pool with size=5, max_overflow=10.
-        
+
         Verifies that tasks queue and complete cleanly without pool starvation deadlocks or connection leaks.
         """
         sm = get_sessionmaker()
@@ -846,7 +846,7 @@ class TestProcessKillAndResumeAdversarial(unittest.IsolatedAsyncioTestCase):
 
     async def test_01_full_process_kill_and_resume_cycle(self):
         """Scenario: Ingest rich fraud cases, rings, and analyst feedback.
-        
+
         Kill the entire process environment (dispose engines, reset singletons, wipe in-memory state).
         Resume process against same DB file and verify 100% data integrity and recovery.
         """

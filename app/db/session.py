@@ -5,13 +5,9 @@ pooling, pre-ping liveness, automatic schema creation, and graceful fallback.
 """
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
-import math
 import os
-from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -20,7 +16,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool
 
 from app.models.upi_persistence import Base as UpiBase
 
@@ -141,7 +136,7 @@ async def init_db() -> bool:
         async with eng.begin() as conn:
             # Create UPI persistence tables
             await conn.run_sync(UpiBase.metadata.create_all)
-            
+
             # Optionally create legacy tables if available
             try:
                 from app.models.db_models import Base as LegacyBase

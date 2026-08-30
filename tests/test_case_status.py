@@ -12,19 +12,17 @@ Verifies:
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
 import unittest
 from datetime import datetime, timezone
-from typing import Any, Dict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from app.models.upi_models import UpiTransaction
-from app.services.upi_cases import UpiCaseService, get_upi_case_service
+from app.services.upi_cases import get_upi_case_service
 
 
 class TestCaseStatusWorkflow(unittest.TestCase):
@@ -89,7 +87,7 @@ class TestCaseStatusWorkflow(unittest.TestCase):
 
     def test_transition_to_escalated_triggers_dpip_and_model(self):
         """Verify transitioning to ESCALATED publishes ring to DPIP and feeds adaptive model."""
-        initial_dpip_count = self.service.dpip.stats().get("total_blacklisted_vpas", 0)
+        self.service.dpip.stats().get("total_blacklisted_vpas", 0)
 
         if hasattr(self.service, "update_case_status"):
             result = self.service.update_case_status(

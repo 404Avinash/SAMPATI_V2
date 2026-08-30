@@ -335,6 +335,7 @@ export default function NetworkConstellation({ cases = [], onSelectCase }) {
     stateRef.current.raf = requestAnimationFrame(frame);
 
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       cancelAnimationFrame(stateRef.current.raf);
       window.removeEventListener("resize", resize);
     };

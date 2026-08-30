@@ -5,13 +5,13 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 # bootstrap the backend.app.* -> app.* redirector
 import backend  # noqa: F401
 
 try:
-    from fastapi import FastAPI, Depends, HTTPException, Query, Request
+    from fastapi import Depends, FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import FileResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles

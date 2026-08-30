@@ -100,7 +100,9 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
       const next = !prev;
       try {
         localStorage.setItem("sampati_sidebar_collapsed", String(next));
-      } catch {}
+      } catch (e) {
+        // ignore storage errors
+      }
       return next;
     });
   };
