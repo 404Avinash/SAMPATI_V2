@@ -7,15 +7,29 @@ const TILES = [
   { key: "allowed", label: "Allowed", icon: "✓", tone: "text-verdict-allow bg-verdict-allowBg" },
   { key: "held", label: "Held", icon: "⚑", tone: "text-verdict-hold bg-verdict-holdBg" },
   { key: "blocked", label: "Blocked", icon: "✕", tone: "text-verdict-block bg-verdict-blockBg" },
+  { key: "honeypot_hits", label: "Honeypot Hits (24h)", icon: "🍯", tone: "text-amber-800 bg-amber-50" },
   { key: "rings", label: "Mule rings", icon: "◈", tone: "text-purple-700 bg-purple-50" },
   { key: "dpip", label: "Sent to DPIP", icon: "⇄", tone: "text-ink-800 bg-ink-900/5" },
 ];
 
-export default function KpiStrip({ stats }) {
+export default function KpiStrip({ stats = {} }) {
+  const getTileValue = (key) => {
+    if (key === "honeypot_hits") {
+      return (
+        stats.honeypot_hits ??
+        stats.honeypot_hits_24h ??
+        stats.honeypots?.total_hits ??
+        stats.honeypots?.hits_24h ??
+        0
+      );
+    }
+    return stats[key] ?? 0;
+  };
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
       {TILES.map((tile) => (
-        <Tile key={tile.key} tile={tile} value={stats[tile.key] || 0} />
+        <Tile key={tile.key} tile={tile} value={getTileValue(tile.key)} />
       ))}
     </div>
   );
@@ -23,7 +37,7 @@ export default function KpiStrip({ stats }) {
 
 function Tile({ tile, value }) {
   const animated = useCountUp(value);
-  const pulse = tile.key === "blocked" && value > 0;
+  const pulse = (tile.key === "blocked" || tile.key === "honeypot_hits") && value > 0;
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}

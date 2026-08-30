@@ -68,6 +68,7 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "CROSS_PSP_MULE_RING": {"name": "Cross-PSP Ring Topology", "severity": "CRITICAL"},
     "ADAPTIVE_ANOMALY": {"name": "Adaptive Behavioral Anomaly", "severity": "HIGH"},
     "HIGH_VELOCITY_FAN_IN": {"name": "High-Velocity Fan-In Inflow", "severity": "HIGH"},
+    "R_HONEYPOT_HIT": {"name": "Synthetic Honeypot Trap Hit", "severity": "CRITICAL"},
 }
 
 
@@ -780,6 +781,15 @@ class UpiCaseService:
             dpip_count = 0
 
         rings_count = len(self.federation.current_rings())
+        try:
+            from app.engine.honeypot import get_honeypot_registry
+            reg = get_honeypot_registry()
+            hp_24h = reg.get_hits_24h()
+            hp_total = reg.total_hits()
+        except Exception:
+            hp_24h = 0
+            hp_total = 0
+
         return {
             "evaluated": evaluated,
             "allowed": allowed,
@@ -787,6 +797,8 @@ class UpiCaseService:
             "blocked": blocked,
             "rings": rings_count,
             "dpip": dpip_count,
+            "honeypot_hits_24h": hp_24h,
+            "honeypot_hits": hp_total,
         }
 
     def emit_case_broadcast(self, case_data: Dict[str, Any]) -> None:
@@ -1092,6 +1104,11 @@ class UpiCaseService:
             self._allow_count = 0
             self._hold_count = 0
             self._block_count = 0
+        try:
+            from app.engine.honeypot import get_honeypot_registry
+            get_honeypot_registry().clear()
+        except Exception:
+            pass
 
     # ── Database Sync and Persistence Helpers ─────────────────────────────────
 

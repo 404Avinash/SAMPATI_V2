@@ -1,16 +1,14 @@
-# Progress Log - Explorer 1 (Backend Persistence Survey)
+# Progress: Backend & Federation Architecture Investigation
 
-**Last visited:** 2026-08-28T19:02:00Z  
-**Status:** Task Complete (Report & Handoff Generated)  
+Last visited: 2026-08-30T19:27:00Z
 
-## Milestones
-- [x] Read `ORIGINAL_REQUEST.md` and clarify problem boundary.
-- [x] Inspect backend code (`app/engine/upi_state.py`, `app/services/upi_cases.py`, `app/dpip/feed.py`, `app/federation/coordinator.py`, `app/db/session.py`).
-- [x] Locate all in-memory state structures and evaluate lifecycle.
-- [x] Design SQLAlchemy 2.0 and PostgreSQL DDL schemas (`upi_cases`, `mule_rings`, `case_feedback`, `aggregate_stats`).
-- [x] Detail connection pooling parameters optimized for AWS RDS Free Tier `db.t3.micro`.
-- [x] Analyze `requirements.txt`, `Dockerfile`, `deploy/ec2_userdata.sh`, `deploy/aws_deploy.sh`.
-- [x] Plan route modernization for `/upi/cases`, `/upi/stats`, and `/health`.
-- [x] Author comprehensive survey report (`survey_backend_persistence.md`).
-- [x] Author 5-component handoff report (`handoff.md`).
-- [x] Send completion notification to parent orchestrator.
+- [x] Initialized DISPATCH.md and BRIEFING.md
+- [x] Read ORIGINAL_REQUEST.md
+- [x] Inspected existing codebase structure (`app/`, routers, models, federation, engine, db, cache)
+- [x] Verified existing test suite (492 passed across Tiers 1-5)
+- [x] Investigated R2: Federation Signal Exchange API (`/federation/signal`, `/federation/query`, caching, `/upi/check` integration)
+- [x] Investigated R3: VPA Honeypot Network Backend (registry, `R_HONEYPOT_HIT`, hit tracking, 24h stats)
+- [x] Mapped out all files to modify/create, schemas, data models, and integration points
+- [x] Wrote `analysis.md`
+- [x] Wrote `handoff.md` and updated `BRIEFING.md`
+- [x] Notified parent via `send_message`

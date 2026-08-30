@@ -1,24 +1,19 @@
-## 2026-08-28T19:18:47Z
-You are Reviewer 1 for Milestone M1 (Backend RDS PostgreSQL Persistence).
+## 2026-08-30T19:32:16Z
+You are Reviewer 1 for Milestone 1 (Federation Signal Exchange API) of SAMPATI V2.
+Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_reviewer_m1_1`.
+Read `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`, `/home/avi/Downloads/Sampati_v2/PROJECT.md`, and `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1/handoff.md`.
 
-Your working directory is:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_reviewer_m1_1\
+Review the implementation of Milestone 1 in:
+- `app/api/federation.py`
+- `app/federation/coordinator.py`
+- `app/models/upi_models.py`
+- `app/main.py`
+- `app/services/upi_cases.py` and `app/engine/upi_scorer.py`
+- `tests/test_federation_api.py`
 
-Project workspace:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2
+Check:
+1. Correctness, completeness, and adherence to requirements.
+2. Run build and tests: `.venv/bin/pytest tests/test_federation_api.py -v` and `.venv/bin/pytest tests/ -v`.
+3. Provide a clear verdict (APPROVE or REQUEST_CHANGES).
 
-Original User Request:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\ORIGINAL_REQUEST.md
-
-Project Specification:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\PROJECT.md
-
-Worker Handoff Report:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_worker_m1\handoff.md
-
-Your Task:
-Examine the implementation of Milestone M1 (Backend RDS PostgreSQL Persistence):
-1. Review `app/models/upi_persistence.py`, `app/db/session.py`, `app/main.py`, `app/services/upi_cases.py`, `app/api/upi.py`, `requirements.txt`, `Dockerfile`, and `deploy/ec2_userdata.sh`.
-2. Run test suites (`python -m pytest tests/test_m1_persistence.py` and `python tests/test_e2e_suite.py --feature F1 --feature F2 --feature F3 --feature F4`).
-3. Verify correctness, interface compliance with PROJECT.md, connection pooling safety for t3.micro, startup table creation, health check endpoint, and restart persistence.
-4. Record verdict (APPROVE or REQUEST_CHANGES) in `handoff.md` and send message to parent.
+Write your review to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_reviewer_m1_1/handoff.md` and notify parent.

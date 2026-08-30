@@ -10,6 +10,7 @@ Validates:
 7. Persistent Sidebar Navigation, Badges, and Collapsible State.
 8. MainLayout and Outlet integration.
 9. AppStateContext state management, WebSocket integration, and telemetry hooks.
+10. Milestone 3: Fraud Playback Timeline & Honeypot KPI Counter contracts.
 """
 from __future__ import annotations
 
@@ -245,6 +246,91 @@ class TestFrontendRoutingAndPagesContracts(unittest.TestCase):
         self.assertIn("useAppState", content)
         self.assertIn("useWebSocket", content)
         self.assertIn("verdictHistory", content)
+
+
+class TestFrontendTimelineAndKpiContracts(unittest.TestCase):
+    """Verify Milestone 3: Fraud Playback Timeline, CaseDrawer integration, and Honeypot KPI counter."""
+
+    def test_network_constellation_contains_timeline_controls(self):
+        """Verify NetworkConstellation.jsx contains timeline slider, Play, Pause, and Reset controls."""
+        path = os.path.join(FRONTEND_SRC, "components", "NetworkConstellation.jsx")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Step state and timeline controls
+        self.assertIn("extractChronologicalTopology", content)
+        self.assertIn("currentStep", content)
+        self.assertIn("totalSteps", content)
+        self.assertIn("isPlaying", content)
+        self.assertIn("handlePlay", content)
+        self.assertIn("handlePause", content)
+        self.assertIn("handleReset", content)
+        self.assertIn("handleSliderChange", content)
+        self.assertIn('type="range"', content)
+        self.assertIn("Play", content)
+        self.assertIn("Pause", content)
+        self.assertIn("Reset", content)
+
+    def test_network_constellation_step_visibility_math(self):
+        """Verify step slicing logic for timeline state k in [0, N]."""
+        mock_edges = [
+            {"id": f"e{i}", "a": f"node{i}", "b": f"node{i+1}", "timestamp": 1000 + i * 10}
+            for i in range(10)
+        ]
+        total_steps = len(mock_edges)
+
+        # At k = 0 (t=0 / Reset)
+        k0 = 0
+        visible_edges_0 = mock_edges[:k0]
+        visible_nodes_0 = set()
+        for e in visible_edges_0:
+            visible_nodes_0.add(e["a"])
+            visible_nodes_0.add(e["b"])
+        self.assertEqual(len(visible_edges_0), 0)
+        self.assertEqual(len(visible_nodes_0), 0)
+
+        # At k in [1, N]
+        for k in range(1, total_steps + 1):
+            visible_edges_k = mock_edges[:k]
+            visible_nodes_k = set()
+            for e in visible_edges_k:
+                visible_nodes_k.add(e["a"])
+                visible_nodes_k.add(e["b"])
+            self.assertEqual(len(visible_edges_k), k)
+            self.assertGreater(len(visible_nodes_k), 0)
+            self.assertIn(f"node{k}", visible_nodes_k)
+
+    def test_case_drawer_embeds_network_constellation(self):
+        """Verify CaseDrawer.jsx imports NetworkConstellation and passes caseData."""
+        path = os.path.join(FRONTEND_SRC, "components", "CaseDrawer.jsx")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("NetworkConstellation", content)
+        self.assertIn("caseData={caseData}", content)
+
+    def test_kpi_strip_renders_seven_tiles_with_honeypot(self):
+        """Verify KpiStrip.jsx defines 7 KPI tiles including Honeypot Hits (24h)."""
+        path = os.path.join(FRONTEND_SRC, "components", "KpiStrip.jsx")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("honeypot_hits", content)
+        self.assertIn("Honeypot Hits (24h)", content)
+        self.assertIn("lg:grid-cols-7", content)
+
+    def test_app_state_context_tracks_honeypot_kpi(self):
+        """Verify AppStateContext.jsx tracks honeypot_hits and honeypot_hits_24h in state and feeds."""
+        path = os.path.join(FRONTEND_SRC, "context", "AppStateContext.jsx")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("honeypot_hits", content)
+        self.assertIn("honeypot_hits_24h", content)
 
 
 if __name__ == "__main__":

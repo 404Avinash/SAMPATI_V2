@@ -1,81 +1,67 @@
-# Milestone M2 Handoff Report: Backend Real-Time WebSocket Push Hub
-
-**Author**: Worker 2 (Backend Real-Time Specialist)  
-**Date**: 2026-08-29  
-**Milestone**: M2 (Features F5 & F6)  
-**Target Workspace**: `c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2`  
-
----
+# Milestone 2 Handoff Report: VPA Honeypot Network & Hit Tracking
 
 ## 1. Observation
-
-1. **WebSocket Infrastructure (`app/api/websocket.py`)**:
-   - Implemented thread-safe `ConnectionManager` utilizing `asyncio.Lock()` to protect mutations on `self.active_connections: List[WebSocket]`.
-   - Built `broadcast(message)` with exception isolation and automatic dead socket pruning, ensuring dropped clients never block the broadcast loop or crash backend pipelines.
-   - Mounted WebSocket endpoint on three route paths: `/ws`, `/ws/`, and `/ws/feed`.
-   - Added bidirectional heartbeat handling supporting plain text `"ping"`/`"pong"` and JSON frames `{"type": "ping"}` / `{"type": "pong", "timestamp": "..."}`.
-   - Provided `broadcast_event()` and asynchronous non-blocking `schedule_broadcast()` helpers.
-
-2. **Case Service Integration (`app/services/upi_cases.py`)**:
-   - Added `format_case_payload(case_data)` guaranteeing that every emitted `new_case` payload strictly satisfies the `PROJECT.md` schema:
-     `{"case_id", "created_at", "verdict", "risk_score", "amount", "reasons", "trigger_txn", "topology", "ring_members_vpas", "token_economy", "sar_markdown"}`.
-   - Added `get_current_stats()` tracking live telemetry: `{"evaluated", "allowed", "held", "blocked", "rings", "dpip"}`.
-   - Implemented `create_case(txn, resp)` and `save_case(case_data)` with immediate `new_case` WebSocket broadcast emission.
-   - Wired broadcast hooks into `_open_case()`, `evaluate()`, and `_attach_ring_and_build_sar()`.
-
-3. **REST API Event Emitters (`app/api/upi.py`)**:
-   - `POST /upi/check`: Emits `new_case` on HOLD/BLOCK verdicts and `stats_update` on evaluate.
-   - `POST /upi/simulate`: Emits `new_case` events during transaction stream processing and `stats_update` alongside `SIMULATION_COMPLETE`.
-   - `POST /upi/federation/run`: Emits `FEDERATION_ROUND` and `stats_update` with updated ring counts and member distributions.
-   - `POST /upi/cases/{id}/feedback`: Emits `UPI_CASE_RESOLVED` and `stats_update` upon analyst confirmation.
-   - Updated `FeedbackRequest` model to accept both `confirmed_fraud: bool` and `confirmed: bool`.
-
-4. **Test Verification Outputs**:
-   - `python tests/test_e2e_suite.py --feature F5`: Ran 11 tests in 0.67s -> **ALL 11 PASSED (100%)**.
-   - `python tests/test_e2e_suite.py --feature F6`: Ran 10 tests in 0.66s -> **ALL 10 PASSED (100%)**.
-   - `pytest tests/test_m2_websocket.py`: Ran 10 unit & integration tests in 0.83s -> **ALL 10 PASSED (100%)**.
-   - `python tests/test_e2e_suite.py --tier 3`: Ran 7 combination pipeline tests in 0.71s -> **ALL 7 PASSED (100%)**.
-   - `python tests/test_e2e_suite.py --tier 4`: Ran 5 real-world scenario tests in 0.71s -> **ALL 5 PASSED (100%)**.
-
----
+- **Seeded Honeypot Registry**: Implemented `app/engine/honeypot.py` containing seeded synthetic VPAs:
+  - `honeypot_trap_01@okaxis`
+  - `honeypot_mule_99@okhdfcbank`
+  - `phish_trap_node@okicici`
+  - `botnet_sink_04@oksbi`
+  - `mule_honeypot_prime@okaxis`
+  - Additional synthetic traps (`trap_collect_007@paytm`, `phish_sink_alpha@ibl`, `mule_decoy_99@ybl`, `honeypot_mule_88@okhdfcbank`, `decoy_phish_trap@oksbi`, `honeypot.sink@upi`, `trap_synthetic@upi`, `darkweb_mule_sink@okaxis`, `honeypot_phish_victim@ybl`) and prefix matchers (`honeypot_`, `phish_trap_`, `botnet_sink_`, `mule_honeypot_`, `trap_`, `decoy_`).
+- **Thread-Safe Telemetry**: `HoneypotRegistry` manages:
+  - `record_hit(vpa, txn_id, amount, payer_vpa)`: thread-safe counter increment, cumulative amount deflected tracking, last-hit ISO timestamp, and bound timestamped hit log.
+  - `is_honeypot(vpa)`: fast case-insensitive lookup.
+  - `get_hits_24h()`: rolling 86,400-second window hit aggregator.
+  - `total_hits()` and `total_amount_deflected()` counters.
+  - `get_stats()` & `list_honeypots()`: complete structured telemetry payloads.
+- **Deterministic Detection Rule**: Implemented `rule_honeypot_hit` in `app/engine/upi_rules.py` awarding 100 points with code `"R_HONEYPOT_HIT"` and detail `"Transaction directed to active synthetic honeypot VPA"`.
+- **Scoring Engine Integration**: `app/engine/upi_scorer.py` evaluates `rule_honeypot_hit`, assigning `risk_score = 100` (exceeding `BLOCK_AT = 70`), setting verdict to `BLOCK`, and appending `"R_HONEYPOT_HIT"` to `resp.reasons`.
+- **Service & API Endpoints**:
+  - `app/services/upi_cases.py`: Added `"R_HONEYPOT_HIT"` to `RULE_METADATA` with `"CRITICAL"` severity; updated `get_current_stats()` to include `"honeypot_hits_24h"` and `"honeypot_hits"`.
+  - `app/api/upi.py`: Updated `GET /upi/stats` to expose `"honeypot_hits_24h"` and `"honeypot_hits"`; added `GET /upi/honeypots`.
+  - `app/api/federation.py`: Added `GET /federation/honeypots` returning mesh-wide honeypot statistics.
+  - `app/models/upi_models.py`: Added Pydantic schemas `HoneypotItem` and `HoneypotStatsResponse`.
+- **Test Suite**: `tests/test_honeypot.py` contains 21 unit and integration tests covering seeds, rule triggering, BLOCK verdict, 24h rolling window aggregation, thread concurrency, `/upi/check`, `/upi/stats`, `/upi/honeypots`, and `/federation/honeypots`.
+- **Test Verification Results**:
+  - `.venv/bin/pytest tests/test_honeypot.py -v`: 21 passed in 1.80s.
+  - `.venv/bin/pytest tests/ -v`: 541 passed, 0 regressions across all 5 tiers in 39.42s.
+  - `.venv/bin/pytest tests/frontend_contracts_test.py -v`: 18 passed in 1.10s.
+  - `.venv/bin/pytest tests/test_federation_api.py -v`: 10 passed in 2.46s.
 
 ## 2. Logic Chain
-
-1. **Connection Safety**: Client disconnections during high-throughput bursts can cause unhandled socket exceptions. `ConnectionManager.broadcast` iterates over a snapshot copy of `self.active_connections`, catches any socket I/O errors into a `dead_connections` accumulator, and prunes them safely under `self._lock`.
-2. **Multi-Route Ingestion**: The frontend connects to `/ws/feed` while legacy scripts and reverse proxies configure `/ws/` or `/ws`. Decorating `websocket_feed_endpoint` with all three paths ensures zero connection drops regardless of proxy configuration.
-3. **Sub-2s Latency**: `UpiCaseService.create_case` and `evaluate` broadcast immediately upon case detection directly into the active connection pool without intermediate disk serialization bottlenecks, delivering events in under 5 milliseconds.
-4. **Contract Fidelity**: The JSON payloads for `new_case` and `stats_update` align with the exact keys consumed by `LiveFeed.jsx`, `KpiStrip.jsx`, `Masthead.jsx`, and `VerdictHistoryChart.jsx`.
-
----
+1. *Observation*: The specification requires synthetic honeypot VPAs that instantly intercept fraud attempts without affecting legitimate users.
+   *Reasoning*: Creating `app/engine/honeypot.py` with `HoneypotRegistry` establishes a centralized, thread-safe repository of seeded traps with real-time hit tracking.
+2. *Observation*: Transactions targeting honeypot VPAs must receive a deterministic `BLOCK` verdict with 100 risk score and `"R_HONEYPOT_HIT"` in reasons.
+   *Reasoning*: In `app/engine/upi_rules.py`, `rule_honeypot_hit` checks if `payee_vpa` is in the registry, records the hit and deflected amount, and returns `RuleHit(code="R_HONEYPOT_HIT", points=100)`.
+3. *Observation*: `UpiRiskScorer` evaluates rules and calculates composite score.
+   *Reasoning*: When `R_HONEYPOT_HIT` triggers with 100 points, `rule_score` is capped at 100, `risk_score` is 100 (which is $\ge 70$, `BLOCK_AT`), resulting in `action = "BLOCK"`, and `"R_HONEYPOT_HIT"` is included in `reasons`.
+4. *Observation*: Overview KPIs and downstream federation nodes require real-time 24-hour hit counters and telemetry.
+   *Reasoning*: `HoneypotRegistry.get_hits_24h()` computes rolling 24h counts, which are surfaced in `UpiCaseService.get_current_stats()`, `GET /upi/stats`, WebSocket broadcasts, `GET /upi/honeypots`, and `GET /federation/honeypots`.
+5. *Observation*: Running `.venv/bin/pytest tests/ -v` verified that all 520 existing tests plus 21 new honeypot tests pass with 0 regressions.
+   *Reasoning*: All additions are fully backwards-compatible with existing persistence, federation, and scoring contracts.
 
 ## 3. Caveats
-
-- In pure in-memory test mode without PostgreSQL running, stats and cases are maintained in the service memory cache with full fidelity; when PostgreSQL is connected via `DATABASE_URL`, cases and rings are automatically persisted to RDS in parallel.
-- No third-party message brokers (such as Redis Pub/Sub) are required for single-node deployment; for horizontal multi-worker scaling behind a load balancer, a Redis channel adapter can be plugged into `ConnectionManager.broadcast`.
-
----
+- `get_hits_24h()` uses UTC timestamps from the in-memory rolling log buffer (sized up to 10,000 entries). In multi-node production deployment, this can be synced to Redis key expiration sets.
 
 ## 4. Conclusion
-
-Milestone M2 (Backend Real-Time WebSocket Push Hub) is **100% complete and fully verified**. All requirements from `ORIGINAL_REQUEST.md §R2` and `PROJECT.md` (Features F5 & F6) have been implemented with genuine, robust logic. All test suites pass with zero failures and zero errors.
-
----
+Milestone 2 (Backend Honeypot Network & Hit Tracking) is 100% complete and fully verified.
+All seeded honeypot VPAs, deterministic `R_HONEYPOT_HIT` rule, `BLOCK` verdict enforcement, thread-safe hit/amount tracking, rolling 24-hour aggregation, `/upi/stats` telemetry, and `/federation/honeypots` endpoints are operational with 541 passing tests.
 
 ## 5. Verification Method
-
-Run the following commands in the workspace root (`c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2`):
-
-```bash
-# 1. Run Feature F5 tests (WebSocket Broadcast Hub)
-python tests/test_e2e_suite.py --feature F5
-
-# 2. Run Feature F6 tests (Transaction & Case Event Emitters)
-python tests/test_e2e_suite.py --feature F6
-
-# 3. Run Milestone M2 comprehensive unit and integration suite
-pytest tests/test_m2_websocket.py -v
-
-# 4. Run combination and scenario pipeline test tiers
-python tests/test_e2e_suite.py --tier 3
-python tests/test_e2e_suite.py --tier 4
-```
+Execute the following commands from workspace root (`/home/avi/Downloads/Sampati_v2`):
+- Honeypot feature test suite:
+  ```bash
+  .venv/bin/pytest tests/test_honeypot.py -v
+  ```
+- Full test suite regression check:
+  ```bash
+  .venv/bin/pytest tests/ -v
+  ```
+- Federation API tests:
+  ```bash
+  .venv/bin/pytest tests/test_federation_api.py -v
+  ```
+- Frontend contracts AST validation:
+  ```bash
+  .venv/bin/pytest tests/frontend_contracts_test.py -v
+  ```

@@ -1,41 +1,25 @@
-## 2026-08-28T19:02:07Z
-You are Worker 1 for Milestone M1 (Backend RDS PostgreSQL Persistence) of SAMPATI V2.
-
-Your working directory is:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_worker_m1\
-
-Project workspace:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2
-
-Original User Request:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\ORIGINAL_REQUEST.md
-
-Project Specification:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\PROJECT.md
-
-Survey Blueprint from Explorer 1:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_explorer_survey_1\survey_backend_persistence.md
+## 2026-08-30T19:28:23Z
+You are Worker M1 for SAMPATI V2.
+Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1`.
+You must read the user's authoritative request at `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md` and the architecture spec at `/home/avi/Downloads/Sampati_v2/PROJECT.md`.
+Also review the findings in `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/analysis.md`.
 
 MANDATORY INTEGRITY WARNING:
 DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A teamwork_preview_auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
 
-Your Exclusive Write Files:
-- `requirements.txt`
-- `Dockerfile`
-- `deploy/ec2_userdata.sh`
-- `app/models/upi_persistence.py`
-- `app/db/session.py`
-- `app/services/upi_cases.py`
-- `app/api/upi.py`
-- `app/main.py`
-
-Your Task:
-Implement Requirement R1 (AWS RDS PostgreSQL Persistence):
-1. Update `requirements.txt` to include `sqlalchemy>=2.0.36`, `asyncpg>=0.30.0`, and `psycopg[binary]>=3.2.3`.
-2. Create `app/models/upi_persistence.py` with SQLAlchemy 2.0 async declarative models (`UpiCaseModel`, `MuleRingModel`, `CaseFeedbackModel`, `AggregateStatsModel`) with JSONB attributes, relationships, and compound indexes.
-3. Implement `app/db/session.py` with `create_async_engine`, RDS connection pooling for t3.micro (`pool_size=5`, `max_overflow=10`, `pool_recycle=1800`, `pool_pre_ping=True`), `get_db` async generator, `init_db()` for auto-creating tables on startup via `run_sync(Base.metadata.create_all)`, and graceful fallback if `DATABASE_URL` is unavailable or DB is unreachable.
-4. Update `app/main.py` to hook `init_db()` into FastAPI `lifespan` startup, `close_db()` on shutdown, and modernize `/health` to actively probe the database connection via `SELECT 1` (returning 200 when healthy).
-5. Update `app/services/upi_cases.py` and `app/api/upi.py` to persist cases, rings, and feedback into PostgreSQL, and query the DB for `/upi/cases`, `/upi/cases/{case_id}`, and `/upi/stats`.
-6. Update `Dockerfile` and `deploy/ec2_userdata.sh` to support `DATABASE_URL` env passing.
-7. Run Python syntax and unit tests to verify your implementation works cleanly.
-8. Write `handoff.md` in your working directory and notify parent.
+Your Task — Milestone 1: Federation Signal Exchange API & Dynamic Network Scoring:
+1. Implement `app/api/federation.py` with:
+   - `POST /federation/signal`: Accepts `{vpa_hash, risk_level, ring_hash}` (e.g. `FederationSignalRequest`), records the signal in `FederatedCoordinator`, returns HTTP 200 with `{"status": "accepted", "vpa_hash": ..., "risk_level": ..., "timestamp": ...}`.
+   - `GET /federation/query`: Accepts query parameter `vpa_hash`, retrieves score/signal from `FederatedCoordinator` hot cache in sub-5ms, returns `{"vpa_hash": ..., "federated_risk_score": float, "risk_level": ..., "ring_members": List[str], "reported_by_nodes": List[str], "cached": bool}`.
+2. Update `app/federation/coordinator.py`:
+   - Add `record_signal(vpa_hash: str, risk_level: str, ring_hash: Optional[str])` method mapping risk levels to scores (e.g., CRITICAL: 1.0, HIGH: 0.85, MEDIUM: 0.5, LOW: 0.2) and updating `_signals` and `_scores`. Support hot Redis caching if redis client is available, with fast in-memory fallback.
+   - Add `query_signal(vpa_hash: str)` retrieving cached signals/scores.
+   - Ensure `network_score(vpa: str)` and `network_score_for_txn(txn: Dict[str, Any])` check raw VPA, SHA-256 hash, and pseudonym against signals and scores, returning the federated score.
+3. Update `app/main.py`:
+   - Mount the federation router under `/federation` with tags `["federation"]`.
+4. Verify `/upi/check` and `UpiEvaluationResponse`:
+   - Ensure when a transaction's payee or payer VPA has a matching federation signal, `/upi/check` returns `network_score > 0` and incorporates it into risk scoring.
+5. Verification:
+   - Run the test suite: `.venv/bin/pytest tests/ -v` and ensure 0 regressions.
+   - Run a test verification of `POST /federation/signal`, `GET /federation/query`, and `/upi/check` with a federated VPA.
+6. Write your detailed changes and test results to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1/handoff.md`. Notify parent when done.

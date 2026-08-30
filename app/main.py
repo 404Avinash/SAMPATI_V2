@@ -71,6 +71,7 @@ except Exception:
     cases = gateway = synthetic = websocket = None
 
 # UPI mule-network router
+from app.api import federation as federation_router
 from app.api import upi as upi_router
 from app.models.upi_models import CaseStatusUpdateRequest
 
@@ -154,6 +155,7 @@ if FASTAPI_AVAILABLE:
     )
 
 app.include_router(upi_router.router, prefix="/upi", tags=["UPI"])
+app.include_router(federation_router.router, prefix="/federation", tags=["federation"])
 if gateway and hasattr(gateway, "router"):
     app.include_router(gateway.router, prefix="/gateway", tags=["Gateway"])
 if cases and hasattr(cases, "router"):
@@ -256,7 +258,7 @@ if FASTAPI_AVAILABLE:
     async def spa_fallback_404_handler(request: Request, exc: Any):
         """Serve SPA index.html on direct client-side route navigation while preserving API 404s."""
         path = request.url.path
-        api_prefixes = ("/upi", "/gateway", "/cases", "/synthetic", "/ws", "/health", "/api", "/stats")
+        api_prefixes = ("/upi", "/federation", "/gateway", "/cases", "/synthetic", "/ws", "/health", "/api", "/stats")
         is_api = any(path.startswith(prefix) for prefix in api_prefixes)
         has_extension = "." in path.split("/")[-1]
 

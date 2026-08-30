@@ -1,12 +1,18 @@
-# DISPATCH LOG
+## 2026-08-30T19:23:58Z
+You are Explorer 2 (Frontend Architecture & Timeline / KPI) for SAMPATI V2.
+Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2`.
+You must read the user's authoritative request at `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`.
 
-## 2026-08-29T00:23:43+05:30
-Read ORIGINAL_REQUEST.md thoroughly. Investigate the codebase for Requirement R2 (Real-Time WebSocket Push):
-1. Locate the existing WebSocket endpoint in FastAPI (e.g. `/ws/` or `/ws/feed`).
-2. Identify how transactions and new cases are generated/simulated and where WebSocket broadcasting needs to be hooked in.
-3. Investigate the frontend WebSocket connection manager, live feed component, and KPI strip counters.
-4. Detail the payload structure for WebSocket events to ensure frontend live feed and KPI strip increment smoothly without page refresh.
-5. Write a comprehensive survey report to:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_explorer_survey_2\survey_websocket_realtime.md
-and write a standard handoff.md in your working directory.
-6. Send a message to parent with the summary and path to your report. Do not modify source code.
+Investigate the frontend codebase for the requested features:
+1. R1. Fraud Playback Timeline (Frontend):
+   - Examine `frontend/src/components/constellation/NetworkConstellation.jsx`, `frontend/src/components/cases/CaseDrawer.jsx`, `frontend/src/pages/Overview.jsx`, `frontend/src/pages/Investigations.jsx`, and related graph/visualization components.
+   - Analyze how nodes and edges are currently rendered (canvas-based force directed graph, animation loops, state management).
+   - Detail how to implement Timeline Slider with Play/Pause/Reset controls beneath the `NetworkConstellation` canvas.
+   - Detail per-case playback when case topology is loaded in CaseDrawer: animating edges onto the canvas one-by-one in timestamp order, Pause freezing animation, Reset returning to t=0 with no nodes visible.
+2. R3. Honeypot KPI Counter (Frontend):
+   - Examine `frontend/src/components/overview/KpiStrip.jsx` (or equivalent KPI components) and `frontend/src/pages/Overview.jsx`.
+   - Detail how "Honeypot Hits (24h)" KPI counter should be integrated, formatted, styled, and fetched from the backend API.
+3. Frontend build & dependency verification:
+   - Check `frontend/package.json`, build setup (`npm run build`), existing components, styling (Tailwind).
+
+Write your findings to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/analysis.md` and write a structured handoff report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/handoff.md`. Then notify parent.

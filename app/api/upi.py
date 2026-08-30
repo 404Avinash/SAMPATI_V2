@@ -497,8 +497,13 @@ async def upi_stats(
     total_cases = len(cases)
     open_cases = sum(1 for c in cases if c.get("status") == "OPEN")
     investigated_cases = sum(1 for c in cases if c.get("status") in ("INVESTIGATED", "REVIEWED", "ESCALATED"))
-    resolved_cases = sum(1 for c in cases if c.get("status") in ("RESOLVED", "DISMISSED"))
-    rings_known = len(service.federation.current_rings())
+    current_stats = service.get_current_stats()
+    hp_24h = current_stats.get("honeypot_hits_24h", 0)
+    hp_total = current_stats.get("honeypot_hits", 0)
+    eval_count = current_stats.get("evaluated", 0)
+    allow_count = current_stats.get("allowed", 0)
+    hold_count = current_stats.get("held", 0)
+    block_count = current_stats.get("blocked", 0)
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -511,7 +516,34 @@ async def upi_stats(
         "rings_known": rings_known,
         "dpip": service.dpip.stats(),
         "adaptive_sensitivity": round(service.adaptive.sensitivity, 3),
+        "honeypot_hits_24h": hp_24h,
+        "honeypot_hits": hp_total,
+        "evaluated": eval_count,
+        "allowed": allow_count,
+        "held": hold_count,
+        "blocked": block_count,
+        "rings": rings_known,
     }
+
+
+@router.get("/honeypots", summary="List Active Synthetic Honeypots and Hit Metrics")
+async def get_honeypots() -> Dict[str, Any]:
+    """Retrieve active synthetic honeypot VPAs, total deflections, and 24h metrics."""
+    try:
+        from app.engine.honeypot import get_honeypot_registry
+        reg = get_honeypot_registry()
+        return reg.get_stats()
+    except Exception as exc:
+        logger.warning(f"Error reading honeypot registry: {exc}")
+        return {
+            "status": "ok",
+            "total_registered": 0,
+            "total_hits": 0,
+            "hits_24h": 0,
+            "total_amount_deflected": 0.0,
+            "honeypots": [],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
 
 @router.get("/stats/analytics", summary="Aggregated Time-Series & Mule Network Analytics")

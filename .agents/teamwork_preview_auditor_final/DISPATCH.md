@@ -1,21 +1,23 @@
-## 2026-08-29T15:45:36Z
+## 2026-08-31T01:10:39+05:30
+You are the Final Forensic Auditor (`teamwork_preview_auditor`) for SAMPATI V2.
+Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_auditor_final`.
+Read `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md` and `/home/avi/Downloads/Sampati_v2/PROJECT.md`.
 
-You are the Forensic Integrity Auditor (teamwork_preview_auditor_final) for SAMPATI V2.
-Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_auditor_final/
-The project root is: /home/avi/Downloads/Sampati_v2
+Perform an exhaustive, multi-file forensic integrity audit across all modified and newly created files:
+1. Static analysis:
+   - `app/api/federation.py`
+   - `app/federation/coordinator.py`
+   - `app/engine/honeypot.py`
+   - `app/engine/upi_rules.py`
+   - `app/engine/upi_scorer.py`
+   - `app/services/upi_cases.py`
+   - `frontend/src/components/NetworkConstellation.jsx`
+   - `frontend/src/components/CaseDrawer.jsx`
+   - `frontend/src/components/KpiStrip.jsx`
+   - Verify NO hardcoded test results, NO dummy/facade implementations, NO bypasses.
+   - Verify genuine calculation of risk scores, authentic in-memory/Redis cache indexing, authentic honeypot hit tracking, and authentic step-by-step canvas animation state machine.
+2. Dynamic runtime execution audit:
+   - Execute verification tests with novel randomized VPAs and transactions never seen in the codebase to prove dynamic, non-hardcoded behavior.
+3. Verdict: State clearly CLEAN or INTEGRITY VIOLATION with full evidence.
 
-CRITICAL MANDATORY INSTRUCTIONS:
-Perform an exhaustive Forensic Integrity Audit across the entire SAMPATI V2 codebase to verify absolute authenticity.
-Check for:
-1. NO hardcoded test outputs or string matching mocks pretending to be real features.
-2. Genuine implementation of backend models, persistence, engine scoring, WebSocket broadcast, latency metrics, and case status transitions.
-3. Genuine implementation of multi-page React components (OverviewPage, InvestigationsPage, AnalyticsPage, SystemHealthPage, SettingsPage, MainLayout, Sidebar, Topbar) and React Router.
-4. Genuine .github/workflows/deploy.yml with zero hardcoded credentials or IP addresses.
-5. Genuine test suites covering real behavior.
-
-Execute verification commands and static checks:
-- Inspect codebase files across app/, frontend/src/, .github/, tests/.
-- Run `python3 tests/test_e2e_suite.py`.
-- Render your final verdict: **CLEAN** or **INTEGRITY VIOLATION**.
-
-Write your complete evidence report to /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_auditor_final/handoff.md and notify parent via send_message.
+Write your report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_auditor_final/handoff.md`. Notify parent when done.

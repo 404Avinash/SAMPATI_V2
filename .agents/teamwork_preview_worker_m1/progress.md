@@ -1,16 +1,15 @@
-# Worker 1 (Milestone M1) Progress
+# Progress — Milestone 1: Federation Signal Exchange API & Dynamic Network Scoring
 
-Last visited: 2026-08-28T19:18:40Z
-Current Status: Milestone M1 implementation complete. All tests passing. Writing handoff.md.
+Last visited: 2026-08-30T19:32:10Z
 
-## Steps
-- [x] Step 0: Initialize DISPATCH.md, BRIEFING.md, progress.md
-- [x] Step 1: Read ORIGINAL_REQUEST.md, PROJECT.md, survey_backend_persistence.md, and existing codebase files
-- [x] Step 2: Update requirements.txt with sqlalchemy, asyncpg, psycopg
-- [x] Step 3: Implement app/models/upi_persistence.py (SQLAlchemy 2.0 async models with JSONB and compound indexes)
-- [x] Step 4: Implement app/db/session.py (RDS connection pooling, sessionmaker, init_db, health check probe, fallback)
-- [x] Step 5: Update app/main.py (lifespan init/close DB, /health probe via SELECT 1)
-- [x] Step 6: Update app/services/upi_cases.py and app/api/upi.py (PostgreSQL persistence & queries)
-- [x] Step 7: Update Dockerfile and deploy/ec2_userdata.sh (DATABASE_URL env support and RDS provisioning)
-- [x] Step 8: Verify build, run test suite, ensure tests pass (8/8 passed)
-- [x] Step 9: Write handoff.md and report to parent
+## Status
+- [x] Step 1: Initialize briefing, dispatch, progress
+- [x] Step 2: Read `ORIGINAL_REQUEST.md`, `PROJECT.md`, and explorer analysis
+- [x] Step 3: Inspect existing codebase (`app/federation/coordinator.py`, `app/main.py`, `app/api/upi.py`, `app/services/evaluator.py`, schemas, tests)
+- [x] Step 4: Implement `app/models/upi_models.py` schemas (`FederationSignalRequest`, `FederationSignalResponse`, `FederationQueryResponse`)
+- [x] Step 5: Implement `app/federation/coordinator.py` changes (`record_signal`, `query_signal`, `network_score`, `network_score_for_txn`, multi-key lookup, hot cache)
+- [x] Step 6: Implement `app/api/federation.py` router (`POST /signal`, `GET /query`, `GET /signals`, `POST /run`)
+- [x] Step 7: Update `app/main.py` router inclusion and SPA fallback handler
+- [x] Step 8: Verify `/upi/check` dynamic network scoring integration
+- [x] Step 9: Add test suite in `tests/test_federation_api.py` and run full pytest suite (502 passed, 0 failures)
+- [x] Step 10: Complete handoff report and notify parent

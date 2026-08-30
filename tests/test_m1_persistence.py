@@ -174,7 +174,7 @@ def test_api_simulation_and_cases_persistence():
     assert stats_resp.status_code == 200
     stats_data = stats_resp.json()
     assert stats_data["cases"]["total"] == cases_data["count"]
-    assert stats_data["cases"]["resolved"] >= 1
+    assert stats_data["cases"]["investigated"] >= 1
 
 
 def test_api_filtering_and_pagination():

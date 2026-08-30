@@ -1,26 +1,20 @@
-## 2026-08-28T18:53:43Z
+## 2026-08-30T19:24:00Z
+You are Explorer 1 (Backend & Federation Architecture) for SAMPATI V2.
+Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1`.
+You must read the user's authoritative request at `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`.
 
-<USER_REQUEST>
-You are Explorer 1 for the SAMPATI V2 upgrade survey.
+Investigate the backend architecture for the requested features:
+1. R2. Federation Signal Exchange API:
+   - Examine `app/federation/coordinator.py`, `app/api/upi.py`, `app/engine/upi_scorer.py`, `app/db/`, `app/core/`, routers, schemas, etc.
+   - Investigate implementation details for:
+     - `POST /federation/signal` accepting `{vpa_hash, risk_level, ring_hash}` returning HTTP 200.
+     - `GET /federation/query?vpa_hash=<hash>` returning `{federated_risk_score, ring_members, reported_by_nodes}` with sub-5ms caching via Redis / in-memory fallback.
+     - Integration into `/upi/check` and `UpiEvaluationResponse`: dynamically computing/populating `network_score` when federated signals exist for payee/payer VPA.
+2. R3. VPA Honeypot Network Backend:
+   - Seeded registry of synthetic "honeypot" UPI VPAs.
+   - `R_HONEYPOT_HIT` rule triggering `BLOCK` verdict and reasons in `upi_scorer.py`.
+   - Hit count and last-hit timestamp tracking per honeypot VPA.
+   - Backend endpoint/mechanism to expose "Honeypot Hits (24h)" for the Overview page (e.g. in `/upi/stats` or `/stats` or a dedicated stats endpoint).
+3. Identify all existing files to modify and new files to create, exact data models/schemas, dependencies, and integration points.
 
-Your working directory is:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_explorer_survey_1\
-
-Project workspace:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2
-
-Original User Request:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\ORIGINAL_REQUEST.md
-
-Your Task:
-Read ORIGINAL_REQUEST.md thoroughly. Investigate the backend codebase for Requirement R1 (AWS RDS PostgreSQL Persistence):
-1. Locate where all in-memory state is currently stored (cases, mule ring records, analyst feedback, aggregate stats).
-2. Detail all schemas / data models needed for PostgreSQL (UPI cases, mule rings, feedback, stats).
-3. Investigate how database connection (`DATABASE_URL`), asyncpg/psycopg connection pooling (configured for t3.micro <=87 connections), and automatic table creation on startup should be structured in FastAPI.
-4. Check `requirements.txt`, `Dockerfile`, and `deploy/ec2_userdata.sh` and list all changes needed.
-5. Check how `/upi/cases`, `/upi/stats`, and `/health` currently work and how they must be updated to query the database.
-6. Write a comprehensive survey report to:
-c:\Users\ajha1\Downloads\ORGANIZATION_LEVEL_0\03_Data_Warehouse\Personal\AVINASH\SAMPATI\SAMPATI_V2\.agents\teamwork_preview_explorer_survey_1\survey_backend_persistence.md
-and write a standard handoff.md in your working directory.
-7. Send a message to parent with the summary and path to your report. Do not modify source code.
-</USER_REQUEST>
+Write your findings to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/analysis.md` and write a structured handoff report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md`. Then notify parent.

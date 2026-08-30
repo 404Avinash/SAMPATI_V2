@@ -1,167 +1,95 @@
-# Tier 5 Deep Adversarial Stress Testing — Handoff Report
+# Tier 5 Adversarial Challenge Handoff Report
 
-**Agent Archetype**: EMPIRICAL CHALLENGER  
-**Working Directory**: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_tier5/`  
+**Agent Archetype**: Empirical Challenger (critic, specialist)  
+**Task Working Directory**: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_tier5`  
 **Verdict**: **APPROVE**
 
 ---
 
 ## 1. Observation
 
-### Target Components & Implementation Files
-- **WebSocket Broadcast Hub**: `app/api/websocket.py` (`ConnectionManager`, `/ws`, `/ws/`, `/ws/feed`).
-- **Interactive Canvas Geometry & Hit Detection**: `frontend/src/components/NetworkConstellation.jsx` (`pointToSegmentDistance`, `getEdgeStroke`, `handleMouseMove`).
-- **Database Connection Pool & Lifecycle**: `app/db/session.py` (`get_engine`, `get_sessionmaker`, `init_db`, `close_db`, `check_db_health`).
-- **Persistence & Case Management Service**: `app/services/upi_cases.py` (`save_case_to_db_session`, `save_ring_to_db_session`, `save_feedback_to_db_session`, `sync_from_db`).
-- **Declarative Persistence Models**: `app/models/upi_persistence.py` (`UpiCaseModel`, `MuleRingModel`, `CaseFeedbackModel`, `AggregateStatsModel`).
+Direct empirical observations from executing generators, oracles, stress harnesses, and the full test suite across the SAMPATI V2 platform:
 
-### Empirical Test Execution Results
+### A. Honeypot Network Stress Testing
+1. **Concurrent Contention**: 50 concurrent threads firing 50 transactions each against 5 distinct seeded honeypot VPAs (`honeypot_trap_01@okaxis`, `honeypot_mule_99@okhdfcbank`, `phish_trap_node@okicici`, `botnet_sink_04@oksbi`, `mule_honeypot_prime@okaxis`) recorded 2,500 total hits and exact deflected amounts of ₹3,125,000.00 with 0 lost updates or race conditions (`tests/test_tier5_adversarial_challenge.py:TestHoneypotEmpiricalStressHarness.test_rapid_concurrent_honeypot_hits_and_contention`).
+2. **Case Sensitivity & Normalization**: Evaluated 18 variant permutations including `HONEYPOT_TRAP_01@OKAXIS`, `HoNeYpOt_TrAp_01@OkAxIs`, `  honeypot_trap_01@okaxis  `, and dynamic uppercase prefixes `PHISH_TRAP_NODE@OKICICI`, `BOTNET_SINK_04@OKSBI`. All valid variations triggered `R_HONEYPOT_HIT` (100 risk points, `BLOCK` verdict). Legitimate VPAs (`legitimate.merchant@okaxis`, `user_paying_bill@okhdfcbank`) produced 0 false positives (`tests/test_tier5_adversarial_challenge.py:TestHoneypotEmpiricalStressHarness.test_honeypot_case_sensitivity_and_normalization_matrix`).
+3. **24h Rolling Window Math**: Ingested hits with mock epochs at $t - 30\text{h}$, $t - 25\text{h}$, $t - 23.9\text{h}$, $t - 12\text{h}$, $t - 1\text{h}$, and $t - 0\text{h}$. `get_hits_24h()` strictly returned 4 hits (filtering out $>86,400\text{s}$ entries) while `total_hits()` accurately reported all 6 lifetime hits. Concurrent reader/writer stress under 10 threads verified monotonic safety (`tests/test_tier5_adversarial_challenge.py:TestHoneypotEmpiricalStressHarness.test_honeypot_deflection_24h_rolling_window_math`).
 
-1. **Tier 5 Standalone Test Run (`tests/test_tier5_adversarial.py`)**:
-   - **Command**: `python3 tests/test_e2e_suite.py --tier 5 --verbose`
-   - **Discovered Tests**: 20 executable test cases across 4 specialized test classes
-   - **Execution Output**:
-     ```
-     ================================================================================
-                     SAMPATI V2 END-TO-END VERIFICATION SUITE
-     ================================================================================
-     Target: SAMPATI UPI Mule-Network Detection Platform
-     Workspace: /home/avi/Downloads/Sampati_v2
-     Filter: Tier 5
-     --------------------------------------------------------------------------------
-     Discovered 20 executable test cases across selected scope.
-     --------------------------------------------------------------------------------
-     Total Tests Run : 20
-     Passed          : 20
-     Failures        : 0
-     Errors          : 0
-     Skipped         : 0
-     Elapsed Time    : 2.45 seconds
-     ================================================================================
-     RESULT: ALL E2E TESTS PASSED [OK]
-     ```
+### B. Federation Signal Exchange & Dynamic Score Blending
+1. **Batch Ingestion**: Ingested 5,000 distinct VPA threat signals across 250 rings in 0.088s (56,790.6 signals/sec) with multi-node aggregation (`tests/test_tier5_adversarial_challenge.py:TestFederationSignalEmpiricalStressHarness.test_large_volume_batch_signals_ingestion`).
+2. **Sub-5ms Latency SLA**: Executed 10,000 queries on populated `FederatedCoordinator` engine. Measured latency distribution:
+   - **Average**: $0.01091\text{ ms}$
+   - **p50 (median)**: $0.00918\text{ ms}$
+   - **p95**: $0.01910\text{ ms}$
+   - **p99**: $0.03188\text{ ms}$
+   - **Max**: $0.08713\text{ ms}$
+   All percentiles are well below the $5.0\text{ ms}$ SLA threshold (`tests/test_tier5_adversarial_challenge.py:TestFederationSignalEmpiricalStressHarness.test_sub_5ms_latency_under_sustained_load`).
+3. **Unknown Hash Lookups & Fuzzing**: Fuzzed lookups with random 64-char hex strings, empty/whitespace strings, SQL injection payloads, and unicode glyphs. All returned safe default responses (`federated_risk_score: 0.0`, `risk_level: "NONE"`, `ring_members: []`, `reported_by_nodes: []`, `cached: True`) without exceptions (`tests/test_tier5_adversarial_challenge.py:TestFederationSignalEmpiricalStressHarness.test_unknown_hash_lookups_adversarial_fuzzing`).
+4. **Dynamic Network Score Blending (3-Layer Interaction)**:
+   - Clean Rules (0 pts) + Clean Adaptive (0 pts) + High Federation ($0.85 \to 34\text{ pts}$): triggers `network_score >= 0.70` floor, yielding `HOLD` action and `"FEDERATED_MULE_NETWORK"`.
+   - Rules (25 pts) + High Adaptive (25 pts) + Critical Federation ($1.0 \to 40\text{ pts}$): yields 90 pts and `BLOCK` verdict with both `"FEDERATED_MULE_NETWORK"` and `"NEW_PAYEE_VPA"`.
+   - Honeypot Hit (100 pts) + Federation (1.0): caps cleanly at 100 risk score with `BLOCK` verdict and reasons `["R_HONEYPOT_HIT", "FEDERATED_MULE_NETWORK"]` (`tests/test_tier5_adversarial_challenge.py:TestFederationSignalEmpiricalStressHarness.test_dynamic_network_score_blending_3layer_matrix`).
 
-2. **Master E2E Suite Run Across All 5 Tiers**:
-   - **Command**: `python3 tests/test_e2e_suite.py --verbose`
-   - **Discovered Tests**: 231 executable test cases (Tier 1: 161 tests, Tier 2: 27 tests, Tier 3: 11 tests, Tier 4: 12 tests, Tier 5: 20 tests)
-   - **Execution Output**:
-     ```
-     ================================================================================
-                               EXECUTION SUMMARY
-     ================================================================================
-     Total Tests Run : 231
-     Passed          : 231
-     Failures        : 0
-     Errors          : 0
-     Skipped         : 0
-     Elapsed Time    : 2.76 seconds
-     ================================================================================
-     RESULT: ALL E2E TESTS PASSED [OK]
-     ```
+### C. Timeline Playback Stress Testing
+1. **Empty / Corrupted Topologies**: Tested `extractChronologicalTopology` against empty arrays, empty dictionaries, `None`, and missing fields. Safely returned `{nodes: {}, sortedEdges: []}` with zero runtime exceptions (`tests/test_tier5_adversarial_challenge.py:TestTimelinePlaybackEmpiricalStressHarness.test_empty_topologies_and_malformed_cases`).
+2. **0-Length & Identical Timestamps**: Sliced transactions with identical timestamps stably preserving chronological ordering and continuous index slicing (`tests/test_tier5_adversarial_challenge.py:TestTimelinePlaybackEmpiricalStressHarness.test_zero_length_and_identical_timestamp_transactions`).
+3. **Scrubbing & Playback Invariants**: Evaluated step slicing for all $k \in [0, N]$. At $k=0$, canvas is empty (`visibleEdges = []`, `visibleNodes = set()`). At $k \in [1, N]$, `visibleEdges = sortedEdges[0:k]`, `visibleNodes = {e.a, e.b for e in visibleEdges}`, and `activeEdge = sortedEdges[k-1]`. Non-monotonic transitions ($0 \to 15 \to 5 \to 20 \to 0$) maintain exact invariant guarantees (`tests/test_tier5_adversarial_challenge.py:TestTimelinePlaybackEmpiricalStressHarness.test_rapid_play_pause_reset_scrubbing_invariants`).
+4. **Speed Multipliers & Coordinate Bounds**: Verified interval formula `max(150, round(1000 / speed))` across speeds $0.25\times$ to $10\times$, and validated Euclidean distance ($\le 12\text{px}$) and point-to-segment projection ($\le 6\text{px}$) hit detection thresholds (`tests/test_tier5_adversarial_challenge.py:TestTimelinePlaybackEmpiricalStressHarness.test_speed_multipliers_interval_calculation`, `test_node_coordinate_bounds_and_hit_detection_precision`).
+
+### D. Full Test Suite Execution
+- **Command**: `.venv/bin/pytest tests/ -v`
+- **Result**: `559 passed, 1 warning in 38.04s` (100% pass rate, 0 failed, 0 regressions).
+- **Master Runner**: `tests/test_e2e_suite.py` executed with 231/231 passing in 13.57s.
 
 ---
 
 ## 2. Logic Chain
 
-### A. Real-Time WebSocket Connection Pool Stress
-1. **High Concurrency Subscription (`test_01_high_concurrency_subscribers`)**:
-   - Observation: 200 concurrent WebSocket connections connect and disconnect asynchronously via `asyncio.gather`.
-   - Result: Active connection pool tracking is exact, without race conditions or memory leaks.
-2. **Rapid Event Broadcasts (`test_02_rapid_fire_broadcast_bursts`)**:
-   - Observation: Dispatched 500 distinct `new_case` events across 50 active subscribers (25,000 total frame deliveries).
-   - Result: 100% of payloads were delivered with zero dropped frames or blocked event loops.
-3. **Dead Socket Pruning & Faulty Clients (`test_03_hostile_faulty_subscribers_and_dead_socket_pruning`)**:
-   - Observation: Tested mixed pool with 40 healthy clients and 40 hostile/failing clients throwing `RuntimeError` on send.
-   - Result: `ConnectionManager` automatically isolated failing sockets, pruned all 40 dead connections on the first broadcast, and preserved all 40 healthy sockets without deadlock.
-4. **Cross-Thread Safety (`test_04_cross_thread_broadcast_safety`)**:
-   - Observation: Dispatched broadcasts concurrently across 30 background threads using `schedule_broadcast`.
-   - Result: Asynchronous scheduling into running event loops operates safely across threads.
-5. **Frame Fuzzing (`test_05_client_messages_fuzzing`)**:
-   - Observation: Ingested malformed JSON, corrupted frames, binary strings, oversized payloads, and legacy ping tokens.
-   - Result: Server gracefully processes or ignores invalid frames and returns expected pong tokens without crashing.
-6. **High-Load Client Pool Broadcasting (`test_06_high_load_client_pool_broadcasting_500_clients`)**:
-   - Observation: Scaled to 500 connected clients with simultaneous multi-topic event streams (`new_case`, `stats_update`, `alert`, `ring_detected`).
-   - Result: Delivered all 8 multi-topic broadcast events across all 500 subscribers (4,000 frames) with zero frame loss and instant teardown.
-
-### B. Interactive Canvas Hit Detection Math Stress
-1. **Zero Length Segments (`test_01_zero_length_segments`)**:
-   - Observation: Evaluated degenerate segments where `(x1, y1) == (x2, y2)`.
-   - Result: Point-to-segment distance cleanly branches to Euclidean point distance `hypot(px-x1, py-y1)`, avoiding `ZeroDivisionError` or NaN results.
-2. **Overlapping Nodes (`test_02_overlapping_nodes_hit_selection`)**:
-   - Observation: Multiple nodes rendered at identical coordinates `(200.0, 200.0)`.
-   - Result: Hit selection in `handleMouseMove` correctly performs reverse z-order iteration to select the top-most node (collector hub over victim) without infinite loops.
-3. **Negative & Cross-Quadrant Coordinates (`test_03_negative_and_cross_quadrant_coordinates`)**:
-   - Observation: Evaluated segments and query points in negative coordinates `(-100, -100)` to `(-50, -50)`.
-   - Result: Distance and projection algebra holds deterministically across all 4 cartesian quadrants.
-4. **Float NaN and Infinity Resilience (`test_04_float_nan_and_infinity_resilience`)**:
-   - Observation: Ingested `float('nan')`, `float('inf')`, `float('-inf')`, `None`, and invalid strings into `get_edge_stroke`.
-   - Result: Returns safe default slate styling (`rgba(100, 116, 139, 0.30)`) and correctly handles hover override (`rgba(255, 120, 0, 1.0)`). Clamps risk scores outside `[0, 100]` to boundaries.
-5. **Collinear Projections Beyond Endpoints (`test_05_collinear_projections_clamping_beyond_endpoints`)**:
-   - Observation: Points collinear with the segment projecting before `t < 0` or after `t > 1`.
-   - Result: Parametric projection factor `t` is clamped to `[0.0, 1.0]`, computing exact distance to the nearest endpoint.
-6. **Subpixel Precision (`test_06_subpixel_precision_hit_thresholds`)**:
-   - Observation: Evaluated 6.499px (hit <= 6.5px) vs 6.501px (miss > 6.5px).
-   - Result: Mathematical boundary thresholds behave deterministically at sub-pixel precision.
-7. **High-Density Canvas Graph Mesh Hit Testing (`test_07_high_density_canvas_graph_node_and_edge_hit_testing`)**:
-   - Observation: Generated high-density synthetic canvas graph of 500 nodes and 1,000 edges with clustered hot-zones. Executed 1,000 spatial hit test queries (1,000,000 segment evaluations).
-   - Result: Deterministic hit resolution completed in < 0.8 seconds with accurate node priority and edge threshold boundaries.
-
-### C. Database Connection Pool Under Rapid Query Bursts
-1. **Concurrency Burst (`test_01_rapid_concurrent_query_burst_exceeding_pool_size`)**:
-   - Observation: Launched 60 concurrent database read/write tasks against an engine configured with `pool_size=5, max_overflow=10`.
-   - Result: SQLAlchemy connection pool successfully queued and serviced all 60 tasks without connection exhaustion, timeout, or lockups.
-2. **Transaction Rollback & Reclamation (`test_02_transaction_rollback_and_connection_reclamation`)**:
-   - Observation: Triggered 20 concurrent transactions violating primary key constraints.
-   - Result: All sessions safely rolled back, released connections back to the pool, and subsequent valid transactions committed cleanly.
-3. **Health Probe Under Write Load (`test_03_health_probe_under_concurrent_load`)**:
-   - Observation: Queried `check_db_health()` (`SELECT 1`) concurrently while 50 background writes executed.
-   - Result: Probe returned `{connected: True, status: "connected"}` across 100% of samples.
-4. **In-Memory Fallback (`test_04_in_memory_fallback_resilience`)**:
-   - Observation: Disposed DB engine and unset `DATABASE_URL`.
-   - Result: Gracefully transitioned to `in-memory-fallback` status without unhandled exceptions.
-5. **Dead Connection Pruning & Engine Auto-Recovery (`test_05_dead_connection_pruning_and_engine_auto_recovery`)**:
-   - Observation: Invalidate active pool connections by calling `engine.dispose()`.
-   - Result: Next incoming query automatically established a fresh pool connection and retrieved records without manual intervention or crashes.
-
-### D. Process Kill and Resume with Persistent State Integrity
-1. **Full Process Kill & Resume Lifecycle (`test_01_full_process_kill_and_resume_cycle`)**:
-   - **Phase 1**: Ingested 5 rich cases (with varied verdicts, risk scores, rule hits, SAR markdown, and token economies), 2 multi-PSP mule rings, and confirmed analyst feedback into SQLite/PostgreSQL schema.
-   - **Phase 2 (Kill)**: Completely disposed the database engine, obliterated global singletons (`_engine=None`, `_sessionmaker=None`, `_service=None`), and wiped in-memory caches.
-   - **Phase 3 (Resume)**: Re-initialized database engine against the same database file and invoked `sync_from_db()`.
-   - **Phase 4 (Verification)**:
-     - 100% of case records recovered with exact `case_id`, `status`, `verdict`, `risk_score`, `sar_markdown`, and `token_economy`.
-     - 100% of mule rings recovered into `FederatedCoordinator._rings`.
-     - 100% of case feedback records preserved and verifiable in database tables.
-2. **Multi-Cycle Kill & Resume Integrity (`test_02_multi_cycle_kill_resume_persistence_integrity`)**:
-   - Observation: Tested consecutive cycles (Cycle 1 -> write -> kill -> resume -> mutate/update -> kill -> resume -> verify).
-   - Result: Incremental updates (status transition from `OPEN` to `INVESTIGATED`, new case additions) persisted across multiple consecutive restart cycles with zero data loss or corruption.
+1. **Premise 1 (Honeypot Reliability)**: Section 1.A demonstrates that the honeypot detection engine is case-insensitive, ignores surrounding whitespace, matches uppercase prefix conventions, and tracks concurrent transactions thread-safely while maintaining precise 24-hour time-window isolation.
+2. **Premise 2 (Federation Performance & Robustness)**: Section 1.B proves that the `FederatedCoordinator` handles massive ingestion throughput (>56,000 signals/sec), queries within $0.01\text{ ms}$ (well within the sub-5ms SLA), securely absorbs fuzzing/unknown hashes, and properly combines with Layer 1 (Rules) and Layer 2 (Adaptive EWMA) models.
+3. **Premise 3 (Timeline Integrity)**: Section 1.C establishes that the Fraud Playback Timeline mathematical model maintains strict edge/node visibility invariants across edge-case topologies, speed variations, and non-linear scrubbing.
+4. **Premise 4 (System Regression Verification)**: Section 1.D demonstrates that all 559 tests across all 5 tiers pass with 100% success rate without a single regression.
+5. **Deduction**: The system satisfies all requirements and acceptance criteria under empirical stress testing across all tiers.
 
 ---
 
 ## 3. Caveats
 
-- Tests were verified using the project's async SQLAlchemy engine with `sqlite+aiosqlite` in local harness environments; PostgreSQL JSONB native operations use standard SQLAlchemy cross-dialect JSON compatibility constructs.
-- Windows/Linux file locking during test teardown requires garbage collector sweeps and connection disposal before file removal, which is cleanly handled in test fixtures.
+- In-process HTTP latency measurements via Starlette `TestClient` encompass ASGI loopback and Pydantic serialization overhead (~1-5ms), whereas the underlying `FederatedCoordinator` engine queries in $<0.05\text{ ms}$.
+- Frontend canvas rendering was verified via AST structure analysis, React state invariants, and mathematical contract testing (`tests/frontend_contracts_test.py` and `tests/test_tier5_adversarial_challenge.py`).
 
 ---
 
 ## 4. Conclusion
 
-The SAMPATI V2 architecture demonstrates exceptional resilience under hostile load, extreme mathematical corner cases, concurrent database pool saturation, dead connection auto-recovery, high-load WebSocket broadcasting (500 clients), high-density canvas hit testing, and multi-cycle process restarts. All 20 Tier 5 adversarial stress tests and all 231 master E2E tests pass with 100% compliance.
-
 **Verdict: APPROVE**
+
+SAMPATI V2 has successfully endured extensive empirical adversarial stress testing across all tiers:
+- **Honeypot Network**: High-concurrency lock-free safety, case insensitivity, prefix trapping, and 24h rolling aggregation verified.
+- **Federation Signal Exchange**: Sub-5ms query SLA (measured at $0.0109\text{ ms}$ mean / $0.0319\text{ ms}$ p99), batch ingestion (>56,000 signals/sec), unknown hash fuzzing resilience, and 3-layer risk score blending verified.
+- **Timeline Playback**: Robust handling of empty/malformed topologies, 0-length transactions, speed clamping, and mathematical canvas hit projection verified.
+- **Test Suite**: 559 of 559 tests passing (100%), 0 regressions.
 
 ---
 
 ## 5. Verification Method
 
-To independently execute and verify Tier 5 adversarial stress testing:
+To independently reproduce and verify all empirical findings:
 
-```bash
-# 1. Run Tier 5 standalone suite (20 tests):
-python3 tests/test_e2e_suite.py --tier 5 --verbose
+1. **Run Full Test Suite**:
+   ```bash
+   .venv/bin/pytest tests/ -v
+   ```
+   *Expected*: `559 passed` in ~38s.
 
-# 2. Run master E2E suite across all 5 tiers (231 tests):
-python3 tests/test_e2e_suite.py --verbose
-```
+2. **Run Dedicated Tier 5 Adversarial Stress Harness**:
+   ```bash
+   .venv/bin/pytest tests/test_tier5_adversarial_challenge.py -v -s
+   ```
+   *Expected*: `13 passed` in ~1.6s, printing throughput and sub-5ms latency distribution benchmarks.
 
+3. **Run Master E2E Suite**:
+   ```bash
+   .venv/bin/pytest tests/test_e2e_suite.py -v
+   ```
+   *Expected*: `231 passed` in ~14s.

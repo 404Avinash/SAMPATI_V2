@@ -10,6 +10,8 @@ export function AppStateProvider({ children }) {
     allowed: 0,
     held: 0,
     blocked: 0,
+    honeypot_hits: 0,
+    honeypot_hits_24h: 0,
     rings: 0,
     dpip: 0,
   });
@@ -79,13 +81,21 @@ export function AppStateProvider({ children }) {
     try {
       const s = await api.stats();
       if (s) {
+        const hpVal =
+          s.honeypot_hits_24h ??
+          s.honeypot_hits ??
+          s.honeypots?.total_hits ??
+          s.honeypots?.hits_24h ??
+          0;
         setStats((prev) => ({
           evaluated: s.total_evaluations ?? s.evaluated ?? prev.evaluated,
           allowed: s.verdicts?.ALLOW ?? s.allowed ?? prev.allowed,
           held: s.verdicts?.HOLD ?? s.held ?? prev.held,
           blocked: s.verdicts?.BLOCK ?? s.blocked ?? prev.blocked,
-          rings: s.rings_known ?? prev.rings,
-          dpip: s.dpip?.rings_published ?? prev.dpip,
+          honeypot_hits: hpVal !== undefined && hpVal !== null ? hpVal : prev.honeypot_hits,
+          honeypot_hits_24h: hpVal !== undefined && hpVal !== null ? hpVal : prev.honeypot_hits_24h,
+          rings: s.rings_known ?? s.rings ?? prev.rings,
+          dpip: s.dpip?.rings_published ?? s.dpip ?? prev.dpip,
         }));
         if (s.adaptive_sensitivity != null) {
           setSensitivity(s.adaptive_sensitivity);
@@ -119,11 +129,18 @@ export function AppStateProvider({ children }) {
         });
       }
       if (incomingStats) {
+        const hpVal =
+          incomingStats.honeypot_hits_24h ??
+          incomingStats.honeypot_hits ??
+          incomingStats.honeypots?.total_hits ??
+          null;
         setStats((prev) => ({
           evaluated: incomingStats.evaluated ?? prev.evaluated,
           allowed: incomingStats.allowed ?? prev.allowed,
           held: incomingStats.held ?? prev.held,
           blocked: incomingStats.blocked ?? prev.blocked,
+          honeypot_hits: hpVal !== null ? hpVal : prev.honeypot_hits,
+          honeypot_hits_24h: hpVal !== null ? hpVal : prev.honeypot_hits_24h,
           rings: incomingStats.rings ?? prev.rings,
           dpip: incomingStats.dpip ?? prev.dpip,
         }));
@@ -136,11 +153,18 @@ export function AppStateProvider({ children }) {
   const handleWsStatsUpdate = useCallback(
     (incomingStats) => {
       if (!incomingStats) return;
+      const hpVal =
+        incomingStats.honeypot_hits_24h ??
+        incomingStats.honeypot_hits ??
+        incomingStats.honeypots?.total_hits ??
+        null;
       setStats((prev) => ({
         evaluated: incomingStats.evaluated ?? prev.evaluated,
         allowed: incomingStats.allowed ?? prev.allowed,
         held: incomingStats.held ?? prev.held,
         blocked: incomingStats.blocked ?? prev.blocked,
+        honeypot_hits: hpVal !== null ? hpVal : prev.honeypot_hits,
+        honeypot_hits_24h: hpVal !== null ? hpVal : prev.honeypot_hits_24h,
         rings: incomingStats.rings ?? prev.rings,
         dpip: incomingStats.dpip ?? prev.dpip,
       }));
@@ -169,11 +193,15 @@ export function AppStateProvider({ children }) {
         const blocked = seenTotals.current.blocked + (v.BLOCK || 0);
         seenTotals.current = { allowed, held, blocked };
 
+        const hpVal = result.honeypot_hits_24h ?? result.honeypot_hits ?? null;
+
         setStats((prev) => ({
           evaluated: prev.evaluated + (result.processed || 0),
           allowed,
           held,
           blocked,
+          honeypot_hits: hpVal !== null ? hpVal : prev.honeypot_hits,
+          honeypot_hits_24h: hpVal !== null ? hpVal : prev.honeypot_hits_24h,
           rings: result.detected_rings ?? prev.rings,
           dpip: prev.dpip,
         }));

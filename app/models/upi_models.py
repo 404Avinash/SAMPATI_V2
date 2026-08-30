@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 try:
     from pydantic import BaseModel, Field
@@ -199,3 +199,55 @@ class DetailedHealthResponse(BaseModel):
     redis: Dict[str, Any] = Field(default_factory=dict, description="Redis hot cache status and ping latency")
     websocket: Dict[str, Any] = Field(default_factory=dict, description="WebSocket active connection hub metrics")
     throughput: Dict[str, Any] = Field(default_factory=dict, description="Rolling throughput and evaluation counters")
+
+
+class FederationSignalRequest(BaseModel):
+    """Payload to submit a privacy-preserving federated VPA risk signal."""
+    vpa_hash: str = Field(..., description="SHA-256 hash or pseudonymized hash of suspicious VPA")
+    risk_level: Union[str, float] = Field(..., description="Risk level string (CRITICAL, HIGH, MEDIUM, LOW) or numeric score in [0.0, 1.0]")
+    ring_hash: Optional[str] = Field(default=None, description="Optional associated mule ring identifier")
+    node_id: Optional[str] = Field(default="peer_node", description="Reporting PSP node identifier")
+
+
+class FederationSignalResponse(BaseModel):
+    """Response returned upon successful signal ingestion."""
+    status: str = Field(default="accepted", description="Ingestion status")
+    vpa_hash: str = Field(..., description="Ingested VPA hash")
+    risk_level: Union[str, float] = Field(..., description="Recorded risk level")
+    federated_risk_score: float = Field(..., description="Normalized numerical risk score in [0.0, 1.0]")
+    ring_hash: Optional[str] = Field(default=None, description="Associated mule ring identifier")
+    timestamp: str = Field(..., description="UTC ISO timestamp of ingestion")
+    recorded_at: Optional[str] = Field(default=None, description="UTC ISO timestamp alias")
+
+
+class FederationQueryResponse(BaseModel):
+    """Response returned by fast federated risk query."""
+    vpa_hash: str = Field(..., description="Queried VPA hash")
+    federated_risk_score: float = Field(0.0, description="Normalized federated risk score in [0.0, 1.0]")
+    risk_level: Union[str, float] = Field("NONE", description="Risk level string or score")
+    ring_members: List[str] = Field(default_factory=list, description="Associated ring member VPA hashes")
+    reported_by_nodes: List[str] = Field(default_factory=list, description="List of reporting PSP nodes")
+    cached: bool = Field(default=True, description="Whether served from sub-5ms hot state cache")
+    last_updated: Optional[str] = Field(default=None, description="ISO timestamp of last signal")
+
+
+class HoneypotItem(BaseModel):
+    """Item record for a registered synthetic honeypot VPA."""
+    vpa: str = Field(..., description="Honeypot VPA address")
+    hit_count: int = Field(0, description="Total hits recorded against this honeypot")
+    amount_deflected: float = Field(0.0, description="Cumulative INR amount deflected")
+    last_hit_at: Optional[str] = Field(None, description="ISO timestamp of most recent hit")
+    status: str = Field("ACTIVE", description="Honeypot status")
+
+
+class HoneypotStatsResponse(BaseModel):
+    """Aggregated statistics for synthetic honeypot mesh network."""
+    status: str = Field("ok", description="Status string")
+    total_registered: int = Field(0, description="Total active honeypot VPAs")
+    total_hits: int = Field(0, description="Total lifetime hits recorded")
+    hits_24h: int = Field(0, description="Rolling 24-hour hit count")
+    total_amount_deflected: float = Field(0.0, description="Total INR volume deflected")
+    honeypots: List[HoneypotItem] = Field(default_factory=list, description="Per-honeypot metrics")
+    timestamp: str = Field(..., description="Timestamp of report")
+
+
