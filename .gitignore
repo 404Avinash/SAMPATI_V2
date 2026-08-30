@@ -1,5 +1,4 @@
 __pycache__/
-*.pyc
 *.pyc.bak
 .pytest_cache/
 node_modules/
