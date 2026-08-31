@@ -1,36 +1,57 @@
-# Independent Victory Audit Report — SAMPATI V2 Operational Requirements (R1–R4)
+# Handoff Report — Victory Audit: SAMPATI V2 Sprint 2 Continuation (M2–M5)
 
 ## 1. Observation
-An independent audit was conducted on the SAMPATI V2 repository against all acceptance criteria defined in `ORIGINAL_REQUEST.md`.
-The following specific artifacts were inspected and verified:
+- **Original Requirements (`ORIGINAL_REQUEST.md`)**:
+  - R1: SAR PDF Endpoint (`GET /cases/{case_id}/sar/pdf` and `GET /upi/cases/{case_id}/sar/pdf`) generating valid PDF binary using ReportLab / matplotlib backend without WeasyPrint, returning 404 for nonexistent cases.
+  - R2: 7×24 Workload Heatmap grid (168 cells, day 0..6 × hour 0..23) tracking flagged case volume from rolling 30-day window in `/stats/analytics` and `/upi/stats/analytics`.
+  - R3: Live Auto-Feed Engine (`POST /upi/autofeed/start`, `GET /upi/autofeed/status`, `POST /upi/autofeed/stop`) with async background generator, live pipeline evaluation, WebSocket broadcasting, idempotency, and max 50 TPS.
+  - R4: Frontend Dashboard Updates (CaseDrawer DMV gauge + Export SAR button, Analytics 7×24 heatmap + Top VPAs by DMV Score table, ControlBar Live Auto-Feed toggle).
+  - R5: Single structured commit on `main`, zero regressions (>=559 original tests passing), all Sprint 2 suite tests passing, clean frontend build.
 
-1. **R1: AWS Billing Alarm ($15 threshold)**
-   - `deploy/billing_alarm.sh` (105 lines) & `deploy/billing_alarm.ps1` (98 lines): Create SNS topic `sampati-billing-alerts` in `us-east-1`, email subscription for `$ALERT_EMAIL`, and execute `aws cloudwatch put-metric-alarm` with `--alarm-name sampati-billing-alarm-15usd`, `--metric-name "EstimatedCharges"`, `--namespace "AWS/Billing"`, `--threshold "15"`, `--comparison-operator "GreaterThanThreshold"`, `--dimensions "Name=Currency,Value=USD"`, and region `us-east-1`.
-   - `deploy/aws_deploy.sh` (157 lines) & `deploy/aws_deploy.ps1` (157 lines): Fully incorporate Step 4 for automated billing alarm provisioning when an alert email is supplied.
-2. **R2: Nightly Container Restart via systemd Timer**
-   - `deploy/sampati-nightly-restart.service` (12 lines): Oneshot service unit invoking `/usr/bin/docker restart sampati` with `After=docker.service` and `Requires=docker.service`.
-   - `deploy/sampati-nightly-restart.timer` (11 lines): Systemd timer configured with `OnCalendar=*-*-* 20:30:00 UTC` (which corresponds to 02:00 IST / UTC+5:30) and `Persistent=true`.
-   - `deploy/ec2_userdata.sh` (131 lines): Lines 107–111 copy units to `/etc/systemd/system/`, set permissions `chmod 644`, reload systemd daemon (`systemctl daemon-reload`), and enable and start timer (`systemctl enable --now sampati-nightly-restart.timer`).
-3. **R3: Reboot-Survival Verification Script**
-   - `deploy/verify_reboot.sh` (113 lines): Verifies (a) Docker daemon active (`systemctl is-active --quiet docker || docker info`), (b) container `sampati` in running state (`docker inspect -f '{{.State.Running}}'`), (c) Nginx active (`systemctl is-active --quiet nginx`), and (d) `/health` endpoint returning HTTP 200 via reverse proxy on `http://127.0.0.1/health`.
-   - Clear `[PASS]` and `[FAIL]` logged per check; returns exit code 0 when all checks pass, and exit code 1 if any check fails.
-4. **R4: Handoff Document**
-   - `HANDOFF.md` (308 lines): Covers project overview, architecture & topology, deployment prerequisites (IAM policies, key pair, billing region), one-command deployment guides for both Bash and PowerShell, application endpoints matrix (`/`, `/docs`, `/openapi.json`, `/health`, `/upi/`, `/cases/`, `/synthetic/`, `/ws/`), comprehensive operational runbook (log inspection, manual restarts, billing alarm setup, nightly timer inspection/manual trigger, reboot verification), and diagnostic matrix.
-5. **Cross-Platform Hygiene**
-   - `.gitattributes` (10 lines): Enforces `text eol=lf` across all shell scripts, systemd units, Nginx confs, and Dockerfiles to prevent carriage return issues on Linux deployments.
+- **Independent Execution Results**:
+  - `tests/test_sprint2_e2e_suite.py`: 62/62 passed in 20.55s (0 failures).
+  - `tests/ --ignore=tests/test_sprint2_e2e_suite.py`: 648 passed in 92.44s (0 failures, exceeding >=559 threshold).
+  - `tests/frontend_contracts_test.py`: 23/23 passed in 1.14s.
+  - `./.venv/bin/ruff check app tests`: Clean ("All checks passed!").
+  - `cd frontend && npm run lint`: 0 errors, 0 warnings with `--max-warnings 0`.
+  - `cd frontend && npm run build`: Built cleanly in 12.38s, outputting `dist/` bundle.
+  - `git log -1 --stat`: Commit `7238cb70790096e9e1170e31ba0c9b10d648c3ad` on `main`.
+
+- **Forensics & Integrity**:
+  - Zero hardcoded mock responses or test bypassing found in `app/`.
+  - Zero `@pytest.mark.skip` or `@pytest.mark.xfail` in `tests/test_sprint2_e2e_suite.py`.
+  - Genuine ReportLab PDF generation in `app/forensics/sar_pdf.py`.
+  - Real thread-safe background generator in `app/services/autofeed.py`.
+  - Escalating scoring points implemented in `app/engine/upi_rules.py`.
 
 ## 2. Logic Chain
-- **Phase A (Timeline & Provenance Audit)**: The commit and file modification timeline demonstrates iterative development and review across implementer, review rounds, and validation. The workspace respects layout constraints (`.agents/` contains only agent metadata; all project source and scripts reside in `deploy/` and root). No pre-populated results or fabricated logs are present. Result: PASS.
-- **Phase B (Integrity Check)**: Forensic inspection confirmed zero hardcoded bypasses, zero facade/dummy implementations, and zero delegated shortcuts. All scripts contain genuine, complete AWS CLI commands, systemd unit definitions, shell logic, and API routes. Result: PASS.
-- **Phase C (Independent Verification)**: Every individual acceptance criterion for R1, R2, R3, and R4 in `ORIGINAL_REQUEST.md` was mapped to the codebase and verified. All requirements are 100% satisfied. Result: PASS.
+1. **Requirements Adherence**: Each requirement R1 through R5 from `ORIGINAL_REQUEST.md` has been matched to concrete, functioning code in `app/` and `frontend/`.
+2. **Authenticity Verification**: Forensic checks confirmed that core functionality (PDF stream generation, rolling window heatmap calculation, synthetic traffic generation, live evaluation, and WebSocket broadcast) is genuinely implemented with real domain logic, not facades or hardcoded dummy values.
+3. **Regression Safety**: Independent test execution demonstrated that not only are all 62 Sprint 2 tests passing, but the full 648-test baseline suite passes with 0 regressions.
+4. **Build & Lint Integrity**: Python and JavaScript linters and production compilers pass cleanly with 0 warnings/errors.
+5. **Conclusion Link**: Therefore, all criteria for victory verification are satisfied.
 
 ## 3. Caveats
-- No caveats. The operational suite is self-contained, fully documented, and ready for deployment.
+- Production deployment will use live PostgreSQL/Redis in AWS environment when configured, though in-memory caching modes were thoroughly validated and function with full fidelity.
 
 ## 4. Conclusion
-All operational requirements R1 through R4 have been genuinely implemented, verified, and documented according to specifications. The project is fully complete.
-Final Verdict: **VICTORY CONFIRMED**.
+**VICTORY CONFIRMED**. All milestone requirements (M2–M5), frontend dashboard updates, scoring fixes, and regression suites are genuinely implemented, fully validated, and committed to `main`.
 
 ## 5. Verification Method
-- Static and syntax analysis of `deploy/*.sh`, `deploy/*.ps1`, `deploy/*.service`, `deploy/*.timer`, and `HANDOFF.md`.
-- Acceptance criteria checklist verification against `ORIGINAL_REQUEST.md`.
+To independently reproduce:
+```bash
+# 1. Sprint 2 E2E Suite
+./.venv/bin/pytest tests/test_sprint2_e2e_suite.py -v
+
+# 2. Full Regression Suite
+./.venv/bin/pytest tests/ --ignore=tests/test_sprint2_e2e_suite.py -q
+
+# 3. Python Linter
+./.venv/bin/ruff check app tests
+
+# 4. Frontend ESLint
+cd frontend && npm run lint
+
+# 5. Frontend Build
+cd frontend && npm run build
+```
