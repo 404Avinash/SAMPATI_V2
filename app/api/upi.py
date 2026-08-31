@@ -531,6 +531,14 @@ async def upi_stats(
     hold_count = current_stats.get("held", 0)
     block_count = current_stats.get("blocked", 0)
 
+    # Trigger background demo seeding on first request if service is fresh (zero evaluations)
+    if eval_count == 0:
+        try:
+            from app.services.upi_cases import trigger_demo_seed
+            trigger_demo_seed(service=service)
+        except Exception as exc:
+            logger.debug(f"Trigger demo seed from /upi/stats skipped: {exc}")
+
     if db is not None and SQLALCHEMY_AVAILABLE:
         try:
             status_stmt = select(UpiCaseModel.status, func.count(UpiCaseModel.case_id)).group_by(UpiCaseModel.status)

@@ -1,15 +1,16 @@
-# Progress — Milestone 1: Federation Signal Exchange API & Dynamic Network Scoring
+# Progress Log
 
-Last visited: 2026-08-30T19:32:10Z
+- **Agent**: teamwork_preview_worker_m1
+- **Task**: Sprint 3 Milestone 1: Backend Deployment Fix & Demo Seed Data
+- **Last visited**: 2026-08-31T15:48:00Z
+- **Current Status**: Complete. All requirements implemented and verified with 710/710 passing tests.
 
-## Status
-- [x] Step 1: Initialize briefing, dispatch, progress
-- [x] Step 2: Read `ORIGINAL_REQUEST.md`, `PROJECT.md`, and explorer analysis
-- [x] Step 3: Inspect existing codebase (`app/federation/coordinator.py`, `app/main.py`, `app/api/upi.py`, `app/services/evaluator.py`, schemas, tests)
-- [x] Step 4: Implement `app/models/upi_models.py` schemas (`FederationSignalRequest`, `FederationSignalResponse`, `FederationQueryResponse`)
-- [x] Step 5: Implement `app/federation/coordinator.py` changes (`record_signal`, `query_signal`, `network_score`, `network_score_for_txn`, multi-key lookup, hot cache)
-- [x] Step 6: Implement `app/api/federation.py` router (`POST /signal`, `GET /query`, `GET /signals`, `POST /run`)
-- [x] Step 7: Update `app/main.py` router inclusion and SPA fallback handler
-- [x] Step 8: Verify `/upi/check` dynamic network scoring integration
-- [x] Step 9: Add test suite in `tests/test_federation_api.py` and run full pytest suite (502 passed, 0 failures)
-- [x] Step 10: Complete handoff report and notify parent
+## Steps
+1. [x] Initialize briefing, dispatch, progress
+2. [x] Read explorer survey handoff and ORIGINAL_REQUEST.md
+3. [x] View current contents of target files: `app/main.py`, `app/services/upi_cases.py`, `app/api/upi.py`, `requirements.txt`
+4. [x] Implement R1 (Forensic Image Persistence & Static Mount, ReportLab requirement)
+5. [x] Implement R2 (Non-blocking background demo seed data simulation)
+6. [x] Run full test suite & linting (710 passed, ruff clean)
+7. [x] Verify static probe & seeding behavior
+8. [x] Produce handoff report & notify parent

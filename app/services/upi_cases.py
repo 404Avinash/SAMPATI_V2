@@ -1462,3 +1462,52 @@ def get_upi_case_service() -> UpiCaseService:
     if _service is None:
         _service = UpiCaseService()
     return _service
+
+
+_demo_seed_lock = threading.Lock()
+_demo_seeded = False
+
+
+def trigger_demo_seed(
+    service: Optional[UpiCaseService] = None,
+    total_txns: int = 150,
+    fraud_ratio: float = 0.25,
+    seed: int = 42,
+) -> bool:
+    """Trigger non-blocking background demo seed simulation if evaluated transactions == 0."""
+    global _demo_seeded
+    with _demo_seed_lock:
+        if _demo_seeded:
+            return False
+        svc = service or get_upi_case_service()
+        stats = svc.get_current_stats()
+        if stats.get("evaluated", 0) > 0 or len(svc._cases) > 0:
+            _demo_seeded = True
+            return False
+        _demo_seeded = True
+
+    def _seed_worker() -> None:
+        try:
+            from app.synthetic.upi_generator import generate_labeled_stream
+            stream, _ = generate_labeled_stream(
+                total_txns=total_txns,
+                fraud_ratio=fraud_ratio,
+                seed=seed,
+            )
+            for labeled in stream:
+                svc.federation.route(labeled.txn)
+                svc.evaluate(labeled.txn)
+            if stream:
+                svc.run_federation(now=stream[-1].txn.timestamp)
+            logger.info(
+                "Demo seed completed: %d transactions evaluated, %d cases opened, %d rings detected",
+                len(stream),
+                len(svc.list_cases()),
+                len(svc.federation.current_rings()),
+            )
+        except Exception as exc:
+            logger.warning("Demo seed worker failed: %s", exc)
+
+    thread = threading.Thread(target=_seed_worker, name="sampati-demo-seeder", daemon=True)
+    thread.start()
+    return True

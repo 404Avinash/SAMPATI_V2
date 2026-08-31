@@ -156,6 +156,8 @@ export default function VerdictHistoryChart({ history = [] }) {
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#gradientAllow)"
+                isAnimationActive={true}
+                animationDuration={800}
               />
 
               <Area
@@ -166,6 +168,8 @@ export default function VerdictHistoryChart({ history = [] }) {
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#gradientHold)"
+                isAnimationActive={true}
+                animationDuration={800}
               />
 
               <Area
@@ -176,6 +180,8 @@ export default function VerdictHistoryChart({ history = [] }) {
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#gradientBlock)"
+                isAnimationActive={true}
+                animationDuration={800}
               />
             </AreaChart>
           </ResponsiveContainer>

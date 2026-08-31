@@ -1,67 +1,60 @@
-# Milestone 2 Handoff Report: VPA Honeypot Network & Hit Tracking
+# Handoff Report: Cinematic NetworkConstellation (Sprint 3 Milestone 2 / R3)
 
 ## 1. Observation
-- **Seeded Honeypot Registry**: Implemented `app/engine/honeypot.py` containing seeded synthetic VPAs:
-  - `honeypot_trap_01@okaxis`
-  - `honeypot_mule_99@okhdfcbank`
-  - `phish_trap_node@okicici`
-  - `botnet_sink_04@oksbi`
-  - `mule_honeypot_prime@okaxis`
-  - Additional synthetic traps (`trap_collect_007@paytm`, `phish_sink_alpha@ibl`, `mule_decoy_99@ybl`, `honeypot_mule_88@okhdfcbank`, `decoy_phish_trap@oksbi`, `honeypot.sink@upi`, `trap_synthetic@upi`, `darkweb_mule_sink@okaxis`, `honeypot_phish_victim@ybl`) and prefix matchers (`honeypot_`, `phish_trap_`, `botnet_sink_`, `mule_honeypot_`, `trap_`, `decoy_`).
-- **Thread-Safe Telemetry**: `HoneypotRegistry` manages:
-  - `record_hit(vpa, txn_id, amount, payer_vpa)`: thread-safe counter increment, cumulative amount deflected tracking, last-hit ISO timestamp, and bound timestamped hit log.
-  - `is_honeypot(vpa)`: fast case-insensitive lookup.
-  - `get_hits_24h()`: rolling 86,400-second window hit aggregator.
-  - `total_hits()` and `total_amount_deflected()` counters.
-  - `get_stats()` & `list_honeypots()`: complete structured telemetry payloads.
-- **Deterministic Detection Rule**: Implemented `rule_honeypot_hit` in `app/engine/upi_rules.py` awarding 100 points with code `"R_HONEYPOT_HIT"` and detail `"Transaction directed to active synthetic honeypot VPA"`.
-- **Scoring Engine Integration**: `app/engine/upi_scorer.py` evaluates `rule_honeypot_hit`, assigning `risk_score = 100` (exceeding `BLOCK_AT = 70`), setting verdict to `BLOCK`, and appending `"R_HONEYPOT_HIT"` to `resp.reasons`.
-- **Service & API Endpoints**:
-  - `app/services/upi_cases.py`: Added `"R_HONEYPOT_HIT"` to `RULE_METADATA` with `"CRITICAL"` severity; updated `get_current_stats()` to include `"honeypot_hits_24h"` and `"honeypot_hits"`.
-  - `app/api/upi.py`: Updated `GET /upi/stats` to expose `"honeypot_hits_24h"` and `"honeypot_hits"`; added `GET /upi/honeypots`.
-  - `app/api/federation.py`: Added `GET /federation/honeypots` returning mesh-wide honeypot statistics.
-  - `app/models/upi_models.py`: Added Pydantic schemas `HoneypotItem` and `HoneypotStatsResponse`.
-- **Test Suite**: `tests/test_honeypot.py` contains 21 unit and integration tests covering seeds, rule triggering, BLOCK verdict, 24h rolling window aggregation, thread concurrency, `/upi/check`, `/upi/stats`, `/upi/honeypots`, and `/federation/honeypots`.
-- **Test Verification Results**:
-  - `.venv/bin/pytest tests/test_honeypot.py -v`: 21 passed in 1.80s.
-  - `.venv/bin/pytest tests/ -v`: 541 passed, 0 regressions across all 5 tiers in 39.42s.
-  - `.venv/bin/pytest tests/frontend_contracts_test.py -v`: 18 passed in 1.10s.
-  - `.venv/bin/pytest tests/test_federation_api.py -v`: 10 passed in 2.46s.
+- **Target File**: `frontend/src/components/NetworkConstellation.jsx` (644 lines)
+- **Previous State**:
+  - The constellation physics damped velocities to zero upon settling or pause, causing the canvas elements to lock statically.
+  - Nodes lacked verdict-based pulsing animations and were rendered solely with static role styles.
+  - Edges had simple dashed styling without traveling particle dots representing dynamic fund laundering.
+  - Graph timeline defaulted to step $N$ without auto-playing on mount.
+  - Viewport was fixed without zoom or pan support.
+  - Node click hit detection lacked world coordinate transformation.
+- **Implemented Verification & Diagnostics**:
+  - Frontend ESLint check: `cd frontend && npm run lint` executed with `--max-warnings 0` $\to$ 0 errors, 0 warnings.
+  - Frontend Vite production build: `cd frontend && npm run build` $\to$ clean build completed in 13.04s.
+  - Pytest full test suite: `./.venv/bin/pytest tests/ -q` $\to$ 710 passed, 0 failures in 109.70s.
 
 ## 2. Logic Chain
-1. *Observation*: The specification requires synthetic honeypot VPAs that instantly intercept fraud attempts without affecting legitimate users.
-   *Reasoning*: Creating `app/engine/honeypot.py` with `HoneypotRegistry` establishes a centralized, thread-safe repository of seeded traps with real-time hit tracking.
-2. *Observation*: Transactions targeting honeypot VPAs must receive a deterministic `BLOCK` verdict with 100 risk score and `"R_HONEYPOT_HIT"` in reasons.
-   *Reasoning*: In `app/engine/upi_rules.py`, `rule_honeypot_hit` checks if `payee_vpa` is in the registry, records the hit and deflected amount, and returns `RuleHit(code="R_HONEYPOT_HIT", points=100)`.
-3. *Observation*: `UpiRiskScorer` evaluates rules and calculates composite score.
-   *Reasoning*: When `R_HONEYPOT_HIT` triggers with 100 points, `rule_score` is capped at 100, `risk_score` is 100 (which is $\ge 70$, `BLOCK_AT`), resulting in `action = "BLOCK"`, and `"R_HONEYPOT_HIT"` is included in `reasons`.
-4. *Observation*: Overview KPIs and downstream federation nodes require real-time 24-hour hit counters and telemetry.
-   *Reasoning*: `HoneypotRegistry.get_hits_24h()` computes rolling 24h counts, which are surfaced in `UpiCaseService.get_current_stats()`, `GET /upi/stats`, WebSocket broadcasts, `GET /upi/honeypots`, and `GET /federation/honeypots`.
-5. *Observation*: Running `.venv/bin/pytest tests/ -v` verified that all 520 existing tests plus 21 new honeypot tests pass with 0 regressions.
-   *Reasoning*: All additions are fully backwards-compatible with existing persistence, federation, and scoring contracts.
+1. **Continuous Spring-Force Physics Simulation**:
+   - Integrated harmonic ambient micro-forces (`ambientAngle = t * 1.2 + n.x * 0.01 + n.y * 0.01; n.vx += Math.cos(ambientAngle) * 0.035; n.vy += Math.sin(ambientAngle) * 0.035;`) and dynamic edge rest-length oscillations (`targetDist = 95 + Math.sin(t * 2.0 + (e.timestamp % 10)) * 3.5;`).
+   - Combined with pairwise repulsion (`950 / distSq`), center gravity (`0.0005`), and calibrated damping (`0.91`), this guarantees that graph nodes continuously drift, breathe, and settle organically even when paused.
+2. **Pulsing Node Glow Halos by Verdict**:
+   - `BLOCK` verdict nodes: Multi-stage crimson radial halo with dynamic radius $r \times (2.2 + 0.45 \sin(4t))$ and fill `rgba(220, 38, 38, 0.45)` with `#dc2626` core.
+   - `HOLD` verdict nodes: Multi-stage amber radial halo with dynamic radius $r \times (1.8 + 0.35 \sin(2.5t))$ and fill `rgba(245, 158, 11, 0.40)` with `#d97706` core.
+   - `ALLOW` verdict nodes: Neutral teal/emerald glow with $r \times 1.3$ and fill `rgba(16, 185, 129, 0.25)` with `#059669` core.
+   - Active/hovered states render golden accent borders (`#fbbf24`).
+3. **Edge Risk Gradients & Directional Particle Flows**:
+   - `getEdgeStroke`: Low (<40) = Teal `rgba(20, 184, 166, 0.65)`, Medium (40-70) = Amber `rgba(245, 158, 11, 0.75)`, High (>70) = Crimson `rgba(239, 68, 68, 0.90)`.
+   - Continuous particle dots travel in the direction of fund transfer ($A \to B$):
+     - High risk ($>70$): 3 glowing crimson dots with white cores and outer halos.
+     - Medium risk (40-70): 2 amber dots.
+     - Low risk (<40): 1 teal dot.
+4. **Auto-Play on Load**:
+   - When cases exist on mount (`totalSteps > 0`) and `initialStep === null`, timeline playback automatically initiates from $t=0$ to reveal the chronological money mule sequence step-by-step.
+5. **Canvas Zoom, Pan, & World Coordinates Hit Testing**:
+   - Mouse wheel zooming with cursor-anchor preservation.
+   - Click-drag panning with cursor state changes (`cursor-grab` / `cursor-grabbing`).
+   - Viewport transformation matrix applied via `ctx.translate(offsetX, offsetY); ctx.scale(scale, scale);`.
+   - Mouse screen coordinates $(sx, sy)$ are accurately transformed to world coordinates $((sx - \text{offsetX})/\text{scale}, (sy - \text{offsetY})/\text{scale})$ for precise node and edge hit detection.
+   - On-canvas HUD controls provide quick Zoom In, Zoom Out, and Fit / Reset View.
+6. **Node & Edge Selection**:
+   - Clicking nodes or edges invokes `onSelectCase` with the associated case object to seamlessly open `CaseDrawer`.
 
 ## 3. Caveats
-- `get_hits_24h()` uses UTC timestamps from the in-memory rolling log buffer (sized up to 10,000 entries). In multi-node production deployment, this can be synced to Redis key expiration sets.
+- No caveats. The component adheres to all ESLint React Hook guidelines, handles cases with single or multi-tier topologies, and is fully backward-compatible with all parent containers (`OverviewPage`, `CaseDrawer`).
 
 ## 4. Conclusion
-Milestone 2 (Backend Honeypot Network & Hit Tracking) is 100% complete and fully verified.
-All seeded honeypot VPAs, deterministic `R_HONEYPOT_HIT` rule, `BLOCK` verdict enforcement, thread-safe hit/amount tracking, rolling 24-hour aggregation, `/upi/stats` telemetry, and `/federation/honeypots` endpoints are operational with 541 passing tests.
+- Sprint 3 Milestone 2 (Cinematic NetworkConstellation: R3) is fully implemented in `frontend/src/components/NetworkConstellation.jsx`. All 6 requirements are satisfied, ESLint passes with 0 warnings, Vite builds cleanly, and 710 backend tests pass.
 
 ## 5. Verification Method
-Execute the following commands from workspace root (`/home/avi/Downloads/Sampati_v2`):
-- Honeypot feature test suite:
-  ```bash
-  .venv/bin/pytest tests/test_honeypot.py -v
-  ```
-- Full test suite regression check:
-  ```bash
-  .venv/bin/pytest tests/ -v
-  ```
-- Federation API tests:
-  ```bash
-  .venv/bin/pytest tests/test_federation_api.py -v
-  ```
-- Frontend contracts AST validation:
-  ```bash
-  .venv/bin/pytest tests/frontend_contracts_test.py -v
-  ```
+1. **Frontend Lint & Build**:
+   ```bash
+   cd /home/avi/Downloads/Sampati_v2/frontend
+   npm run lint
+   npm run build
+   ```
+2. **Backend Regression Test Suite**:
+   ```bash
+   cd /home/avi/Downloads/Sampati_v2
+   ./.venv/bin/pytest tests/ -q
+   ```

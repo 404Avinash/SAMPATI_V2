@@ -1,36 +1,38 @@
-## 2026-08-30T19:35:14Z
-You are Worker M2 (Backend Honeypot Network) for SAMPATI V2.
-Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m2`.
-Read `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`, `/home/avi/Downloads/Sampati_v2/PROJECT.md`, and `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/analysis.md`.
+## 2026-08-31T15:39:26Z
+You are Worker 2 for SAMPATI V2 Sprint 3 Milestone 2 (Cinematic NetworkConstellation: R3).
 
-MANDATORY INTEGRITY WARNING:
 DO NOT CHEAT. All implementations must be genuine. DO NOT hardcode test results, create dummy/facade implementations, or circumvent the intended task. A teamwork_preview_auditor will independently verify your work. Integrity violations WILL be detected and your work WILL be rejected.
 
-File Ownership: You own backend engine/service files:
-`app/engine/honeypot.py`, `app/engine/upi_rules.py`, `app/engine/upi_scorer.py`, `app/services/upi_cases.py`, `app/api/upi.py`, `app/api/federation.py`, `tests/test_honeypot.py`.
-Do NOT edit frontend files.
+Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m2
+Workspace root: /home/avi/Downloads/Sampati_v2
 
-Your Task — Milestone 2: VPA Honeypot Network & Hit Tracking:
-1. Implement `app/engine/honeypot.py`:
-   - Define seeded synthetic honeypot VPAs (e.g. `honeypot_trap_01@okaxis`, `honeypot_mule_99@okhdfcbank`, `phish_trap_node@okicici`, `botnet_sink_04@oksbi`, `mule_honeypot_prime@okaxis`).
-   - Implement `HoneypotRegistry` class with thread-safe `record_hit(vpa, txn_id, amount)`, `is_honeypot(vpa) -> bool`, `get_stats() -> Dict[str, Any]`, `get_hits_24h() -> int`, `list_honeypots() -> List[Dict[str, Any]]`.
-   - Track hit counts, total amount deflected, and last-hit ISO timestamps per honeypot VPA.
-2. Update `app/engine/upi_rules.py` & `app/engine/upi_scorer.py`:
-   - Implement detection rule `rule_honeypot_hit` (awarding 100 points, `Severity.CRITICAL`, `reason="Transaction directed to active synthetic honeypot VPA"`, `rule_id="R_HONEYPOT_HIT"`).
-   - Ensure that when a transaction's payee VPA is in the honeypot registry:
-     - `R_HONEYPOT_HIT` is triggered.
-     - `risk_score` is 100 (which exceeds `BLOCK_AT = 70`).
-     - Verdict is `BLOCK`.
-     - `resp.reasons` contains `"R_HONEYPOT_HIT"`.
-3. Update `app/services/upi_cases.py` and `app/api/upi.py`:
-   - Integrate `HoneypotRegistry` into `UpiCaseService.evaluate(txn)`.
-   - Update `get_current_stats()` to include `honeypot_hits_24h` and `honeypot_hits` in the stats dictionary.
-   - Expose in `GET /upi/stats`, WebSocket broadcasts, and add `GET /federation/honeypots` in `app/api/federation.py`.
-4. Create test suite in `tests/test_honeypot.py` covering:
-   - Seeded VPAs detection, `R_HONEYPOT_HIT` rule, `BLOCK` verdict, reasons list.
-   - Hit count incrementing and 24h rolling count aggregation.
-   - `/upi/check`, `/upi/stats`, `/federation/honeypots` endpoints.
-5. Verification:
-   - Run pytest: `.venv/bin/pytest tests/test_honeypot.py -v`.
-   - Run full test suite: `.venv/bin/pytest tests/ -v` to ensure 0 regressions.
-6. Write your changes and test results to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m2/handoff.md`. Notify parent when done.
+You EXCLUSIVELY own and are permitted to modify:
+- `frontend/src/components/NetworkConstellation.jsx`
+
+Context & Input:
+- Read /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md (Sprint 3 section)
+- Read /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/handoff.md for component blueprint and physics equations.
+
+Requirements to implement in `NetworkConstellation.jsx`:
+1. Continuous spring force physics simulation:
+   - Nodes drift and settle organically using spring-force simulation with harmonic ambient micro-forces (`Math.sin(t * 1.2 + n.y * 0.01) * 0.035`) and edge rest-length oscillations (`95 + Math.sin(t * 2.0) * 3.5`) even when paused or settled.
+2. Pulsing node glow effects based on verdict:
+   - BLOCK verdict nodes pulse with red glow animation on canvas (`rgba(220, 38, 38, 0.45)` with `Math.sin(t * 4)`).
+   - HOLD verdict nodes pulse with amber glow animation (`rgba(245, 158, 11, 0.40)` with `Math.sin(t * 2.5)`).
+   - ALLOW nodes have subtle neutral glow.
+3. Edge risk gradient & animated particle flow:
+   - Edges colored by risk score: Low (<40) = Teal (`#14b8a6`), Medium (40-70) = Amber (`#f59e0b`), High (>70) = Crimson (`#ef4444`).
+   - Animated particle flow dots travel along high-risk edges in the direction of money transfer.
+4. Auto-play on load:
+   - When cases exist on mount, automatically start timeline playback from t=0 so graph builds itself smoothly without requiring manual user interaction.
+5. Canvas zoom and pan support:
+   - Mouse scroll-to-zoom (scale) and click-drag-to-pan (offsetX, offsetY) on canvas. Convert mouse screen coordinates to world coordinates for hit detection.
+6. Node click selection:
+   - Clicking a node opens the CaseDrawer for that case (via `onSelectCase`).
+
+Lint & Build rules:
+- Respect ESLint in React Hooks guidelines in AGENTS.md (`--max-warnings 0` enforced).
+- Test build with `cd frontend && npm run lint && npm run build`.
+
+Write your completion report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m2/handoff.md`.
+Use `send_message` to notify parent when complete.

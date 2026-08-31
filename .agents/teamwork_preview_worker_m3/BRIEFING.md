@@ -1,62 +1,58 @@
-# BRIEFING — 2026-08-30T19:40:00Z
+# BRIEFING — 2026-08-31T15:47:00Z
 
 ## Mission
-Implement Milestone 3: Fraud Playback Timeline & Honeypot KPI Counter in Frontend.
+Implement Sprint 3 Milestone 3 requirements for Investigations Page & CaseDrawer (ForensicImageViewer, CaseFilterBar, InvestigationsPage, CaseDrawer, api.js).
 
 ## 🔒 My Identity
-- Archetype: teamwork_preview_worker_m3
+- Archetype: Implementer / QA / Specialist
 - Roles: implementer, qa, specialist
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m3
-- Original parent: b33a73fc-97af-4495-93e6-44ce23dadb99
-- Milestone: Milestone 3 - Frontend Timeline & Honeypot KPI
+- Original parent: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Milestone: Sprint 3 Milestone 3 (Investigations Page & CaseDrawer)
 
 ## 🔒 Key Constraints
-- File ownership: frontend/src/components/NetworkConstellation.jsx, frontend/src/components/CaseDrawer.jsx, frontend/src/components/KpiStrip.jsx, frontend/src/context/AppStateContext.jsx, frontend/src/pages/OverviewPage.jsx, tests/frontend_contracts_test.py
-- Do NOT edit backend python engine files.
-- Genuine implementations only, no dummy/facade or hardcoded outputs.
-- Must compile cleanly with 0 errors (`npm run build` or `bun run build`).
-- Must pass test suite (`.venv/bin/pytest tests/frontend_contracts_test.py -v` and `tests/ -v`).
+- EXCLUSIVELY own and permitted to modify:
+  - frontend/src/components/investigations/ForensicImageViewer.jsx
+  - frontend/src/components/investigations/CaseFilterBar.jsx
+  - frontend/src/pages/InvestigationsPage.jsx
+  - frontend/src/components/CaseDrawer.jsx
+  - frontend/src/services/api.js
+- DO NOT CHEAT. All implementations genuine.
+- Zero ESLint warnings (--max-warnings 0 enforced).
+- Pass Vite build and lint.
 
 ## Current Parent
-- Conversation ID: b33a73fc-97af-4495-93e6-44ce23dadb99
-- Updated: 2026-08-30T19:40:00Z
+- Conversation ID: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Updated: 2026-08-31T15:47:00Z
 
 ## Task Summary
 - **What to build**:
-  1. `NetworkConstellation.jsx`: Timeline range slider, Play/Pause/Reset controls, chronological transaction sorting, $k \in [0, N]$ step state machine, and edge highlight animation.
-  2. `CaseDrawer.jsx`: Embedded per-case `NetworkConstellation` instance with timeline playback controls.
-  3. `KpiStrip.jsx`: 7th KPI tile for "Honeypot Hits (24h)" with amber theme, icon, pulse alert, and responsive 7-col grid.
-  4. `AppStateContext.jsx`: Ingestion of `honeypot_hits_24h` / `honeypot_hits` in stats state, polling, and WebSocket streaming feeds.
-  5. `tests/frontend_contracts_test.py`: 18/18 tests verifying timeline controls, step math, CaseDrawer integration, KPI strip, and AppStateContext.
-- **Success criteria**: 100% clean production build and 100% passing tests (546/546 across entire test suite).
-- **Interface contracts**: PROJECT.md
-- **Code layout**: frontend/src/..., tests/...
+  1. InvestigationsPage & CaseFilterBar: clickable case table rows -> CaseDrawer (openCase(c)), unified CaseDetailModal with CaseDrawer; interactive status pill badges (`ALL`, `OPEN`, `ESCALATED`, `DISMISSED`, `REVIEWED`, `RESOLVED`).
+  2. CaseDrawer: Animated DMV semi-circular arc dial gauge (Green <40, Amber 40-70, Red >70) with animated needle; Recharts vertical bar chart for rule breakdown; Real SAR PDF download with binary validation and prominent inline error toast.
+  3. ForensicImageViewer: Multi-tier loading (1. /upi/cases/${caseId}/graph.png, 2. /static/upi_cases/${caseId}_ring.png fallback, 3. In-browser SVG vector ring topology fallback using case.topology / case.ring_members_vpas with smooth fade-in).
+  4. api.js: Support static ring image fallback path `caseStaticRingUrl` and content-type validation in `downloadSarPdf`.
+- **Success criteria**: Vite build passes, ESLint passes with 0 warnings, all 710 backend pytest tests pass.
+
+## Key Decisions Made
+- Replaced CaseDetailModal in InvestigationsPage to eliminate double-modal conflicts and standardize on CaseDrawer.
+- Implemented responsive SVG arc gauge with dynamic needle rotation for DMV scores.
+- Implemented Recharts vertical BarChart with animated bars colored by point risk thresholds.
+- Created robust SVG vector ring topology fallback in ForensicImageViewer displaying victim, hub, hop, and cashout nodes with directed bezier curves.
 
 ## Change Tracker
 - **Files modified**:
-  - `frontend/src/components/NetworkConstellation.jsx`: Timeline controls, step state machine, chronological extraction, canvas visibility filter.
-  - `frontend/src/components/CaseDrawer.jsx`: Embedded per-case `NetworkConstellation` component.
-  - `frontend/src/components/KpiStrip.jsx`: Added Honeypot Hits (24h) tile and 7-col grid.
-  - `frontend/src/context/AppStateContext.jsx`: Added `honeypot_hits` / `honeypot_hits_24h` state and WebSocket/polling handlers.
-  - `tests/frontend_contracts_test.py`: Added comprehensive contract and step-math tests for Milestone 3.
-- **Build status**: PASS (Vite build in ~12-13s, 0 errors)
-- **Pending issues**: None
+  - `frontend/src/services/api.js`: added `caseStaticRingUrl` and content-type verification in `downloadSarPdf`.
+  - `frontend/src/components/investigations/ForensicImageViewer.jsx`: 3-tier image loader with smooth fade-in and SVG vector fallback.
+  - `frontend/src/components/investigations/CaseFilterBar.jsx`: interactive status pill badges for instant filtering.
+  - `frontend/src/components/CaseDrawer.jsx`: DMV arc gauge, Recharts rule breakdown, SAR PDF export with error toast, and visual forensics.
+  - `frontend/src/pages/InvestigationsPage.jsx`: row clicks open CaseDrawer, unified modal/drawer view.
+- **Build status**: ESLint 0 warnings, Vite build clean, pytest 710 passed.
+- **Pending issues**: None.
 
 ## Quality Status
-- **Build/test result**: PASS (546/546 passed)
-- **Lint status**: Clean JSX / ES6 / Python syntax
-- **Tests added/modified**: 5 new tests in `tests/frontend_contracts_test.py` (total 18 passed)
+- **Build/test result**: 710 passed, 0 failures. Vite build successful.
+- **Lint status**: 0 ESLint errors/warnings (`--max-warnings 0`).
+- **Tests added/modified**: N/A (frontend unit integration verified via build and backend suite).
 
 ## Loaded Skills
 - None
-
-## Key Decisions Made
-- Implemented `extractChronologicalTopology` supporting explicit `transactions`, fan-in, hops, fan-out, and trigger transaction with deterministic timestamp assignment and chronological sorting.
-- Configured physics loop and hit detection to operate strictly on currently visible nodes and edges at step $k$.
-- Implemented responsive 7-column layout in `KpiStrip.jsx` with amber tone and pulse animation on active hits.
-
-## Artifact Index
-- DISPATCH.md — Assignment from orchestrator
-- BRIEFING.md — Situational awareness
-- progress.md — Liveness heartbeat
-- handoff.md — Comprehensive 5-component handoff report

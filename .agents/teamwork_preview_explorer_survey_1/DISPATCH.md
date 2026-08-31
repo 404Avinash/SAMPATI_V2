@@ -1,20 +1,23 @@
-## 2026-08-30T19:24:00Z
-You are Explorer 1 (Backend & Federation Architecture) for SAMPATI V2.
-Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1`.
-You must read the user's authoritative request at `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`.
+## 2026-08-31T15:34:18Z
 
-Investigate the backend architecture for the requested features:
-1. R2. Federation Signal Exchange API:
-   - Examine `app/federation/coordinator.py`, `app/api/upi.py`, `app/engine/upi_scorer.py`, `app/db/`, `app/core/`, routers, schemas, etc.
-   - Investigate implementation details for:
-     - `POST /federation/signal` accepting `{vpa_hash, risk_level, ring_hash}` returning HTTP 200.
-     - `GET /federation/query?vpa_hash=<hash>` returning `{federated_risk_score, ring_members, reported_by_nodes}` with sub-5ms caching via Redis / in-memory fallback.
-     - Integration into `/upi/check` and `UpiEvaluationResponse`: dynamically computing/populating `network_score` when federated signals exist for payee/payer VPA.
-2. R3. VPA Honeypot Network Backend:
-   - Seeded registry of synthetic "honeypot" UPI VPAs.
-   - `R_HONEYPOT_HIT` rule triggering `BLOCK` verdict and reasons in `upi_scorer.py`.
-   - Hit count and last-hit timestamp tracking per honeypot VPA.
-   - Backend endpoint/mechanism to expose "Honeypot Hits (24h)" for the Overview page (e.g. in `/upi/stats` or `/stats` or a dedicated stats endpoint).
-3. Identify all existing files to modify and new files to create, exact data models/schemas, dependencies, and integration points.
+You are Explorer 1 for SAMPATI V2 Sprint 3.
+Your task: Survey the backend codebase for Requirements R1 (Static Mount, Forensic Image Persistence, requirements.txt) and R2 (Demo Seed Data on Load).
 
-Write your findings to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/analysis.md` and write a structured handoff report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md`. Then notify parent.
+Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1
+Workspace root: /home/avi/Downloads/Sampati_v2
+Read:
+- /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md (Sprint 3 section)
+- /home/avi/Downloads/Sampati_v2/app/main.py
+- /home/avi/Downloads/Sampati_v2/app/services/upi_cases.py
+- /home/avi/Downloads/Sampati_v2/app/api/upi_routes.py (and any other relevant routes)
+- /home/avi/Downloads/Sampati_v2/requirements.txt
+- Existing backend tests in tests/
+
+Investigate:
+1. Exact static mount in `app/main.py` and where it needs to be placed relative to SPA fallback mount.
+2. In `app/services/upi_cases.py` (`UpiCaseService.__init__`), how `artifact_dir` is initialized, where ring PNG images are saved (`static/upi_cases/`), and ensuring `os.makedirs` handles directory creation.
+3. In `requirements.txt`, verify reportlab and all packages used by the backend are listed.
+4. For R2 Demo Seed Data: investigate how `UpiCaseService` handles transactions/cases, how a background non-blocking simulation (~150 txns, fraud_ratio=0.25) can be triggered on startup or on the first request to `/upi/stats` if `evaluated_txns == 0` without blocking response. Check how stats/simulation work.
+
+Write your findings to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md`.
+Use `send_message` to report back to parent when complete with path to handoff.md.

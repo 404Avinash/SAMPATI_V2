@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { formatINR, shortVpa, getDmvTone } from "../../services/api";
 
 const DEFAULT_TOP_DMV = [
@@ -68,7 +68,71 @@ const DEFAULT_TOP_DMV = [
 ];
 
 export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) {
-  const list = Array.isArray(accounts) && accounts.length > 0 ? accounts : DEFAULT_TOP_DMV;
+  const [sortField, setSortField] = useState("dmv_score");
+  const [sortAsc, setSortAsc] = useState(false);
+
+  const rawList = Array.isArray(accounts) && accounts.length > 0 ? accounts : DEFAULT_TOP_DMV;
+
+  const sortedList = useMemo(() => {
+    const arr = [...rawList];
+    arr.sort((a, b) => {
+      let valA, valB;
+      switch (sortField) {
+        case "vpa":
+          valA = (a.vpa || "").toLowerCase();
+          valB = (b.vpa || "").toLowerCase();
+          break;
+        case "bank":
+          valA = (a.bank || "").toLowerCase();
+          valB = (b.bank || "").toLowerCase();
+          break;
+        case "dmv_score":
+          valA = Number(a.dmv_score ?? a.score ?? 0);
+          valB = Number(b.dmv_score ?? b.score ?? 0);
+          break;
+        case "dormancy_days":
+          valA = Number(a.dormancy_days ?? 0);
+          valB = Number(b.dormancy_days ?? 0);
+          break;
+        case "outflow_rate":
+          valA = parseFloat(a.outflow_rate ?? 0) || 0;
+          valB = parseFloat(b.outflow_rate ?? 0) || 0;
+          break;
+        case "amount":
+          valA = Number(a.amount ?? a.total_flagged_amount ?? a.total_amount ?? 0);
+          valB = Number(b.amount ?? b.total_flagged_amount ?? b.total_amount ?? 0);
+          break;
+        default:
+          valA = Number(a.dmv_score ?? a.score ?? 0);
+          valB = Number(b.dmv_score ?? b.score ?? 0);
+      }
+
+      if (valA < valB) return sortAsc ? -1 : 1;
+      if (valA > valB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [rawList, sortField, sortAsc]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortAsc((prev) => !prev);
+    } else {
+      setSortField(field);
+      setSortAsc(false);
+    }
+  };
+
+  const renderSortIndicator = (field) => {
+    if (sortField !== field) {
+      return <span className="text-[9px] opacity-30 ml-1 inline-block">↕</span>;
+    }
+    return (
+      <span className="text-[10px] text-ink-900 font-bold ml-1 inline-block">
+        {sortAsc ? "▲" : "▼"}
+      </span>
+    );
+  };
 
   return (
     <div className="panel overflow-hidden">
@@ -85,7 +149,7 @@ export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) 
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
-            {list.length} High-Velocity VPAs
+            {sortedList.length} High-Velocity VPAs
           </span>
         </div>
       </div>
@@ -94,18 +158,66 @@ export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) 
       <div className="overflow-x-auto">
         <table className="w-full text-left font-mono text-xs border-collapse">
           <thead>
-            <tr className="bg-surface-muted/70 text-muted uppercase text-[10px] border-b border-hairline tracking-wider">
+            <tr className="bg-surface-muted/70 text-muted uppercase text-[10px] border-b border-hairline tracking-wider select-none">
               <th className="py-3 px-4 font-semibold w-12 text-center">Rank</th>
-              <th className="py-3 px-4 font-semibold">VPA Identifier</th>
-              <th className="py-3 px-4 font-semibold">Banking Entity</th>
-              <th className="py-3 px-4 font-semibold text-center">DMV Score</th>
-              <th className="py-3 px-4 font-semibold text-center">Dormancy</th>
-              <th className="py-3 px-4 font-semibold text-center">Drain Velocity</th>
-              <th className="py-3 px-4 font-semibold text-right">Protected Volume</th>
+              <th
+                onClick={() => handleSort("vpa")}
+                className="py-3 px-4 font-semibold cursor-pointer hover:text-ink-900 transition-colors"
+              >
+                <div className="flex items-center">
+                  <span>VPA Identifier</span>
+                  {renderSortIndicator("vpa")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("bank")}
+                className="py-3 px-4 font-semibold cursor-pointer hover:text-ink-900 transition-colors"
+              >
+                <div className="flex items-center">
+                  <span>Banking Entity</span>
+                  {renderSortIndicator("bank")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("dmv_score")}
+                className="py-3 px-4 font-semibold text-center cursor-pointer hover:text-ink-900 transition-colors"
+              >
+                <div className="flex items-center justify-center">
+                  <span>DMV Score</span>
+                  {renderSortIndicator("dmv_score")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("dormancy_days")}
+                className="py-3 px-4 font-semibold text-center cursor-pointer hover:text-ink-900 transition-colors"
+              >
+                <div className="flex items-center justify-center">
+                  <span>Dormancy</span>
+                  {renderSortIndicator("dormancy_days")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("outflow_rate")}
+                className="py-3 px-4 font-semibold text-center cursor-pointer hover:text-ink-900 transition-colors"
+              >
+                <div className="flex items-center justify-center">
+                  <span>Drain Velocity</span>
+                  {renderSortIndicator("outflow_rate")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("amount")}
+                className="py-3 px-4 font-semibold text-right cursor-pointer hover:text-ink-900 transition-colors"
+              >
+                <div className="flex items-center justify-end">
+                  <span>Protected Volume</span>
+                  {renderSortIndicator("amount")}
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-hairline">
-            {list.map((item, idx) => {
+            {sortedList.map((item, idx) => {
               const score = Number(item.dmv_score ?? item.score ?? 75);
               const tone = getDmvTone(score);
 
@@ -140,15 +252,25 @@ export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) 
                     </span>
                   </td>
 
-                  {/* DMV Score Badge */}
+                  {/* DMV Score Badge with Inline Mini Progress Bar */}
                   <td className="py-3 px-4 text-center">
-                    <div className="inline-flex items-center gap-1.5">
-                      <span
-                        className={`px-2 py-0.5 rounded font-bold border text-xs ${tone.bg} ${tone.text} ${tone.border}`}
-                      >
-                        {score.toFixed(1)}
-                      </span>
-                      <span className="text-[9px] text-muted hidden xl:inline">{tone.label}</span>
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-12 sm:w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60 shrink-0">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            score > 70 ? "bg-rose-600" : score >= 40 ? "bg-amber-500" : "bg-emerald-600"
+                          }`}
+                          style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
+                        />
+                      </div>
+                      <div className="inline-flex items-center gap-1">
+                        <span
+                          className={`px-1.5 py-0.5 rounded font-bold border text-xs ${tone.bg} ${tone.text} ${tone.border}`}
+                        >
+                          {score.toFixed(1)}
+                        </span>
+                        <span className="text-[9px] text-muted hidden 2xl:inline">{tone.label}</span>
+                      </div>
                     </div>
                   </td>
 

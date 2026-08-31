@@ -26,6 +26,7 @@ export function calculateBackoff(attempt) {
 export function useWebSocket({
   onNewCase,
   onStatsUpdate,
+  onHoneypotHit,
   onOpen,
   onClose,
   onError,
@@ -40,6 +41,7 @@ export function useWebSocket({
   // Keep callback refs fresh
   const onNewCaseRef = useRef(onNewCase);
   const onStatsUpdateRef = useRef(onStatsUpdate);
+  const onHoneypotHitRef = useRef(onHoneypotHit);
   const onOpenRef = useRef(onOpen);
   const onCloseRef = useRef(onClose);
   const onErrorRef = useRef(onError);
@@ -47,6 +49,7 @@ export function useWebSocket({
   useEffect(() => {
     onNewCaseRef.current = onNewCase;
     onStatsUpdateRef.current = onStatsUpdate;
+    onHoneypotHitRef.current = onHoneypotHit;
     onOpenRef.current = onOpen;
     onCloseRef.current = onClose;
     onErrorRef.current = onError;
@@ -80,13 +83,29 @@ export function useWebSocket({
           const eventType = payload.event || payload.type;
           const data = payload.data || payload.payload || payload;
 
-          if (eventType === "new_case" || eventType === "UPI_CASE_OPENED") {
+          if (eventType === "honeypot_hit" || eventType === "HONEYPOT_HIT" || eventType === "honeypot_alert") {
+            if (onHoneypotHitRef.current) {
+              onHoneypotHitRef.current(data);
+            }
+          } else if (eventType === "new_case" || eventType === "UPI_CASE_OPENED") {
             if (onNewCaseRef.current) {
               onNewCaseRef.current(data, payload.stats);
+            }
+            const reasons = Array.isArray(data?.reasons) ? data.reasons : Array.isArray(data?.trigger_txn?.reasons) ? data.trigger_txn.reasons : [];
+            if (reasons.includes("R_HONEYPOT_HIT") || (Array.isArray(data?.rule_breakdown) && data.rule_breakdown.some((r) => r.code === "R_HONEYPOT_HIT"))) {
+              if (onHoneypotHitRef.current) {
+                onHoneypotHitRef.current(data);
+              }
             }
           } else if (eventType === "stats_update" || eventType === "UPI_EVALUATED") {
             if (onStatsUpdateRef.current) {
               onStatsUpdateRef.current(data);
+            }
+            const reasons = Array.isArray(data?.reasons) ? data.reasons : [];
+            if (reasons.includes("R_HONEYPOT_HIT")) {
+              if (onHoneypotHitRef.current) {
+                onHoneypotHitRef.current(data);
+              }
             }
           }
         } catch (err) {

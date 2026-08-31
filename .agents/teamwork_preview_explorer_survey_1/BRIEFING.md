@@ -1,33 +1,46 @@
-# BRIEFING — 2026-08-30T19:27:00Z
+# BRIEFING — 2026-08-31T15:38:30Z
 
 ## Mission
-Investigate Backend & Federation Architecture for SAMPATI V2 (R2 Federation Signal Exchange API, R3 VPA Honeypot Network Backend, and integration with UPI evaluation & stats).
+Survey backend codebase for Requirements R1 (Static Mount, Forensic Image Persistence, requirements.txt) and R2 (Demo Seed Data on Load) for SAMPATI V2 Sprint 3.
 
 ## 🔒 My Identity
 - Archetype: explorer
-- Roles: Backend & Federation Architecture Analyst
+- Roles: investigation, synthesis
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1
-- Original parent: b33a73fc-97af-4495-93e6-44ce23dadb99
-- Milestone: Explorer Survey & Backend Architecture Deep Dive
+- Original parent: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Milestone: Sprint 3 Backend Survey (R1 & R2)
 
 ## 🔒 Key Constraints
-- Read-only investigation — do NOT implement
-- Base findings strictly on code analysis of SAMPATI V2 repository
-- Provide exact files to modify/create, schemas, logic, and integration points
+- Read-only investigation — do NOT modify application source code
+- Produce detailed 5-component handoff report
+- Deliver handoff path via send_message to parent (e091e8ff-a378-4da9-bac2-dfc927cb605b)
 
 ## Current Parent
-- Conversation ID: b33a73fc-97af-4495-93e6-44ce23dadb99
-- Updated: 2026-08-30T19:27:00Z
+- Conversation ID: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Updated: 2026-08-31T15:38:30Z
 
 ## Investigation State
-- **Explored paths**: `app/main.py`, `app/api/upi.py`, `app/api/websocket.py`, `app/models/upi_models.py`, `app/models/upi_persistence.py`, `app/services/upi_cases.py`, `app/federation/coordinator.py`, `app/federation/psp_node.py`, `app/engine/upi_scorer.py`, `app/engine/upi_rules.py`, `app/engine/upi_state.py`, `app/engine/redis_state.py`, `frontend/src/components/KpiStrip.jsx`, `frontend/src/context/AppStateContext.jsx`, all test suites in `tests/`.
-- **Key findings**: Complete blueprint delivered for R2 (Federation Signal Exchange API with hot caching and dynamic Layer 3 `network_score`) and R3 (VPA Honeypot Network with `R_HONEYPOT_HIT` rule, `BLOCK` verdict, hit telemetry, and 24h stats). All 492 existing tests verified passing.
-- **Unexplored areas**: None for backend scope.
+- **Explored paths**:
+  - `app/main.py` (lines 270–292: static mount missing, SPA fallback handler structure)
+  - `app/services/upi_cases.py` (lines 120–128: artifact_dir init; lines 1088–1115: render_ring_png invocation)
+  - `app/api/upi.py` (endpoints /cases/{case_id}/graph.png, /simulate, /stats, /autofeed/*)
+  - `app/services/autofeed.py` (background thread worker loop design)
+  - `app/forensics/sar_pdf.py` (PDF binary generation using matplotlib and PIL)
+  - `requirements.txt` (checked reportlab absence and complete package catalog)
+  - `Dockerfile` (dependency installation and directory structures)
+  - `tests/` (ran full pytest suite: 710 passed)
+  - `frontend/src/services/api.js` & `ForensicImageViewer.jsx` (image URL resolution and fallback requirements)
+- **Key findings**:
+  - `app.mount("/static", ...)` is missing from `app/main.py` and must be placed before `app.mount("/", ...)`.
+  - `render_ring_png` in `upi_cases.py` writes to `static/upi_cases/{case_id}_ring.png`.
+  - `reportlab>=4.0.0` needs to be added to `requirements.txt`.
+  - Demo auto-seeding (~150 txns, fraud_ratio=0.25) can be triggered non-blockingly via daemon thread on lifespan startup and on first `/upi/stats` query.
+- **Unexplored areas**: None. Backend investigation for R1 & R2 complete.
 
 ## Key Decisions Made
-- Outlined precise data models, endpoint routers, coordinator methods, honeypot registry, scoring integration, and verification methods.
-- Documented all findings in `analysis.md` and `handoff.md`.
+- Fully documented 5-component handoff report in `handoff.md`.
 
 ## Artifact Index
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/analysis.md — Detailed backend analysis report
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md — 5-Component handoff report
+- handoff.md — Complete 5-component survey report for implementers
+- progress.md — Liveness & step log
+- DISPATCH.md — Initial dispatch message

@@ -301,12 +301,14 @@ export default function AnalyticsPage() {
         summary={currentSummary}
         casesCount={cases.length}
         stats={stats}
+        cases={cases}
       />
 
       {/* 7x24 Analyst Workload Heatmap */}
       <AnalystWorkloadHeatmap
         data={analyticsData?.workload_heatmap}
         cases={cases}
+        loading={loading}
       />
 
       {/* Charts Grid */}

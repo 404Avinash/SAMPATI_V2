@@ -9,7 +9,7 @@ const VERDICT_STYLE = {
 };
 
 export default function LiveFeed({ cases, onSelect }) {
-  const rows = (Array.isArray(cases) ? cases : []).slice(0, 40);
+  const rows = (Array.isArray(cases) ? cases : []).slice(0, 30);
 
   return (
     <div className="relative h-full overflow-y-auto font-mono text-[13px]">
@@ -33,10 +33,10 @@ export default function LiveFeed({ cases, onSelect }) {
               return (
                 <motion.tr
                   key={c.case_id}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.35, delay: Math.min(i, 10) * 0.02 }}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 15, transition: { duration: 0.25 } }}
+                  transition={{ duration: 0.35, delay: Math.min(i, 5) * 0.02, ease: "easeOut" }}
                   onClick={() => onSelect?.(c)}
                   className={`cursor-pointer border-b border-hairline/70 hover:bg-surface-muted transition-colors ${
                     verdict === "BLOCK" ? "shadow-[inset_3px_0_0_0_#b3261e]" : verdict === "HOLD" ? "shadow-[inset_3px_0_0_0_#a8660a]" : ""

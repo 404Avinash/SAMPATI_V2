@@ -29,7 +29,37 @@ export function AppStateProvider({ children }) {
     total_generated: 0,
     total_flagged: 0,
   });
+  const [honeypotAlerts, setHoneypotAlerts] = useState([]);
   const seenTotals = useRef({ allowed: 0, held: 0, blocked: 0 });
+
+  const dismissHoneypotAlert = useCallback((id) => {
+    setHoneypotAlerts((prev) => prev.filter((a) => a.id !== id));
+  }, []);
+
+  const triggerHoneypotAlert = useCallback((payload) => {
+    const vpa =
+      payload?.payee_vpa ||
+      payload?.vpa ||
+      payload?.trigger_txn?.payee_vpa ||
+      payload?.txn?.payee_vpa ||
+      payload?.details?.payee_vpa ||
+      "honeypot_trap@okhdfcbank";
+    const amount = payload?.amount ?? payload?.trigger_txn?.amount ?? payload?.txn?.amount;
+    const alertId = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const newAlert = {
+      id: alertId,
+      vpa,
+      amount,
+      timestamp: Date.now(),
+      created_at: new Date().toLocaleTimeString("en-IN", { hour12: false }),
+    };
+
+    setHoneypotAlerts((prev) => [newAlert, ...prev.slice(0, 2)]);
+
+    setTimeout(() => {
+      setHoneypotAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    }, 5000);
+  }, []);
 
   // Rolling 40-point time-series history
   const [verdictHistory, setVerdictHistory] = useState([
@@ -232,9 +262,22 @@ export function AppStateProvider({ children }) {
     [appendVerdictHistory]
   );
 
+  const handleWsHoneypotHit = useCallback(
+    (data) => {
+      triggerHoneypotAlert(data);
+      setStats((prev) => ({
+        ...prev,
+        honeypot_hits: (prev.honeypot_hits || 0) + 1,
+        honeypot_hits_24h: (prev.honeypot_hits_24h || 0) + 1,
+      }));
+    },
+    [triggerHoneypotAlert]
+  );
+
   const { connected } = useWebSocket({
     onNewCase: handleWsNewCase,
     onStatsUpdate: handleWsStatsUpdate,
+    onHoneypotHit: handleWsHoneypotHit,
     onOpen: () => setLive(true),
     onClose: () => setLive(false),
     enabled: true,
@@ -404,6 +447,9 @@ export function AppStateProvider({ children }) {
     handleFeedback,
     setSensitivity,
     updateSensitivity,
+    honeypotAlerts,
+    dismissHoneypotAlert,
+    triggerHoneypotAlert,
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

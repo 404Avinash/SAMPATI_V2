@@ -103,6 +103,7 @@ export const api = {
     })),
 
   caseGraphUrl: (caseId) => `/upi/cases/${caseId}/graph.png`,
+  caseStaticRingUrl: (caseId) => `/static/upi_cases/${caseId}_ring.png`,
 
   // Auto-Feed Lifecycle Endpoints (R3 / R6)
   startAutoFeed: (options = {}) =>
@@ -134,7 +135,15 @@ export const api = {
       res = await fetch(`/upi/cases/${caseId}/sar/pdf`);
     }
     if (!res.ok) {
-      throw new Error(`PDF download failed: ${res.status} ${res.statusText}`);
+      const errText = await res.text().catch(() => "");
+      throw new Error(`PDF download failed with HTTP ${res.status}: ${errText || res.statusText}`);
+    }
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+    if (!contentType.includes("pdf")) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(
+        `Invalid content-type '${contentType}' received for PDF (expected application/pdf)`
+      );
     }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);

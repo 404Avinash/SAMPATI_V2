@@ -14,3 +14,4 @@ asyncpg>=0.30.0
 psycopg[binary]>=3.2.3
 aiosqlite>=0.20.0
 pytest>=8.0.0
+reportlab>=4.0.0

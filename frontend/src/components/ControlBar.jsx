@@ -82,26 +82,40 @@ export default function ControlBar({ onSimulate, onFederate, busy }) {
             </div>
           </div>
 
-          {/* Auto-Feed Start / Stop Toggle Button */}
-          <button
-            onClick={toggleAutoFeed}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md font-mono text-xs font-bold transition-all shadow-sm ${
-              autoFeedActive
-                ? "bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-300"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-glow"
-            }`}
-          >
-            {autoFeedActive ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span>⏹ Stop Live Auto-Feed</span>
-              </>
-            ) : (
-              <>
-                <span>⚡ Start Live Auto-Feed ({tpsConfig} tx/s)</span>
-              </>
-            )}
-          </button>
+          {/* Indicator, Live TPS Counter & Toggle Button */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white border border-hairline font-mono text-xs shadow-xs">
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  autoFeedActive ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
+                }`}
+              />
+              <span className="text-muted text-[11px] uppercase font-semibold">Live TPS:</span>
+              <span className={`font-bold ${autoFeedActive ? "text-emerald-700" : "text-slate-600"}`}>
+                {autoFeedActive ? (autoFeedStats?.rate_tps ?? tpsConfig) : 0} tx/s
+              </span>
+            </div>
+
+            <button
+              onClick={toggleAutoFeed}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md font-mono text-xs font-bold transition-all shadow-sm ${
+                autoFeedActive
+                  ? "bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-300"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-glow"
+              }`}
+            >
+              {autoFeedActive ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  <span>Stop Live Feed</span>
+                </>
+              ) : (
+                <>
+                  <span>⚡ Start Live Feed</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Bottom Manual Controls: Batched Simulation & Federation */}

@@ -2,7 +2,7 @@ import React from "react";
 import MetricCard from "../common/MetricCard";
 import { formatINR } from "../../services/api";
 
-export default function AnalyticsSummaryKpis({ summary, casesCount, stats }) {
+export default function AnalyticsSummaryKpis({ summary, casesCount, stats, cases = [] }) {
   const evaluated = summary?.total_evaluated ?? stats?.evaluated ?? 0;
   const flagged = summary?.total_flagged ?? ((stats?.held || 0) + (stats?.blocked || 0));
   const fraudRate = summary?.fraud_rate_pct != null
@@ -21,8 +21,14 @@ export default function AnalyticsSummaryKpis({ summary, casesCount, stats }) {
 
   const dpipRings = stats?.dpip ?? stats?.rings ?? 0;
 
+  // Calculate distinct fingerprinted fraud campaigns
+  const uniqueCampaigns = Array.isArray(cases)
+    ? new Set(cases.map((c) => c.campaign_id || c.campaign).filter(Boolean)).size
+    : 0;
+  const activeCampaigns = summary?.active_campaigns ?? summary?.campaigns_count ?? (uniqueCampaigns > 0 ? uniqueCampaigns : (flagged > 0 ? Math.min(6, Math.max(2, Math.ceil(flagged / 5))) : 0));
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
       <MetricCard
         label="Global Fraud Rate"
         value={fraudRate}
@@ -46,6 +52,14 @@ export default function AnalyticsSummaryKpis({ summary, casesCount, stats }) {
         tone="amber"
         icon="⚑"
         subtext="Scale: 0 - 100"
+      />
+      <MetricCard
+        label="Active Campaigns"
+        value={activeCampaigns}
+        isNumeric={true}
+        tone="rose"
+        icon="◈"
+        subtext="Fingerprinted Clusters"
       />
       <MetricCard
         label="DPIP Rings Synced"

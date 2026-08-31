@@ -68,7 +68,8 @@ export default function BankDistributionChart({ data = [] }) {
                 innerRadius={45}
                 outerRadius={68}
                 paddingAngle={3}
-                isAnimationActive
+                isAnimationActive={true}
+                animationDuration={800}
               >
                 {chartData.map((d, idx) => (
                   <Cell key={idx} fill={BANK_COLORS[idx % BANK_COLORS.length]} />

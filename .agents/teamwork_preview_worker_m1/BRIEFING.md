@@ -1,60 +1,64 @@
-# BRIEFING — 2026-08-31T03:33:00Z
+# BRIEFING — 2026-08-31T15:48:00Z
 
 ## Mission
-Implement Milestone 1 (M1: Core Risk Engine Extensions) for SAMPATI V2 Sprint 2: DMV scoring, new UPI risk rules, Campaign Signature Store, and engine wiring.
+Implement Sprint 3 Milestone 1: Backend Deployment Fix (Forensic Image Persistence & Static Mount, ReportLab requirement) and Demo Seed Data (non-blocking background stream generation on startup/first load).
 
 ## 🔒 My Identity
-- Archetype: worker
+- Archetype: teamwork_preview_worker_m1
 - Roles: implementer, qa, specialist
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1
-- Original parent: 1a77121b-3a79-4485-bfe4-db30788be55e
-- Milestone: M1 (Core Risk Engine Extensions)
+- Original parent: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Milestone: Sprint 3 Milestone 1
 
 ## 🔒 Key Constraints
-- Genuine implementation: No hardcoding test results, no dummy/facade implementations.
-- Zero regressions on pytest test suite (559+ tests baseline -> 587 tests passing).
-- Ruff check passes with 0 errors.
-- Co-locate unit tests for M1 in `tests/test_engine_sprint2.py`.
+- Exclusively modify: app/main.py, app/services/upi_cases.py, app/api/upi.py, requirements.txt
+- Genuine implementation only (no dummy/facade/hardcoded results)
+- Non-blocking background demo seed simulation (~150 transactions, fraud_ratio=0.25)
+- Unit tests direct instantiation of UpiCaseService() must remain pure
+- Pass all pytest tests (710+) and ruff checks
 
 ## Current Parent
-- Conversation ID: 1a77121b-3a79-4485-bfe4-db30788be55e
-- Updated: 2026-08-31T03:33:00Z
+- Conversation ID: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Updated: 2026-08-31T15:48:00Z
 
 ## Task Summary
 - **What to build**:
-  1. `app/models/upi_models.py`: Added `dmv_score` and `campaign_id` to `UpiEvaluationResponse`.
-  2. `app/engine/dmv.py`: Implemented `DmvTracker` and `calculate_dmv_score` (0-100).
-  3. `app/engine/upi_rules.py`: Implemented `rule_sim_device_mismatch`, `rule_impossible_travel`, `rule_datacenter_ip`, and `evaluate_rules` integration.
-  4. `app/engine/campaign.py`: Implemented `CampaignSignatureStore`, `rule_campaign_match`, similarity clustering, and dynamic ingestion.
-  5. `app/engine/upi_scorer.py` & `app/services/upi_cases.py`: Full wiring of DMV, campaign matching, telemetry recording, and `RULE_METADATA`.
-  6. `tests/test_engine_sprint2.py`: 28 comprehensive unit and integration tests.
-- **Success criteria**: 100% tests passing, 0 ruff errors, full functional integrity.
-- **Interface contracts**: `app/models/upi_models.py`, `PROJECT.md`.
-- **Code layout**: `app/` and `tests/`.
+  1. Static files mount for `/static` in FastAPI before SPA catch-all, ensure static dir creation, spa fallback excludes `/static`.
+  2. Ensure `UpiCaseService.__init__` creates `self.artifact_dir`.
+  3. Add `reportlab>=4.0.0` to `requirements.txt`.
+  4. Non-blocking demo seed data generation on startup lifespan and on first `/upi/stats` call when evaluated == 0.
+- **Success criteria**: All 710+ tests pass, static mount verified, background seeding verified, ruff passes.
+- **Interface contracts**: API specifications in app/api/upi.py, app/main.py
+
+## Key Decisions Made
+- `_static_dir` mounted via `app.mount("/static", StaticFiles(directory=_static_dir), name="static")` before SPA catch-all mount in `app/main.py`.
+- Added `"/static"` to `api_prefixes` in `spa_fallback_404_handler` in `app/main.py` so missing static files return standard 404 JSON instead of HTML SPA index.
+- Created `trigger_demo_seed()` helper in `app/services/upi_cases.py` utilizing a daemon thread with thread-safe double-check locking.
+- In `_seed_worker`, routed transactions to `svc.federation.route(labeled.txn)` and `svc.evaluate(labeled.txn)` followed by `svc.run_federation()`.
+- Wired `trigger_demo_seed()` into `app/main.py` lifespan and `app/api/upi.py` `/upi/stats` endpoint.
+- Kept `UpiCaseService.__init__` pure so unit test fixtures instantiating `UpiCaseService()` directly remain at 0 evaluations.
+
+## Artifact Index
+- DISPATCH.md — Task assignment
+- BRIEFING.md — Working memory
+- progress.md — Heartbeat and step tracking
+- handoff.md — Final handoff report
 
 ## Change Tracker
 - **Files modified**:
-  - `app/models/upi_models.py`: Added `dmv_score` and `campaign_id` to `UpiEvaluationResponse`.
-  - `app/engine/dmv.py`: Created Dead Money Velocity tracker and scoring algorithm.
-  - `app/engine/campaign.py`: Created Campaign Signature Store, similarity matching, and auto-clustering.
-  - `app/engine/upi_rules.py`: Added 3 telemetry scoring rules and campaign match rule.
-  - `app/engine/upi_scorer.py`: Integrated DMV calculation, campaign matching, and telemetry recording.
-  - `app/services/upi_cases.py`: Updated `RULE_METADATA`, `case_data`, `txn_entry`, `get_analytics` (`top_vpas_by_dmv`), and feedback propagation.
-  - `tests/test_engine_sprint2.py`: Created comprehensive unit test suite (28 tests).
-- **Build status**: PASS (587 tests passing in pytest, 0 failures, 0 ruff errors).
-- **Pending issues**: None.
+  - `requirements.txt`: Added `reportlab>=4.0.0`
+  - `app/main.py`: Added static mount `/static`, ensure dir exists, updated `api_prefixes` with `"/static"`, wired lifespan demo seed
+  - `app/services/upi_cases.py`: Added `trigger_demo_seed()` with daemon thread, federation routing, and evaluator execution
+  - `app/api/upi.py`: Wired `trigger_demo_seed()` on first `/upi/stats` request if `evaluated == 0`
+- **Build status**: PASS (710 tests passed in 104.42s)
+- **Pending issues**: None
 
 ## Quality Status
-- **Build/test result**: PASS (587 passed in 27.31s).
-- **Lint status**: PASS (Ruff check clean, 0 errors).
-- **Tests added/modified**: 28 new tests in `tests/test_engine_sprint2.py`.
+- **Build/test result**: PASS (710 passed, 0 failures)
+- **Lint status**: PASS (Ruff check: All checks passed)
+- **Tests added/modified**: Verified via end-to-end test probe + full pytest suite
 
-## Key Decisions Made
-- `evaluate_rules` maintains `List[RuleHit]` return type for backward compatibility across existing callers and test suites.
-- Datacenter IP CIDRs compiled with standard cloud provider IPv4/IPv6 ranges covering AWS, GCP, Azure, DigitalOcean, and Tor/VPN exit subnets.
-- `DmvTracker` and `CampaignSignatureStore` implement thread-safe synchronization for concurrent evaluation pipelines.
-
-## Artifact Index
-- `.agents/teamwork_preview_worker_m1/DISPATCH.md` — Assignment instructions
-- `.agents/teamwork_preview_worker_m1/BRIEFING.md` — Situational awareness
-- `.agents/teamwork_preview_worker_m1/handoff.md` — Self-contained 5-component handoff report
+## Loaded Skills
+- **Source**: /home/avi/Downloads/Sampati_v2/.agents/skills/safe-push/SKILL.md
+- **Local copy**: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1/skills/safe-push/SKILL.md
+- **Core methodology**: Automated safe commit and push protocol with pytest, ruff, eslint, and vite build checks.

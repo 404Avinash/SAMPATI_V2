@@ -1,87 +1,115 @@
-# Handoff Report: Milestone 1 (M1) Core Risk Engine Extensions
+# Handoff Report: Backend Deployment Fix & Demo Seed Data (Sprint 3 Milestone 1: R1 & R2)
 
-**Workspace**: `/home/avi/Downloads/Sampati_v2`  
-**Milestone**: M1 (Core Risk Engine Extensions — Sprint 2)  
-**Agent**: Worker M1 (`teamwork_preview_worker_m1`)  
-**Timestamp**: 2026-08-31T03:33:00Z  
+**Author**: Worker 1 (`teamwork_preview_worker_m1`)  
+**Target**: Orchestrator / Parent Agent  
+**Date**: 2026-08-31T15:48:00Z  
 
 ---
 
 ## 1. Observation
 
-Direct file inspection and test execution confirmed the following exact changes and states:
+1. **Static Mount & SPA Fallback (`app/main.py`)**:
+   - `app.mount("/static", ...)` was previously absent in `app/main.py`. Requests to `/static/upi_cases/...` were swallowed by the root SPA mount `app.mount("/", StaticFiles(directory=_dist, html=True))` or returned 404 falling back to `index.html`.
+   - `spa_fallback_404_handler` `api_prefixes` did not include `"/static"`.
 
-1. **`app/models/upi_models.py`**:
-   - `UpiEvaluationResponse` enriched with:
-     ```python
-     dmv_score: float = Field(default=0.0, description="Dead Money Velocity score (0-100)")
-     campaign_id: Optional[str] = Field(default=None, description="Active fraud campaign identifier if matched")
-     ```
-2. **`app/engine/dmv.py`**:
-   - Implemented `DmvTracker` with thread-safe sliding window stats, latency-free lookups, and `get_top_vpas(limit)`.
-   - Implemented `calculate_dmv_score(txn: UpiTransaction, tracker: Optional[DmvTracker]) -> float` returning bounded score `[0.0, 100.0]`:
-     - Dormancy index $D \in [0.0, 1.0]$ quantifying days since last outbound movement or account age baseline.
-     - Burst velocity index $V \in [0.0, 1.0]$ quantifying 1-hour outflow ratio against 24-hour total available inflow, transaction rate, and magnitude.
-3. **`app/engine/upi_rules.py`**:
-   - Implemented `rule_sim_device_mismatch(txn, state)` (`R_SIM_DEVICE_MISMATCH`, 30 pts, HIGH severity).
-   - Implemented `rule_impossible_travel(txn, state)` (`R_IMPOSSIBLE_TRAVEL`, 35 pts, CRITICAL severity) with Haversine distance, city coordinates resolution, and speed checks (>500km in <30m or >1000km/h).
-   - Implemented `rule_datacenter_ip(txn)` (`R_DATACENTER_IP`, 25 pts, HIGH severity) with compiled CIDR checks for AWS, GCP, Azure, DigitalOcean, and Tor/VPN exit subnets.
-   - `evaluate_rules(txn, state)` maintains `List[RuleHit]` return signature for 100% backward compatibility.
-4. **`app/engine/campaign.py`**:
-   - Implemented `CampaignSignatureStore`, `rule_campaign_match` (`R_CAMPAIGN_MATCH`, 30 pts, CRITICAL severity), weighted similarity matching (threshold >= 0.82), seed syndicates (`CAMP-KYC-PHISH-01`, `CAMP-SMURF-BURST-02`, `CAMP-INVESTMENT-03`), and dynamic cluster ingestion.
-5. **`app/engine/upi_scorer.py` and `app/services/upi_cases.py`**:
-   - Scorer wires DMV score calculation, telemetry recording (`record_payer_telemetry`), campaign matching, and BLOCK ingestion into `evaluate()`.
-   - `RULE_METADATA` updated with new rules.
-   - `get_analytics()` returns `top_vpas_by_dmv` and `active_campaigns`.
-   - Case feedback (`ESCALATED`) propagates VPAs to `state.mark_confirmed_fraud` and `CampaignSignatureStore`.
-6. **Verification Results**:
-   - Test command: `./.venv/bin/pytest tests/test_engine_sprint2.py -v` -> **28 passed in 0.82s**.
-   - Full regression suite: `./.venv/bin/pytest tests/ -v` -> **587 passed in 27.31s** (0 failures across all core & sprint 1 suites).
-   - Linter command: `./.venv/bin/ruff check app tests` -> **All checks passed! (0 errors)**.
+2. **Dependencies (`requirements.txt`)**:
+   - `requirements.txt` lacked `reportlab>=4.0.0`, required for containerized environments and SAR PDF generation.
+
+3. **In-Memory State & Demo Seed Data (`app/services/upi_cases.py`, `app/api/upi.py`, `app/main.py`)**:
+   - On server startup or after restarts without persisted DB state, initial transaction count was 0, leaving the frontend dashboard with empty charts and unpopulated constellation graphs.
+   - Unit tests like `test_analytics_empty_state_resilience` in `tests/test_analytics.py` instantiate `UpiCaseService()` directly and assert `total_evaluated == 0`.
 
 ---
 
 ## 2. Logic Chain
 
-1. **Model Contract**:
-   - Adding optional fields `dmv_score: float = 0.0` and `campaign_id: Optional[str] = None` to `UpiEvaluationResponse` extends the response schema for Sprint 2 frontend consumers without modifying existing response structures.
-2. **Behavioral Telemetry & Anomaly Detection**:
-   - Maintaining per-payer `(last_device, last_sim)` allows distinguishing between legitimate hardware upgrades and malicious SIM swaps or device takeovers (`R_SIM_DEVICE_MISMATCH`).
-   - Resolving coordinates from geographic names and `"lat,lon"` pairs enables exact Haversine distance and speed calculations, flagging impossible velocities (`R_IMPOSSIBLE_TRAVEL`).
-   - Using `ipaddress.ip_network` against comprehensive cloud provider subnets cleanly identifies non-residential proxy/datacenter origin traffic (`R_DATACENTER_IP`).
-3. **Mule Account Dormancy Tracking**:
-   - Measuring dormancy $\Delta t$ and post-dormancy outflow velocity ratio isolates classic mule cashout patterns from normal active user behavior.
-4. **Syndicate DNA Clustering**:
-   - Extracting structured keywords, amount ranges, and entity memberships links isolated fraud events into cohesive campaigns (`R_CAMPAIGN_MATCH`).
+1. **Static Mount Resolution**:
+   - In `app/main.py`, defined `_static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))` and ensured `os.makedirs(os.path.join(_static_dir, "upi_cases"), exist_ok=True)`.
+   - Mounted `app.mount("/static", StaticFiles(directory=_static_dir), name="static")` **before** the SPA mount `app.mount("/", ...)`.
+   - Added `"/static"` to `api_prefixes` in `spa_fallback_404_handler` so missing static files return standard 404 JSON rather than HTML SPA fallback.
+
+2. **Dependency Resolution**:
+   - Added `reportlab>=4.0.0` to `requirements.txt`.
+
+3. **Non-Blocking Background Demo Seed Architecture**:
+   - Created `trigger_demo_seed(service, total_txns=150, fraud_ratio=0.25, seed=42)` in `app/services/upi_cases.py`.
+   - Used thread-safe double-checked locking (`_demo_seed_lock` and `_demo_seeded` flag).
+   - In the background daemon thread (`_seed_worker`), generated stream using `generate_labeled_stream(total_txns=150, fraud_ratio=0.25, seed=42)`, routed each transaction to federation nodes via `svc.federation.route(labeled.txn)` and evaluated via `svc.evaluate(labeled.txn)`, followed by `svc.run_federation(now=stream[-1].txn.timestamp)`.
+   - Hooked `trigger_demo_seed()` into:
+     - `app/main.py` application `lifespan` startup hook.
+     - `app/api/upi.py` `upi_stats()` endpoint handler on first request when `eval_count == 0`.
+   - Kept `UpiCaseService.__init__` pure so direct instantiation in isolated unit tests starts with 0 evaluations.
 
 ---
 
 ## 3. Caveats
 
-- **In-Memory State Lifetime**: Telemetry history and sliding window statistics are maintained in thread-safe in-memory memory structures with graceful database session fallbacks.
-- No other caveats.
+- **Thread Completion Time**: The demo seeder runs as an asynchronous daemon thread. On a fresh startup or first `/upi/stats` call, the initial response returns immediately while the background worker takes ~1-2 seconds to evaluate 150 transactions and render the ring PNGs.
+- **Direct Instantiation**: Direct `UpiCaseService()` instances in test suites will not auto-seed unless `trigger_demo_seed(service)` or HTTP endpoints are called.
 
 ---
 
 ## 4. Conclusion
 
-Milestone 1 (M1: Core Risk Engine Extensions) is fully implemented, thoroughly tested, and ready for integration with Milestone 2 (SAR PDF export, auto-feed, and analytics UI). All 587 tests pass with zero regressions and zero lint errors.
+- Requirement R1 (Deployment Fix — Forensic Image Persistence & Static Mount) and Requirement R2 (Demo Seed Data on Load) are fully implemented and verified.
+- All 710 existing tests in `./.venv/bin/pytest tests/ -v` pass with 0 failures.
+- `ruff check app tests` passes cleanly with 0 violations.
+- Direct static file probes verify that `/static/upi_cases/{case_id}_ring.png` serves 200 OK, missing static files return 404 JSON, and auto-seeding populates cases and rings.
 
 ---
 
 ## 5. Verification Method
 
-To independently verify the implementation:
+1. **Verify Static Mount & Auto-Seed Functionality**:
+   ```bash
+   ./.venv/bin/python -c "
+   import os, time
+   from fastapi.testclient import TestClient
+   from app.main import app
+   from app.services.upi_cases import UpiCaseService, trigger_demo_seed
 
-1. **Run Sprint 2 Unit Tests**:
-   ```bash
-   ./.venv/bin/pytest tests/test_engine_sprint2.py -v
+   # 1. Test pure instantiation
+   fresh_service = UpiCaseService(artifact_dir='static/test_probe_fresh')
+   assert fresh_service.get_current_stats()['evaluated'] == 0
+   assert len(fresh_service.list_cases()) == 0
+
+   # 2. Test static files mount
+   os.makedirs('static/upi_cases', exist_ok=True)
+   probe_file = 'static/upi_cases/probe_test_case_ring.png'
+   with open(probe_file, 'wb') as f:
+       f.write(b'\x89PNG\r\n\x1a\nprobe_data')
+
+   client = TestClient(app)
+   res_static = client.get('/static/upi_cases/probe_test_case_ring.png')
+   assert res_static.status_code == 200
+   assert res_static.content == b'\x89PNG\r\n\x1a\nprobe_data'
+
+   # 3. Test static 404 JSON fallback
+   res_404 = client.get('/static/upi_cases/non_existent_file.png')
+   assert res_404.status_code == 404
+   assert res_404.headers['content-type'].startswith('application/json')
+   if os.path.exists(probe_file):
+       os.remove(probe_file)
+
+   # 4. Test trigger_demo_seed
+   test_svc = UpiCaseService(artifact_dir='static/test_probe_seeded')
+   assert trigger_demo_seed(test_svc, total_txns=150, fraud_ratio=0.25, seed=42) is True
+   time.sleep(2.5)
+   stats = test_svc.get_current_stats()
+   assert stats['evaluated'] == 150
+   assert len(test_svc.list_cases()) > 0
+   assert len(test_svc.federation.current_rings()) > 0
+   print('Static mount and auto-seed probe passed!')
+   "
    ```
-2. **Run Full Regression Suite**:
-   ```bash
-   ./.venv/bin/pytest tests/test_engine_sprint2.py tests/test_e2e_suite.py tests/test_tier1_features.py tests/test_tier2_boundary.py tests/test_tier3_combinations.py tests/test_tier4_scenarios.py tests/test_tier5_adversarial.py tests/test_tier5_adversarial_challenge.py tests/test_honeypot.py tests/test_federation_api.py tests/test_analytics.py tests/test_case_status.py tests/test_health_detailed.py tests/test_adversarial_m1.py tests/test_m1_persistence.py tests/test_m2_websocket.py tests/test_cicd_pipeline.py tests/test_empirical_challenger.py tests/frontend_contracts_test.py -v
-   ```
-3. **Run Code Quality Lint**:
+
+2. **Verify Python Linting**:
    ```bash
    ./.venv/bin/ruff check app tests
    ```
+
+3. **Verify Full Pytest Suite**:
+   ```bash
+   ./.venv/bin/pytest tests/ -v
+   ```
+   Expected: 710 passed, 0 failures.

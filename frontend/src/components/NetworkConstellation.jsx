@@ -17,28 +17,28 @@ export function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
 
 /**
  * Computes continuous edge stroke color based on risk score (0-100).
- * 0-39: Slate spectrum
- * 40-74: Amber spectrum
- * 75-100: Crimson / Red spectrum
+ * Low (<40): Teal spectrum (#14b8a6)
+ * Medium (40-70): Amber spectrum (#f59e0b)
+ * High (>70): Crimson / Red spectrum (#ef4444)
  */
 export function getEdgeStroke(riskScore, isHovered = false) {
   if (isHovered) return "rgba(255, 120, 0, 1.0)";
-  if (riskScore == null) return "rgba(100, 116, 139, 0.30)";
+  if (riskScore == null) return "rgba(20, 184, 166, 0.45)";
 
   const num = typeof riskScore === "number" ? riskScore : parseFloat(riskScore);
-  if (isNaN(num)) return "rgba(100, 116, 139, 0.30)";
+  if (isNaN(num)) return "rgba(20, 184, 166, 0.45)";
 
   const clamped = Math.max(0, Math.min(100, num));
   if (clamped < 40) {
     const ratio = clamped / 40;
-    const alpha = 0.3 + ratio * 0.3;
-    return `rgba(100, 116, 139, ${alpha.toFixed(2)})`;
-  } else if (clamped < 75) {
-    const ratio = (clamped - 40) / 35;
-    const alpha = 0.6 + ratio * 0.3;
+    const alpha = 0.4 + ratio * 0.25;
+    return `rgba(20, 184, 166, ${alpha.toFixed(2)})`;
+  } else if (clamped <= 70) {
+    const ratio = (clamped - 40) / 30;
+    const alpha = 0.65 + ratio * 0.25;
     return `rgba(245, 158, 11, ${alpha.toFixed(2)})`;
   } else {
-    const ratio = (clamped - 75) / 25;
+    const ratio = (clamped - 70) / 30;
     const alpha = 0.85 + ratio * 0.15;
     return `rgba(239, 68, 68, ${alpha.toFixed(2)})`;
   }
@@ -52,11 +52,11 @@ export function getNodeRoleLabel(kind) {
     case "hub":
       return "Collector Hub";
     case "victim":
-      return "Victim";
+      return "Victim / Payer";
     case "hop":
       return "Layering Hop";
     case "cashout":
-      return "Cash-Out";
+      return "Cash-Out Exit";
     default:
       return "Entity";
   }
@@ -93,16 +93,18 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
   const nodes = new Map();
   const rawEdges = [];
 
-  function ensureNode(id, kind, cId = null, cObj = null) {
+  function ensureNode(id, kind, cId = null, cObj = null, verdict = null) {
     if (!id) return null;
+    const v = verdict || cObj?.verdict || (kind === "hub" ? "BLOCK" : kind === "hop" ? "HOLD" : "ALLOW");
     if (!nodes.has(id)) {
       nodes.set(id, {
         id,
         kind,
-        x: 100 + Math.random() * 600,
-        y: 60 + Math.random() * 320,
-        vx: 0,
-        vy: 0,
+        verdict: v,
+        x: 140 + Math.random() * 560,
+        y: 80 + Math.random() * 280,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
         flagged: false,
         caseId: cId,
         caseData: cObj,
@@ -110,9 +112,11 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
     } else {
       const existing = nodes.get(id);
       if (kind === "hub") existing.kind = "hub";
+      if (verdict && !existing.verdict) existing.verdict = verdict;
       if (!existing.caseId && cId) {
         existing.caseId = cId;
         existing.caseData = cObj;
+        if (cObj?.verdict) existing.verdict = cObj.verdict;
       }
     }
     return nodes.get(id);
@@ -130,11 +134,12 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
     const caseRisk = c.risk_score != null ? c.risk_score : 80;
     const caseAmount = trigger.amount ?? c.amount ?? 50000;
     const baseTime = c.created_at ? new Date(c.created_at).getTime() : Date.now();
+    const caseVerdict = c.verdict || (caseRisk >= 75 ? "BLOCK" : caseRisk >= 40 ? "HOLD" : "ALLOW");
 
-    const hubNode = ensureNode(collector, "hub", c.case_id, c);
+    const hubNode = ensureNode(collector, "hub", c.case_id, c, caseVerdict);
     if (hubNode) hubNode.flagged = true;
 
-    // Check for explicit transactions array
+    // 1. Check for explicit transactions array
     const explicitTxns = asArray(topo.transactions || c.transactions);
     if (explicitTxns.length > 0) {
       explicitTxns.forEach((tx, txIdx) => {
@@ -144,8 +149,8 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
         const txTime = tx.timestamp
           ? new Date(tx.timestamp).getTime()
           : baseTime - (explicitTxns.length - txIdx) * 15000;
-        ensureNode(payer, tx.kind || "victim", c.case_id, c);
-        ensureNode(payee, tx.kind || (payee === collector ? "hub" : "hop"), c.case_id, c);
+        ensureNode(payer, tx.kind || "victim", c.case_id, c, tx.verdict || "ALLOW");
+        ensureNode(payee, tx.kind || (payee === collector ? "hub" : "hop"), c.case_id, c, tx.verdict || caseVerdict);
         rawEdges.push({
           id: `${payer}->${payee}-${txIdx}`,
           a: payer,
@@ -178,7 +183,7 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
       const vpa = typeof v === "string" ? v : v && (v.payer_vpa || v.vpa || v.from);
       if (!vpa) return;
       const t = v.timestamp ? new Date(v.timestamp).getTime() : baseTime - 180000 + idx * 30000;
-      ensureNode(vpa, "victim", c.case_id, c);
+      ensureNode(vpa, "victim", c.case_id, c, "ALLOW");
       rawEdges.push({
         id: `${vpa}->${collector}-fanin-${idx}`,
         a: vpa,
@@ -199,7 +204,7 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
       const vpa = typeof v === "string" ? v : v && (v.vpa || v.payee_vpa || v.to);
       if (!vpa) return;
       const t = v.timestamp ? new Date(v.timestamp).getTime() : baseTime - 90000 + idx * 30000;
-      ensureNode(vpa, "hop", c.case_id, c);
+      ensureNode(vpa, "hop", c.case_id, c, "HOLD");
       rawEdges.push({
         id: `${collector}->${vpa}-hop-${idx}`,
         a: collector,
@@ -220,7 +225,7 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
       const vpa = typeof v === "string" ? v : v && (v.payee_vpa || v.vpa || v.to);
       if (!vpa) return;
       const t = v.timestamp ? new Date(v.timestamp).getTime() : baseTime - 30000 + idx * 15000;
-      ensureNode(vpa, "cashout", c.case_id, c);
+      ensureNode(vpa, "cashout", c.case_id, c, "BLOCK");
       rawEdges.push({
         id: `${collector}->${vpa}-fanout-${idx}`,
         a: collector,
@@ -242,7 +247,7 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
         (e) => e.a === trigger.payer_vpa && e.b === trigger.payee_vpa
       );
       if (!alreadyHas) {
-        ensureNode(trigger.payer_vpa, "victim", c.case_id, c);
+        ensureNode(trigger.payer_vpa, "victim", c.case_id, c, "ALLOW");
         rawEdges.push({
           id: `${trigger.payer_vpa}->${trigger.payee_vpa}-trigger`,
           a: trigger.payer_vpa,
@@ -267,9 +272,13 @@ export function extractChronologicalTopology(cases = [], caseData = null) {
 }
 
 /**
- * Interactive canvas-based force-directed constellation visualizer with Fraud Playback Timeline.
- * Supports Play/Pause/Reset controls, interactive step scrubbing, chronological edge animation,
- * node/edge hit detection, hover tooltips, and case drill-down.
+ * Cinematic interactive canvas-based force-directed constellation visualizer with:
+ * - Continuous organic spring-force physics simulation with harmonic micro-drift
+ * - Pulsing node glow halos based on verdict (BLOCK red pulse, HOLD amber pulse, ALLOW neutral glow)
+ * - Risk gradient colored edges with animated traveling particle flows in direction of fund transfer
+ * - Auto-play on mount when cases exist
+ * - Mouse scroll-to-zoom and click-drag-to-pan with world coordinates projection
+ * - Node/edge click selection to trigger CaseDrawer drill-down
  */
 export default function NetworkConstellation({
   cases = [],
@@ -279,6 +288,20 @@ export default function NetworkConstellation({
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const hasAutoPlayedRef = useRef(false);
+
+  // Viewport Transform State for Zoom and Pan
+  const transformRef = useRef({
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+    isDragging: false,
+    hasDragged: false,
+    startX: 0,
+    startY: 0,
+    startOffsetX: 0,
+    startOffsetY: 0,
+  });
 
   // Extract topology model
   const { nodes: allNodes, sortedEdges } = useMemo(
@@ -288,20 +311,26 @@ export default function NetworkConstellation({
 
   const totalSteps = sortedEdges.length;
   const [currentStep, setCurrentStep] = useState(() =>
-    initialStep !== null ? Math.min(initialStep, totalSteps) : totalSteps
+    initialStep !== null ? Math.min(initialStep, totalSteps) : 0
   );
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [tooltip, setTooltip] = useState(null);
+  const [viewportZoom, setViewportZoom] = useState(100);
 
-  // Synchronize step when topology dataset changes
+  // Auto-play on initial load when cases exist, or synchronize step when dataset changes
   useEffect(() => {
     if (initialStep !== null) {
       setCurrentStep(Math.min(initialStep, totalSteps));
-    } else {
-      setCurrentStep(totalSteps);
+      setIsPlaying(false);
+    } else if (totalSteps > 0 && !hasAutoPlayedRef.current) {
+      hasAutoPlayedRef.current = true;
+      setCurrentStep(0);
+      setIsPlaying(true);
+    } else if (totalSteps === 0) {
+      setCurrentStep(0);
+      setIsPlaying(false);
     }
-    setIsPlaying(false);
   }, [totalSteps, initialStep]);
 
   // Derived visible elements at step k in [0, N]
@@ -358,7 +387,7 @@ export default function NetworkConstellation({
       return;
     }
 
-    const intervalMs = Math.max(150, Math.round(1000 / playbackSpeed));
+    const intervalMs = Math.max(140, Math.round(900 / playbackSpeed));
     const timer = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev >= totalSteps) {
@@ -402,7 +431,71 @@ export default function NetworkConstellation({
     }
   }, []);
 
-  // Main Canvas Render and Physics Loop
+  // Zoom Viewport Controls
+  const handleZoomIn = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const centerX = canvas.clientWidth / 2;
+    const centerY = canvas.clientHeight / 2;
+    const curScale = transformRef.current.scale;
+    const newScale = Math.min(4.0, curScale * 1.25);
+    transformRef.current.offsetX = centerX - (centerX - transformRef.current.offsetX) * (newScale / curScale);
+    transformRef.current.offsetY = centerY - (centerY - transformRef.current.offsetY) * (newScale / curScale);
+    transformRef.current.scale = newScale;
+    setViewportZoom(Math.round(newScale * 100));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const centerX = canvas.clientWidth / 2;
+    const centerY = canvas.clientHeight / 2;
+    const curScale = transformRef.current.scale;
+    const newScale = Math.max(0.35, curScale / 1.25);
+    transformRef.current.offsetX = centerX - (centerX - transformRef.current.offsetX) * (newScale / curScale);
+    transformRef.current.offsetY = centerY - (centerY - transformRef.current.offsetY) * (newScale / curScale);
+    transformRef.current.scale = newScale;
+    setViewportZoom(Math.round(newScale * 100));
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    transformRef.current.scale = 1;
+    transformRef.current.offsetX = 0;
+    transformRef.current.offsetY = 0;
+    setViewportZoom(100);
+  }, []);
+
+  // Non-passive wheel event listener for smooth cursor-centered zoom
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const curScale = transformRef.current.scale;
+      const zoomFactor = e.deltaY < 0 ? 1.12 : 0.89;
+      const newScale = Math.max(0.35, Math.min(4.0, curScale * zoomFactor));
+
+      const newOffsetX = mouseX - (mouseX - transformRef.current.offsetX) * (newScale / curScale);
+      const newOffsetY = mouseY - (mouseY - transformRef.current.offsetY) * (newScale / curScale);
+
+      transformRef.current.scale = newScale;
+      transformRef.current.offsetX = newOffsetX;
+      transformRef.current.offsetY = newOffsetY;
+      setViewportZoom(Math.round(newScale * 100));
+    };
+
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      canvas.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+  // Main Canvas Render and Continuous Physics Simulation Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -415,9 +508,8 @@ export default function NetworkConstellation({
       width = canvas.clientWidth;
       height = canvas.clientHeight;
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
     }
     resize();
     window.addEventListener("resize", resize);
@@ -436,22 +528,29 @@ export default function NetworkConstellation({
         totalSteps,
       } = stateRef.current;
 
+      const transform = transformRef.current;
+      const dpr = window.devicePixelRatio || 1;
+
+      // Clear Canvas
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
 
-      // If at step 0 (t=0 / Reset), canvas is clear
+      // If at step 0 (t=0 / Reset), display initial invitation state
       if (currentStep === 0 || visibleNodeIds.size === 0) {
         if (totalSteps > 0) {
           ctx.save();
-          ctx.fillStyle = "rgba(100, 116, 139, 0.5)";
-          ctx.font = "12px monospace";
+          ctx.fillStyle = "rgba(100, 116, 139, 0.6)";
+          ctx.font = "500 13px monospace";
           ctx.textAlign = "center";
           ctx.fillText(
-            "t=0 (Initial State) · Click Play (▶) or drag slider to start playback",
+            "t=0 (Initial State) · Auto-playing chronological mule-ring sequence…",
             width / 2,
             height / 2
           );
           ctx.restore();
         }
+        ctx.restore();
         stateRef.current.raf = requestAnimationFrame(frame);
         return;
       }
@@ -461,12 +560,19 @@ export default function NetworkConstellation({
         visibleNodeIds.has(n.id)
       );
 
-      // Physics Simulation: Center Gravity + Repulsion + Springs for visible nodes
+      // 1. Continuous Physics Simulation (Spring force + Center gravity + Pairwise repulsion + Harmonic micro-drift)
       for (const n of visibleNodeList) {
-        n.vx += (width / 2 - n.x) * 0.0006;
-        n.vy += (height / 2 - n.y) * 0.0006;
+        // Center gravity pulls gently toward viewport center
+        n.vx += (width / 2 - n.x) * 0.0005;
+        n.vy += (height / 2 - n.y) * 0.0005;
+
+        // Harmonic ambient micro-forces: ensures organic floating motion even when settled/paused
+        const ambientAngle = t * 1.2 + n.x * 0.01 + n.y * 0.01;
+        n.vx += Math.cos(ambientAngle) * 0.035;
+        n.vy += Math.sin(ambientAngle) * 0.035;
       }
 
+      // Pairwise repulsion between nodes
       for (let i = 0; i < visibleNodeList.length; i++) {
         for (let j = i + 1; j < visibleNodeList.length; j++) {
           const a = visibleNodeList[i];
@@ -485,6 +591,7 @@ export default function NetworkConstellation({
         }
       }
 
+      // Edge spring tension with harmonic rest-length oscillation
       for (const e of visibleEdges) {
         const a = allNodes.get(e.a);
         const b = allNodes.get(e.b);
@@ -492,9 +599,8 @@ export default function NetworkConstellation({
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const target = 95;
-        const k = 0.006;
-        const f = (dist - target) * k;
+        const targetDist = 95 + Math.sin(t * 2.0 + ((e.timestamp || 0) % 10)) * 3.5;
+        const f = (dist - targetDist) * 0.006;
         const fx = (dx / dist) * f;
         const fy = (dy / dist) * f;
         a.vx += fx;
@@ -503,16 +609,22 @@ export default function NetworkConstellation({
         b.vy -= fy;
       }
 
+      // Apply damping & update node positions
       for (const n of visibleNodeList) {
-        n.vx *= 0.88;
-        n.vy *= 0.88;
+        n.vx *= 0.91;
+        n.vy *= 0.91;
         n.x += n.vx;
         n.y += n.vy;
-        n.x = Math.min(width - 16, Math.max(16, n.x));
-        n.y = Math.min(height - 16, Math.max(16, n.y));
+        n.x = Math.min(width - 24, Math.max(24, n.x));
+        n.y = Math.min(height - 24, Math.max(24, n.y));
       }
 
-      // Render Visible Edges
+      // Apply Zoom and Pan Transformation Matrix
+      ctx.save();
+      ctx.translate(transform.offsetX, transform.offsetY);
+      ctx.scale(transform.scale, transform.scale);
+
+      // 2. Render Visible Edges (Colored by Risk Score)
       for (const e of visibleEdges) {
         const a = allNodes.get(e.a);
         const b = allNodes.get(e.b);
@@ -523,13 +635,13 @@ export default function NetworkConstellation({
         ctx.save();
         if (isActive) {
           ctx.strokeStyle = "rgba(251, 191, 36, 0.95)";
-          ctx.lineWidth = 3.0;
+          ctx.lineWidth = 3.2;
         } else {
           ctx.strokeStyle = getEdgeStroke(e.riskScore, isHovered);
-          ctx.lineWidth = isHovered ? 2.8 : 1.4;
+          ctx.lineWidth = isHovered ? 2.8 : 1.6;
         }
-        ctx.setLineDash([5, 5]);
-        ctx.lineDashOffset = -t * 26;
+        ctx.setLineDash([6, 4]);
+        ctx.lineDashOffset = -t * 24;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
@@ -537,47 +649,121 @@ export default function NetworkConstellation({
         ctx.restore();
       }
 
-      // Render Visible Nodes
+      // 3. Render Animated Particle Flow Dots Along Edges (Direction of Money Transfer)
+      for (const e of visibleEdges) {
+        const a = allNodes.get(e.a);
+        const b = allNodes.get(e.b);
+        if (!a || !b) continue;
+
+        const risk = e.riskScore != null ? e.riskScore : 50;
+        const dotCount = risk >= 70 ? 3 : risk >= 40 ? 2 : 1;
+        const speed = 0.35 + (risk / 100) * 0.55;
+
+        for (let p = 0; p < dotCount; p++) {
+          const u = ((t * speed + p / dotCount) % 1);
+          const px = a.x + (b.x - a.x) * u;
+          const py = a.y + (b.y - a.y) * u;
+
+          ctx.save();
+          if (risk >= 70) {
+            // Crimson high-risk glowing particle
+            ctx.fillStyle = "rgba(239, 68, 68, 0.35)";
+            ctx.beginPath();
+            ctx.arc(px, py, 5.0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.arc(px, py, 3.0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(px, py, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (risk >= 40) {
+            // Amber medium-risk particle
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath();
+            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            // Teal low-risk particle
+            ctx.fillStyle = "#14b8a6";
+            ctx.beginPath();
+            ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      // 4. Render Visible Nodes with Pulsing Glow Halos by Verdict
       for (const n of visibleNodeList) {
         const isHovered = hoveredNode === n;
         const isPartOfActiveEdge =
           activeEdge && (activeEdge.a === n.id || activeEdge.b === n.id);
-        const pulse = n.kind === "hub" ? 1 + Math.sin(t * 3 + n.x) * 0.18 : 1;
-        const baseR = n.kind === "hub" ? 8.5 : n.kind === "hop" ? 6 : 5;
-        const r = baseR * pulse + (isHovered || isPartOfActiveEdge ? 2.5 : 0);
 
-        if (n.kind === "hub" || isHovered || isPartOfActiveEdge) {
-          const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 3.5);
-          glow.addColorStop(
-            0,
-            n.kind === "hub"
-              ? "rgba(179,38,30,0.38)"
-              : isPartOfActiveEdge
-              ? "rgba(251,191,36,0.35)"
-              : "rgba(15,122,61,0.25)"
-          );
-          glow.addColorStop(1, "rgba(255,255,255,0)");
-          ctx.fillStyle = glow;
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, r * 3.5, 0, Math.PI * 2);
-          ctx.fill();
+        const verdict = (
+          n.caseData?.verdict ||
+          n.verdict ||
+          (n.kind === "hub" || n.kind === "cashout" ? "BLOCK" : n.kind === "hop" ? "HOLD" : "ALLOW")
+        ).toUpperCase();
+
+        let baseRadius = n.kind === "hub" ? 9 : n.kind === "hop" ? 6.5 : n.kind === "cashout" ? 7 : 5.5;
+        if (isHovered || isPartOfActiveEdge) baseRadius += 2.5;
+
+        let glowMultiplier = 1.0;
+        let glowColor = "rgba(16, 185, 129, 0.25)";
+        let coreColor = "#059669";
+
+        if (verdict === "BLOCK") {
+          // BLOCK verdict: pulsing red glow with Math.sin(t * 4)
+          const pulseFactor = Math.sin(t * 4.0 + (n.x * 0.04));
+          glowMultiplier = 2.2 + 0.45 * pulseFactor;
+          glowColor = `rgba(220, 38, 38, ${(0.35 + 0.15 * pulseFactor).toFixed(2)})`;
+          coreColor = "#dc2626";
+        } else if (verdict === "HOLD") {
+          // HOLD verdict: pulsing amber glow with Math.sin(t * 2.5)
+          const pulseFactor = Math.sin(t * 2.5 + (n.y * 0.04));
+          glowMultiplier = 1.8 + 0.35 * pulseFactor;
+          glowColor = `rgba(245, 158, 11, ${(0.30 + 0.12 * pulseFactor).toFixed(2)})`;
+          coreColor = "#d97706";
+        } else {
+          // ALLOW verdict: subtle neutral glow
+          glowMultiplier = 1.3 + 0.1 * Math.sin(t * 1.5);
+          glowColor = "rgba(16, 185, 129, 0.25)";
+          coreColor = "#059669";
         }
 
+        if (n.kind === "cashout" && verdict !== "BLOCK") {
+          coreColor = "#1e293b";
+        }
+
+        // Draw Radial Glow Halo
+        const maxGlowR = baseRadius * glowMultiplier;
+        const glowGrad = ctx.createRadialGradient(n.x, n.y, baseRadius * 0.4, n.x, n.y, maxGlowR);
+        glowGrad.addColorStop(0, glowColor);
+        glowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = glowGrad;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle =
-          n.kind === "hub"
-            ? "#b3261e"
-            : n.kind === "victim"
-            ? "#0f7a3d"
-            : n.kind === "hop"
-            ? "#a8660a"
-            : "#0b1f3a";
+        ctx.arc(n.x, n.y, maxGlowR, 0, Math.PI * 2);
         ctx.fill();
+
+        // Draw Node Core Circle
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, baseRadius, 0, Math.PI * 2);
+        ctx.fillStyle = coreColor;
+        ctx.fill();
+
+        // Stroke Border
         ctx.lineWidth = isHovered || isPartOfActiveEdge ? 2.5 : 1.5;
         ctx.strokeStyle = isHovered || isPartOfActiveEdge ? "#fbbf24" : "#ffffff";
         ctx.stroke();
       }
+
+      ctx.restore(); // Restore Zoom/Pan Transform
+      ctx.restore(); // Restore DPR Transform
 
       stateRef.current.raf = requestAnimationFrame(frame);
     }
@@ -591,13 +777,44 @@ export default function NetworkConstellation({
     };
   }, []);
 
-  // Hit Detection & Mouse Event Handlers for Visible Elements
+  // Mouse Interaction Handlers: Pan Dragging & World Coordinate Hit Detection
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return; // Left click only
+    const transform = transformRef.current;
+    transform.isDragging = true;
+    transform.hasDragged = false;
+    transform.startX = e.clientX;
+    transform.startY = e.clientY;
+    transform.startOffsetX = transform.offsetX;
+    transform.startOffsetY = transform.offsetY;
+  }, []);
+
   const handleMouseMove = useCallback((e) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
+
+    const transform = transformRef.current;
+
+    // Handle Active Pan Dragging
+    if (transform.isDragging) {
+      const dx = e.clientX - transform.startX;
+      const dy = e.clientY - transform.startY;
+      if (Math.hypot(dx, dy) > 4) {
+        transform.hasDragged = true;
+      }
+      transform.offsetX = transform.startOffsetX + dx;
+      transform.offsetY = transform.startOffsetY + dy;
+      canvas.style.cursor = "grabbing";
+      setTooltip(null);
+      return;
+    }
+
+    // Convert Screen Mouse Coordinates to World Coordinates for Hit Detection
+    const worldX = (mouseX - transform.offsetX) / transform.scale;
+    const worldY = (mouseY - transform.offsetY) / transform.scale;
 
     const { allNodes, visibleEdges, visibleNodeIds } = stateRef.current;
     if (visibleNodeIds.size === 0) return;
@@ -606,12 +823,12 @@ export default function NetworkConstellation({
       visibleNodeIds.has(n.id)
     );
 
-    // 1. Check Visible Node Hits
+    // 1. Check Visible Node Hits in World Coordinates
     let hitNode = null;
     for (let i = visibleNodeList.length - 1; i >= 0; i--) {
       const n = visibleNodeList[i];
-      const threshold = n.kind === "hub" ? 14 : 11;
-      if (Math.hypot(n.x - mouseX, n.y - mouseY) <= threshold) {
+      const threshold = (n.kind === "hub" ? 16 : 12);
+      if (Math.hypot(n.x - worldX, n.y - worldY) <= threshold) {
         hitNode = n;
         break;
       }
@@ -622,13 +839,14 @@ export default function NetworkConstellation({
       stateRef.current.hoveredEdge = null;
       canvas.style.cursor = "pointer";
 
-      const tooltipX = Math.max(10, Math.min(rect.width - 200, mouseX + 12));
-      const tooltipY = Math.max(10, Math.min(rect.height - 110, mouseY + 12));
+      const tooltipX = Math.max(10, Math.min(rect.width - 240, mouseX + 12));
+      const tooltipY = Math.max(10, Math.min(rect.height - 120, mouseY + 12));
 
       setTooltip({
         type: "node",
         vpa: hitNode.id || "—",
         kind: hitNode.kind,
+        verdict: hitNode.verdict,
         caseId: hitNode.caseId,
         caseData: hitNode.caseData,
         x: tooltipX,
@@ -637,7 +855,7 @@ export default function NetworkConstellation({
       return;
     }
 
-    // 2. Check Visible Edge Hits
+    // 2. Check Visible Edge Hits in World Coordinates
     let hitEdge = null;
     for (let i = visibleEdges.length - 1; i >= 0; i--) {
       const edge = visibleEdges[i];
@@ -645,8 +863,8 @@ export default function NetworkConstellation({
       const b = allNodes.get(edge.b);
       if (!a || !b) continue;
 
-      const dist = pointToSegmentDistance(mouseX, mouseY, a.x, a.y, b.x, b.y);
-      if (dist <= 6.5) {
+      const dist = pointToSegmentDistance(worldX, worldY, a.x, a.y, b.x, b.y);
+      if (dist <= 7.0) {
         hitEdge = edge;
         break;
       }
@@ -657,8 +875,8 @@ export default function NetworkConstellation({
       stateRef.current.hoveredEdge = hitEdge;
       canvas.style.cursor = "pointer";
 
-      const tooltipX = Math.max(10, Math.min(rect.width - 220, mouseX + 12));
-      const tooltipY = Math.max(10, Math.min(rect.height - 110, mouseY + 12));
+      const tooltipX = Math.max(10, Math.min(rect.width - 240, mouseX + 12));
+      const tooltipY = Math.max(10, Math.min(rect.height - 120, mouseY + 12));
 
       setTooltip({
         type: "edge",
@@ -667,6 +885,7 @@ export default function NetworkConstellation({
         amount: hitEdge.amount,
         riskScore: hitEdge.riskScore,
         caseId: hitEdge.caseId,
+        stage: hitEdge.stage,
         x: tooltipX,
         y: tooltipY,
       });
@@ -675,68 +894,164 @@ export default function NetworkConstellation({
 
     stateRef.current.hoveredNode = null;
     stateRef.current.hoveredEdge = null;
-    canvas.style.cursor = "default";
+    canvas.style.cursor = "grab";
     setTooltip(null);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     const canvas = canvasRef.current;
     if (canvas) canvas.style.cursor = "default";
+    transformRef.current.isDragging = false;
     stateRef.current.hoveredNode = null;
     stateRef.current.hoveredEdge = null;
     setTooltip(null);
   }, []);
 
-  const handleClick = useCallback(() => {
-    const { hoveredNode, hoveredEdge } = stateRef.current;
-    if (!onSelectCase) return;
+  const handleMouseUp = useCallback(
+    (e) => {
+      const transform = transformRef.current;
+      const wasDragging = transform.hasDragged;
+      transform.isDragging = false;
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = "grab";
 
-    if (hoveredNode && (hoveredNode.caseData || hoveredNode.caseId)) {
-      if (hoveredNode.caseData) {
-        onSelectCase(hoveredNode.caseData);
-      } else {
-        const found = cases.find((c) => c.case_id === hoveredNode.caseId);
-        if (found) onSelectCase(found);
+      // If user performed a click (no significant pan drag), open CaseDrawer
+      if (!wasDragging) {
+        const rect = canvas?.getBoundingClientRect();
+        if (!rect) return;
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const worldX = (mouseX - transform.offsetX) / transform.scale;
+        const worldY = (mouseY - transform.offsetY) / transform.scale;
+
+        const { allNodes, visibleEdges, visibleNodeIds } = stateRef.current;
+        if (visibleNodeIds.size === 0) return;
+
+        const visibleNodeList = Array.from(allNodes.values()).filter((n) =>
+          visibleNodeIds.has(n.id)
+        );
+
+        // Check node click
+        for (let i = visibleNodeList.length - 1; i >= 0; i--) {
+          const n = visibleNodeList[i];
+          const threshold = (n.kind === "hub" ? 16 : 12);
+          if (Math.hypot(n.x - worldX, n.y - worldY) <= threshold) {
+            if (onSelectCase) {
+              if (n.caseData) {
+                onSelectCase(n.caseData);
+              } else if (n.caseId) {
+                const found = cases.find((c) => c.case_id === n.caseId);
+                if (found) {
+                  onSelectCase(found);
+                } else {
+                  onSelectCase({
+                    case_id: n.caseId,
+                    payer_vpa: n.id,
+                    verdict: n.verdict || "BLOCK",
+                  });
+                }
+              }
+            }
+            return;
+          }
+        }
+
+        // Check edge click
+        for (let i = visibleEdges.length - 1; i >= 0; i--) {
+          const edge = visibleEdges[i];
+          const a = allNodes.get(edge.a);
+          const b = allNodes.get(edge.b);
+          if (!a || !b) continue;
+
+          const dist = pointToSegmentDistance(worldX, worldY, a.x, a.y, b.x, b.y);
+          if (dist <= 7.0) {
+            if (onSelectCase && edge.caseId) {
+              const found = cases.find((c) => c.case_id === edge.caseId);
+              if (found) onSelectCase(found);
+            }
+            return;
+          }
+        }
       }
-    } else if (hoveredEdge && hoveredEdge.caseId) {
-      const found = cases.find((c) => c.case_id === hoveredEdge.caseId);
-      if (found) onSelectCase(found);
-    }
-  }, [cases, onSelectCase]);
+    },
+    [cases, onSelectCase]
+  );
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full flex flex-col overflow-hidden rounded-md bg-[#f8f9fc] select-none"
+      className="relative w-full h-full flex flex-col overflow-hidden rounded-md bg-[#0f172a] select-none"
     >
-      {/* Canvas Area */}
+      {/* Canvas Viewport Area */}
       <div className="relative flex-1 min-h-0 w-full">
         <canvas
           ref={canvasRef}
-          className="w-full h-full block"
+          className="w-full h-full block cursor-grab"
+          onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          onClick={handleClick}
+          onMouseUp={handleMouseUp}
         />
 
         {totalSteps === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted font-mono">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400 font-mono">
             Awaiting mule-ring detections…
           </div>
         )}
 
-        {/* Legend */}
-        <div className="absolute top-3 left-3 flex gap-3 text-[11px] font-mono text-muted bg-white/85 backdrop-blur px-2.5 py-1.5 rounded border border-hairline shadow-sm pointer-events-none">
-          <LegendDot color="#0f7a3d" label="Victim" />
-          <LegendDot color="#b3261e" label="Collector hub" />
-          <LegendDot color="#a8660a" label="Layering hop" />
-          <LegendDot color="#0b1f3a" label="Cash-out" />
+        {/* HUD Legend */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1 text-[11px] font-mono text-slate-300 bg-slate-900/85 backdrop-blur px-3 py-2 rounded-lg border border-slate-700/60 shadow-lg pointer-events-none">
+          <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">
+            Network Entities & Verdicts
+          </div>
+          <div className="flex items-center gap-3">
+            <LegendDot color="#dc2626" label="BLOCK / Hub" glow="rgba(220, 38, 38, 0.6)" />
+            <LegendDot color="#d97706" label="HOLD / Hop" glow="rgba(245, 158, 11, 0.5)" />
+            <LegendDot color="#059669" label="ALLOW / Victim" glow="rgba(16, 185, 129, 0.4)" />
+            <LegendDot color="#1e293b" label="Cash-Out" border="#475569" />
+          </div>
+          <div className="flex items-center gap-2 pt-1 mt-0.5 border-t border-slate-800 text-[10px] text-slate-400">
+            <span>Edge Risk:</span>
+            <span className="text-[#14b8a6]">Low &lt;40</span>
+            <span>·</span>
+            <span className="text-[#f59e0b]">Med 40-70</span>
+            <span>·</span>
+            <span className="text-[#ef4444]">High &gt;70</span>
+          </div>
+        </div>
+
+        {/* Viewport Zoom / Reset HUD Controls */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur p-1 rounded-lg border border-slate-700/60 shadow-lg">
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            className="w-7 h-7 flex items-center justify-center text-sm font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded transition-colors"
+            title="Zoom In (or scroll up)"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className="w-7 h-7 flex items-center justify-center text-sm font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded transition-colors"
+            title="Zoom Out (or scroll down)"
+          >
+            −
+          </button>
+          <button
+            type="button"
+            onClick={handleResetView}
+            className="px-2 h-7 flex items-center justify-center text-[10px] font-mono text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded transition-colors"
+            title="Reset Pan & Zoom (100%)"
+          >
+            {viewportZoom}% · Fit
+          </button>
         </div>
 
         {/* Interactive Tooltip Overlay */}
         {tooltip && (
           <div
-            className="absolute z-30 pointer-events-none bg-ink-900/95 text-white p-3 rounded-lg shadow-xl text-xs backdrop-blur border border-white/15 max-w-[240px] space-y-1.5 transition-opacity duration-150"
+            className="absolute z-30 pointer-events-none bg-slate-900/95 text-white p-3 rounded-lg shadow-2xl text-xs backdrop-blur border border-slate-700 max-w-[260px] space-y-1.5 transition-opacity duration-150"
             style={{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }}
           >
             {tooltip.type === "node" ? (
@@ -749,33 +1064,49 @@ export default function NetworkConstellation({
                   >
                     {getNodeRoleLabel(tooltip.kind)}
                   </span>
-                  {tooltip.caseId && (
-                    <span className="text-[10px] text-white/60 font-mono">
-                      {tooltip.caseId.slice(-8)}
+                  {tooltip.verdict && (
+                    <span
+                      className={`text-[10px] uppercase px-1.5 py-0.5 rounded font-mono font-bold ${
+                        tooltip.verdict === "BLOCK"
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          : tooltip.verdict === "HOLD"
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      }`}
+                    >
+                      {tooltip.verdict}
                     </span>
                   )}
                 </div>
                 <div
-                  className="font-mono text-xs font-semibold text-white truncate"
+                  className="font-mono text-xs font-semibold text-white truncate pt-0.5"
                   title={tooltip.vpa}
                 >
                   {shortVpa(tooltip.vpa)}
                 </div>
                 {tooltip.caseId && (
-                  <div className="text-[10px] text-amber-300 font-sans pt-1 border-t border-white/10 flex items-center gap-1">
-                    <span>Click to view case details</span>
-                    <span>→</span>
+                  <div className="text-[10px] text-amber-400 font-sans pt-1 border-t border-slate-800 flex items-center justify-between">
+                    <span>Case: {tooltip.caseId.slice(-8)}</span>
+                    <span className="font-semibold">Click to open drawer →</span>
                   </div>
                 )}
               </>
             ) : (
               <>
-                <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1">
-                  <span className="text-[10px] uppercase text-white/60 font-mono">
-                    Transaction Flow
+                <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                  <span className="text-[10px] uppercase text-slate-400 font-mono">
+                    {tooltip.stage || "Transaction Conduit"}
                   </span>
                   {tooltip.riskScore != null && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-300 border border-rose-500/40 font-mono font-bold">
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                        tooltip.riskScore >= 70
+                          ? "bg-rose-500/30 text-rose-300 border border-rose-500/50"
+                          : tooltip.riskScore >= 40
+                          ? "bg-amber-500/30 text-amber-300 border border-amber-500/50"
+                          : "bg-teal-500/30 text-teal-300 border border-teal-500/50"
+                      }`}
+                    >
                       Risk {tooltip.riskScore}
                     </span>
                   )}
@@ -783,13 +1114,13 @@ export default function NetworkConstellation({
                 <div className="font-sans text-sm font-bold text-white">
                   {formatINR(tooltip.amount)}
                 </div>
-                <div className="font-mono text-[11px] text-white/80 truncate">
+                <div className="font-mono text-[11px] text-slate-300 truncate">
                   {shortVpa(tooltip.from)} → {shortVpa(tooltip.to)}
                 </div>
                 {tooltip.caseId && (
-                  <div className="text-[10px] text-amber-300 font-sans pt-0.5 flex items-center gap-1">
-                    <span>Click to open case</span>
-                    <span>→</span>
+                  <div className="text-[10px] text-amber-400 font-sans pt-0.5 flex items-center justify-between">
+                    <span>Case: {tooltip.caseId.slice(-8)}</span>
+                    <span className="font-semibold">Click to inspect →</span>
                   </div>
                 )}
               </>
@@ -799,7 +1130,7 @@ export default function NetworkConstellation({
       </div>
 
       {/* Timeline Controls Strip */}
-      <div className="border-t border-hairline bg-white/90 backdrop-blur px-3 py-2 flex flex-col gap-1.5 shrink-0">
+      <div className="border-t border-slate-800 bg-slate-900/95 backdrop-blur px-3 py-2.5 flex flex-col gap-1.5 shrink-0">
         {/* Controls and Slider Row */}
         <div className="flex items-center gap-3">
           {/* Play / Pause Button */}
@@ -807,7 +1138,7 @@ export default function NetworkConstellation({
             <button
               type="button"
               onClick={handlePause}
-              className="px-2.5 py-1 text-xs font-semibold bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors flex items-center gap-1 shadow-sm"
+              className="px-2.5 py-1 text-xs font-semibold bg-amber-500 text-slate-950 rounded hover:bg-amber-400 transition-colors flex items-center gap-1 shadow-sm"
               title="Pause Playback"
             >
               <span>⏸</span>
@@ -818,7 +1149,7 @@ export default function NetworkConstellation({
               type="button"
               onClick={handlePlay}
               disabled={totalSteps === 0}
-              className="px-2.5 py-1 text-xs font-semibold bg-ink-900 text-white rounded hover:bg-ink-800 disabled:opacity-40 transition-colors flex items-center gap-1 shadow-sm"
+              className="px-2.5 py-1 text-xs font-semibold bg-emerald-500 text-slate-950 rounded hover:bg-emerald-400 disabled:opacity-40 transition-colors flex items-center gap-1 shadow-sm font-mono"
               title="Play Timeline Animation"
             >
               <span>▶</span>
@@ -831,7 +1162,7 @@ export default function NetworkConstellation({
             type="button"
             onClick={handleReset}
             disabled={totalSteps === 0 && currentStep === 0}
-            className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 rounded hover:bg-slate-200 disabled:opacity-40 transition-colors flex items-center gap-1"
+            className="px-2 py-1 text-xs font-medium bg-slate-800 text-slate-200 border border-slate-700 rounded hover:bg-slate-700 disabled:opacity-40 transition-colors flex items-center gap-1 font-mono"
             title="Reset to t=0 (Clear Canvas)"
           >
             <span>↺</span>
@@ -848,17 +1179,17 @@ export default function NetworkConstellation({
               value={currentStep}
               onChange={handleSliderChange}
               disabled={totalSteps === 0}
-              className="w-full accent-amber-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer disabled:opacity-40"
+              className="w-full accent-amber-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer disabled:opacity-40"
             />
           </div>
 
           {/* Step Counter Badge */}
-          <div className="text-[11px] font-mono whitespace-nowrap px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold">
+          <div className="text-[11px] font-mono whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-semibold">
             {currentStep === 0 ? "t=0" : `Step ${currentStep}/${totalSteps}`}
           </div>
 
           {/* Speed Multipliers */}
-          <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded border border-slate-200 text-[10px] font-mono">
+          <div className="flex items-center gap-0.5 bg-slate-800 p-0.5 rounded border border-slate-700 text-[10px] font-mono">
             {[0.5, 1, 2].map((spd) => (
               <button
                 key={spd}
@@ -866,8 +1197,8 @@ export default function NetworkConstellation({
                 onClick={() => setPlaybackSpeed(spd)}
                 className={`px-1.5 py-0.5 rounded ${
                   playbackSpeed === spd
-                    ? "bg-white font-bold text-ink-900 shadow-xs"
-                    : "text-slate-600 hover:text-ink-900"
+                    ? "bg-amber-500 font-bold text-slate-950 shadow-xs"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 {spd}x
@@ -877,30 +1208,38 @@ export default function NetworkConstellation({
         </div>
 
         {/* Step Telemetry Status Chip */}
-        <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 px-1">
+        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
           {currentStep === 0 ? (
             <span className="text-slate-400 italic">
-              Canvas cleared (t=0) · Press Play (▶) or scrub slider to reveal chronological mule-ring sequence
+              Canvas cleared (t=0) · Timeline will auto-play, or drag slider to inspect chronological hops
             </span>
           ) : activeEdge ? (
             <div className="flex items-center gap-2 overflow-hidden truncate">
-              <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold uppercase">
+              <span className="px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold uppercase">
                 {activeEdge.stage || "Hop"}
               </span>
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-slate-100">
                 {formatINR(activeEdge.amount)}
               </span>
-              <span className="text-slate-500">
+              <span className="text-slate-300">
                 {shortVpa(activeEdge.a)} → {shortVpa(activeEdge.b)}
               </span>
               {activeEdge.riskScore != null && (
-                <span className="text-rose-600 font-bold">
+                <span
+                  className={`font-bold ${
+                    activeEdge.riskScore >= 70
+                      ? "text-rose-400"
+                      : activeEdge.riskScore >= 40
+                      ? "text-amber-400"
+                      : "text-teal-400"
+                  }`}
+                >
                   (Risk {activeEdge.riskScore})
                 </span>
               )}
             </div>
           ) : (
-            <span>All {totalSteps} transactions visible</span>
+            <span>All {totalSteps} transactions visualized · Continuous organic spring simulation active</span>
           )}
 
           {activeEdge?.timestamp && (
@@ -914,10 +1253,17 @@ export default function NetworkConstellation({
   );
 }
 
-function LegendDot({ color, label }) {
+function LegendDot({ color, label, glow, border }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="w-2 h-2 rounded-full inline-block" style={{ background: color }} />
+      <span
+        className="w-2.5 h-2.5 rounded-full inline-block"
+        style={{
+          background: color,
+          boxShadow: glow ? `0 0 6px ${glow}` : "none",
+          border: border ? `1px solid ${border}` : "none",
+        }}
+      />
       {label}
     </span>
   );

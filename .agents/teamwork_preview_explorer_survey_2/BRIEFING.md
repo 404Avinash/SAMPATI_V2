@@ -1,37 +1,42 @@
-# BRIEFING — 2026-08-31T00:57:00Z
+# BRIEFING — 2026-08-31T15:37:30Z
 
 ## Mission
-Investigate frontend codebase for R1 (Fraud Playback Timeline) and R3 (Honeypot Hits 24h KPI counter), verify frontend build, dependencies, styling, state management, and design concrete implementation blueprints.
+Survey frontend NetworkConstellation (R3) and Investigations / CaseDrawer / ForensicImageViewer (R4, R1 frontend part) for SAMPATI V2 Sprint 3.
 
 ## 🔒 My Identity
 - Archetype: explorer
-- Roles: Frontend Architecture & Timeline / KPI Explorer
+- Roles: frontend investigator, code surveyor, synthesizer
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2
-- Original parent: b33a73fc-97af-4495-93e6-44ce23dadb99
-- Milestone: survey
+- Original parent: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Milestone: Sprint 3 Frontend Architecture Survey
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement
-- Produce structured analysis.md and 5-component handoff.md
-- Investigate NetworkConstellation, CaseDrawer, Overview, Investigations, KpiStrip, package.json, Tailwind, and build setup
+- Analyze requested components thoroughly
+- Produce structured 5-component handoff report
 
 ## Current Parent
-- Conversation ID: b33a73fc-97af-4495-93e6-44ce23dadb99
-- Updated: 2026-08-31T00:57:00Z
+- Conversation ID: e091e8ff-a378-4da9-bac2-dfc927cb605b
+- Updated: 2026-08-31T15:37:30Z
 
 ## Investigation State
-- **Explored paths**: [ORIGINAL_REQUEST.md, frontend/package.json, frontend/src/App.jsx, frontend/src/components/NetworkConstellation.jsx, frontend/src/components/CaseDrawer.jsx, frontend/src/components/KpiStrip.jsx, frontend/src/pages/OverviewPage.jsx, frontend/src/pages/InvestigationsPage.jsx, frontend/src/pages/SettingsPage.jsx, frontend/src/context/AppStateContext.jsx, frontend/src/services/api.js, tests/frontend_contracts_test.py]
+- **Explored paths**:
+  - `frontend/src/components/NetworkConstellation.jsx`
+  * `frontend/src/components/CaseDrawer.jsx`
+  * `frontend/src/components/investigations/ForensicImageViewer.jsx`
+  * `frontend/src/components/investigations/CaseFilterBar.jsx`
+  * `frontend/src/components/investigations/CaseDetailModal.jsx`
+  * `frontend/src/pages/InvestigationsPage.jsx`
+  * `frontend/src/pages/OverviewPage.jsx`
+  * `frontend/src/pages/AnalyticsPage.jsx`
+  * `frontend/src/services/api.js`
+  * `frontend/package.json`
 - **Key findings**:
-  - `NetworkConstellation.jsx` force-directed canvas can be augmented with a step-based timeline state machine (`currentStep: 0..N`, `isPlaying`, `playbackSpeed`), range slider, and Play/Pause/Reset controls directly beneath canvas.
-  - At $t=0$, `visibleEdges = []` and `visibleNodeIds = Set()`, rendering 0 nodes and 0 edges. Pressing Play animates edges onto canvas in chronological timestamp order.
-  - `CaseDrawer.jsx` can embed `<NetworkConstellation caseData={caseData} />` for cinematic per-case playback.
-  - `KpiStrip.jsx` can incorporate a 7th tile for "Honeypot Hits (24h)" (`honeypot_hits`) with amber styling and pulse animation, wired to `AppStateContext.jsx` and `/stats` / WebSocket.
-  - `bun run build` transforms 1,382 modules cleanly in ~10.5s; all 13 frontend contract tests pass.
-- **Unexplored areas**: None.
+  - Full analysis completed for continuous physics simulation drift, node verdict pulsing, edge gradient + particle flow, auto-play on load, canvas zoom/pan, row/node click drawer integration, status badge instant filtering, animated DMV arc/dial gauge, Recharts sorted horizontal bar chart for rule breakdown, multi-tier forensic image loading (API -> static fallback -> in-browser SVG topology fallback), and SAR PDF export binary validation with error toast.
+- **Unexplored areas**: None within requested scope.
 
 ## Key Decisions Made
-- Designed comprehensive blueprints for R1 Timeline and R3 Honeypot KPI in `analysis.md` and `handoff.md`.
+- Completed comprehensive 5-component handoff report in `handoff.md`.
 
 ## Artifact Index
-- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/analysis.md` — Frontend survey and architecture blueprint
-- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/handoff.md` — 5-component handoff report
+- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/handoff.md` — Complete Sprint 3 frontend survey and architecture handoff report

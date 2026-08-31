@@ -77,3 +77,130 @@ Currently failing (18 tests):
 
 ### Commit
 - [ ] `git log --oneline -1` shows a new commit on main with all Sprint 2 changes
+
+## 2026-08-31T15:32:02Z
+
+# SAMPATI V2 — Sprint 3: Deployment Fix + UI Polish + Demo-Ready Refinement
+
+SAMPATI V2 is a UPI fraud intelligence platform that has been built over two sprints. The backend is feature-complete and all tests pass. However the live demo site at `http://13.234.165.178/` is down, the UI feels static and unpolished in several key areas, and forensic ring images fail to load in the Investigations page. This sprint fixes deployment, makes the UI cinematic and fully interactive, and brings the demo to a level where every page feels live and impressive.
+
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: demo
+
+## Context
+
+The tech stack:
+- **Backend**: FastAPI (`app/`) deployed via Docker on AWS EC2. CI/CD via `.github/workflows/` — pushes to `main` trigger build → push to GHCR → SSH deploy to EC2.
+- **Frontend**: React + Vite (`frontend/src/`), served as a SPA by FastAPI's static file mount.
+- **Key pages**: Overview, Investigations, Analytics, System Health, Settings.
+- **Key components**: `NetworkConstellation.jsx` (canvas force graph + playback timeline), `KpiStrip.jsx` (7 KPI tiles), `CaseDrawer.jsx` (per-case detail with DMV gauge + SAR export), `LiveFeed.jsx` (WebSocket event stream), `ControlBar.jsx` (has auto-feed toggle), `AnalyticsPage.jsx` (heatmap + DMV table + charts).
+
+Existing test suite: `.venv/bin/pytest tests/ -v` (must stay green — currently 648 total tests passing)
+Frontend build: `cd frontend && npm run build` (must be clean — 0 ESLint errors with `--max-warnings 0`)
+
+---
+
+## Requirements
+
+### R1. Fix Deployment — Forensic Image Persistence & Static Mount
+
+The forensic ring PNG images (rendered by `app/services/upi_cases.py` → `render_ring_png()` into `static/upi_cases/`) are lost on every container restart because the container filesystem is ephemeral. Fix this so the images are served reliably:
+
+- Add `app.mount("/static", StaticFiles(directory="static"), name="static")` to `app/main.py` **before** the SPA fallback mount, so `/static/upi_cases/{case_id}_ring.png` is served directly.
+- In `UpiCaseService.__init__`, set `artifact_dir` to a path that is guaranteed to exist (create it if missing with `os.makedirs`).
+- In the `ForensicImageViewer.jsx` component, update `api.caseGraphUrl()` to use the direct static path `/static/upi_cases/{case_id}_ring.png` as a fallback when the `/upi/cases/{case_id}/graph.png` endpoint returns 404.
+- Ensure `requirements.txt` contains every package used by Sprint 2 code (verify nothing was added that isn't listed).
+
+After this fix, running a simulation (`POST /upi/simulate`) should produce a case whose forensic ring image loads in the Investigations drawer.
+
+### R2. Demo Seed Data on Load — Make the Dashboard Feel Live Immediately
+
+Right now the dashboard loads completely empty. A judge seeing it for the first time sees blank charts and an empty constellation. Fix this by auto-seeding demo data on first load:
+
+- On backend startup (or on the first request to `/upi/stats`), if the service has zero evaluated transactions, automatically run a background simulation (`~150 transactions, fraud_ratio=0.25`) to populate the in-memory state. This gives the Overview KPI tiles real numbers, the Constellation real nodes, and the Analytics charts real data — all without any manual interaction.
+- The auto-seed must be non-blocking (background task, does not delay the first response).
+- After seeding, the Live Auto-Feed toggle should be usable to make it keep flowing.
+
+### R3. NetworkConstellation — Make It Cinematic
+
+The constellation graph (`frontend/src/components/NetworkConstellation.jsx`) currently renders a static canvas. Make it visually alive:
+
+- **Continuous physics simulation**: nodes should drift and settle naturally using a spring-force simulation even when paused — edges should gently oscillate, not snap rigid.
+- **Node glow effects**: BLOCK verdict nodes should pulse with a red glow animation on canvas. HOLD nodes should pulse amber. ALLOW nodes remain neutral.
+- **Edge risk gradient**: edges should be colored by risk score (low = teal, medium = amber, high = crimson) with animated "data flow" particle dots traveling along high-risk edges.
+- **Auto-play on load**: when cases are present, automatically start the playback timeline from t=0 so the graph builds itself without the user pressing Play.
+- **Zoom and pan**: the constellation canvas must support mouse scroll-to-zoom and click-drag-to-pan.
+- **Node click opens CaseDrawer**: clicking a node on the constellation must open the CaseDrawer for that case.
+
+### R4. Investigations Page — Fully Interactive Case Triage
+
+The Investigations page (`InvestigationsPage.jsx`) and `CaseDrawer.jsx` should feel like a real analyst tool:
+
+- **Case list rows must be clickable**: each row in the case table opens the drawer for that case on click.
+- **Status badge filtering**: clicking a status badge (OPEN / ESCALATED / DISMISSED) in the filter bar filters the case list immediately without a page reload.
+- **DMV gauge**: must render as an animated arc/dial (not just text) with green/amber/red color zones. The needle must animate to the score on drawer open.
+- **Rule breakdown**: rule hits in the drawer should render as a sorted horizontal bar chart (by points) — not a flat list — using Recharts.
+- **Forensic image**: when the PNG loads, it should fade in smoothly. When it fails (404), show a fallback in-browser SVG representation of the ring topology using the `topology.edges` data already in the case payload.
+- **SAR export button**: clicking "Export SAR" should trigger a real PDF download. If the endpoint returns a non-PDF response, show an inline error toast.
+
+### R5. Analytics Page — Animated Charts and Working Heatmap
+
+The Analytics page must feel data-rich:
+
+- **All Recharts charts** must have `animationDuration={800}` and `isAnimationActive={true}` — no static/frozen charts.
+- **Workload Heatmap**: the 7×24 heatmap grid must render with color-coded cells using CSS grid. Each cell should show a tooltip on hover with the exact case count. If `workload_heatmap` data is empty (before seeding), show a ghost/skeleton state, not a broken empty grid.
+- **Top VPAs by DMV Score table**: each row must show a mini inline progress bar for the DMV score alongside the number. Rows should be sortable by clicking column headers.
+- **Campaign Fingerprint summary**: add a small "Active Campaigns" count card on the Analytics page showing how many distinct fraud campaigns have been fingerprinted (from `campaign_id` data), even if it's just a static metric card.
+
+### R6. Overview and Live Feed — Feel Alive
+
+- **KPI tiles**: animate number changes with a count-up animation (0 → actual value) on first load, and increment smoothly when auto-feed is running.
+- **Live Feed panel** (`LiveFeed.jsx`): new events should slide in from the top with a smooth CSS transition. Events older than 30 should fade out from the bottom.
+- **Auto-Feed toggle** (`ControlBar.jsx`): when active, show a pulsing green dot indicator and a live TPS counter next to the toggle. The button text should change to "Stop Live Feed" when active.
+- **Honeypot alert**: when a `honeypot_hit` WebSocket event arrives, show a prominent red toast notification with the VPA that triggered it, persisting for 5 seconds.
+
+### R7. Push and Deploy
+
+After all frontend and backend changes are made:
+1. Run the full test suite: `.venv/bin/pytest tests/ -v` — must pass all tests.
+2. Run `cd frontend && npm run lint && npm run build` — must be clean (0 ESLint warnings).
+3. Run `git add . && git commit -m "feat(ui): polish sprint - cinematic constellation, live feed animations, forensic image fix, demo seed data" && git push origin main`.
+4. The push to main will trigger the CI/CD pipeline to rebuild the Docker image and redeploy to EC2. The team's task ends at the push — EC2 redeployment is handled automatically by GitHub Actions.
+
+---
+
+## Acceptance Criteria
+
+### Deployment fix (R1)
+- [ ] `GET /static/upi_cases/` returns 200 for any PNG that exists (not a 404 from SPA fallback)
+- [ ] After `POST /upi/simulate`, the Investigations page shows a case whose forensic image loads (not the "pending" placeholder)
+
+### Demo seed (R2)
+- [ ] Loading the frontend for the first time (fresh service restart) shows non-zero KPI tiles within 5 seconds
+- [ ] The constellation has at least one node visible without any manual action
+
+### Constellation (R3)
+- [ ] Nodes visually glow/pulse based on verdict type (observable on canvas)
+- [ ] Clicking a node opens the CaseDrawer for that case
+- [ ] Mouse wheel zooms the canvas; click-drag pans it
+
+### Investigations (R4)
+- [ ] Clicking a case row opens the drawer (no separate "View" button needed)
+- [ ] DMV gauge renders as an animated arc, not plain text
+- [ ] When forensic PNG returns 404, the drawer renders a fallback SVG graph from `topology` data
+
+### Analytics (R5)
+- [ ] All Recharts charts animate on load
+- [ ] Heatmap cells show tooltips on hover
+- [ ] DMV table rows have inline progress bars
+
+### Overview (R6)
+- [ ] KPI numbers animate from 0 on page load
+- [ ] Auto-feed toggle shows a pulsing indicator when active
+- [ ] Honeypot hit events produce a visible toast notification
+
+### Build and push (R7)
+- [ ] `.venv/bin/pytest tests/ -v` → all tests pass (648+)
+- [ ] `cd frontend && npm run lint` → 0 warnings
+- [ ] `cd frontend && npm run build` → clean build
+- [ ] `git log --oneline -1` shows new commit pushed to origin/main

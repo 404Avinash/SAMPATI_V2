@@ -1,15 +1,13 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAppState } from "../context/AppStateContext";
 import CaseFilterBar from "../components/investigations/CaseFilterBar";
-import CaseDetailModal from "../components/investigations/CaseDetailModal";
 import { VerdictBadge, StatusBadge, RiskScoreBadge } from "../components/common/StatusBadge";
 import { formatINR, relativeTime, formatDateTime, shortVpa } from "../services/api";
 
 export default function InvestigationsPage() {
-  const { cases, openCase, selectedCase, closeCase, runSimulation, busy } = useAppState();
+  const { cases, openCase, runSimulation, busy } = useAppState();
   const { caseId } = useParams();
-  const navigate = useNavigate();
 
   // Filters State
   const [search, setSearch] = useState("");
@@ -22,7 +20,7 @@ export default function InvestigationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  // Sync route param :caseId with openCase modal
+  // Sync route param :caseId with openCase drawer
   useEffect(() => {
     if (caseId) {
       const found = cases.find((c) => c.case_id === caseId);
@@ -34,15 +32,9 @@ export default function InvestigationsPage() {
     }
   }, [caseId, cases, openCase]);
 
-  // Handle case selection
+  // Handle case selection -> opens CaseDrawer
   const handleSelectCase = (c) => {
-    navigate(`/investigations/${c.case_id}`);
     openCase(c);
-  };
-
-  const handleCloseModal = () => {
-    closeCase();
-    navigate("/investigations");
   };
 
   // Filter and sort logic
@@ -313,13 +305,6 @@ export default function InvestigationsPage() {
           </div>
         </div>
       </div>
-
-      {/* Case Detail Modal */}
-      <CaseDetailModal
-        isOpen={Boolean(selectedCase)}
-        caseData={selectedCase}
-        onClose={handleCloseModal}
-      />
     </div>
   );
 }

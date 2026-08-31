@@ -13,8 +13,10 @@ const DAYS = [
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-export default function AnalystWorkloadHeatmap({ data = null, cases = [] }) {
+export default function AnalystWorkloadHeatmap({ data = null, cases = [], loading = false }) {
   const [hoveredCell, setHoveredCell] = useState(null);
+
+  const hasData = (Array.isArray(data) && data.length > 0) || (Array.isArray(cases) && cases.length > 0);
 
   // Build a complete 7x24 normalized matrix
   const matrix = useMemo(() => {
@@ -35,8 +37,8 @@ export default function AnalystWorkloadHeatmap({ data = null, cases = [] }) {
           grid[d][h] = { count, total_amount: amount };
         }
       });
-    } else {
-      // Seed realistic historical distribution for rolling 30 days
+    } else if (hasData) {
+      // Seed realistic historical distribution for rolling 30 days if active
       for (let d = 0; d < 7; d++) {
         for (let h = 0; h < 24; h++) {
           const isPeakHour = (h >= 1 && h <= 4) || (h >= 20 && h <= 23);
@@ -75,7 +77,7 @@ export default function AnalystWorkloadHeatmap({ data = null, cases = [] }) {
     }
 
     return grid;
-  }, [data, cases]);
+  }, [data, cases, hasData]);
 
   // Aggregate summary metrics
   const summaryMetrics = useMemo(() => {
@@ -113,6 +115,56 @@ export default function AnalystWorkloadHeatmap({ data = null, cases = [] }) {
     if (count <= 19) return "bg-rose-400 text-white font-semibold hover:ring-1 hover:ring-rose-500";
     return "bg-rose-700 text-white font-bold shadow-sm hover:ring-1 hover:ring-rose-800";
   };
+
+  // Skeleton ghost loading state when loading or empty data
+  if (loading || (!hasData && !data)) {
+    return (
+      <div className="panel overflow-hidden">
+        <div className="panel-header flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-muted font-mono">
+              Temporal Threat Intelligence · 30-Day Rolling Window
+            </div>
+            <div className="font-serif font-bold text-ink-900 text-base sm:text-lg">
+              7 × 24 Analyst Workload &amp; Attack Distribution
+            </div>
+          </div>
+          <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div className="overflow-x-auto">
+            <div className="min-w-[700px]">
+              <div className="grid grid-cols-[52px_repeat(24,1fr)] gap-1 mb-1.5 text-[10px] font-mono text-muted text-center">
+                <div className="text-left pl-1 font-semibold">Day</div>
+                {HOURS.map((h) => (
+                  <div key={h} className="truncate tracking-tighter">
+                    {h.toString().padStart(2, "0")}
+                  </div>
+                ))}
+              </div>
+
+              {DAYS.map((day) => (
+                <div key={day.key} className="grid grid-cols-[52px_repeat(24,1fr)] gap-1 items-center mb-1">
+                  <div className="text-xs font-mono font-bold text-slate-400 pl-1">{day.name}</div>
+                  {HOURS.map((hour) => (
+                    <div
+                      key={hour}
+                      className="h-7 rounded bg-slate-200/80 animate-pulse"
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-h-[32px] flex items-center justify-center p-3 bg-surface-muted rounded-md border border-hairline text-xs font-mono text-muted animate-pulse">
+            Loading threat telemetry workload heatmap…
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="panel overflow-hidden">
@@ -158,23 +210,35 @@ export default function AnalystWorkloadHeatmap({ data = null, cases = [] }) {
                 </div>
                 {HOURS.map((hour) => {
                   const cell = matrix[dIdx][hour];
+                  const isHovered = hoveredCell && hoveredCell.dIdx === dIdx && hoveredCell.hour === hour;
                   return (
                     <div
                       key={hour}
                       onMouseEnter={() =>
                         setHoveredCell({
                           day: day.full,
+                          dayName: day.name,
+                          dIdx,
                           hour,
                           count: cell.count,
                           total_amount: cell.total_amount,
                         })
                       }
                       onMouseLeave={() => setHoveredCell(null)}
-                      className={`h-7 rounded flex items-center justify-center text-[10px] font-mono cursor-pointer transition-all ${getCellColor(
+                      title={`${day.full} ${hour.toString().padStart(2, "0")}:00 IST: ${cell.count} cases (${formatINR(cell.total_amount)})`}
+                      className={`relative h-7 rounded flex items-center justify-center text-[10px] font-mono cursor-pointer transition-all ${getCellColor(
                         cell.count
                       )}`}
                     >
                       {cell.count > 0 ? cell.count : ""}
+
+                      {/* Floating hover popover / tooltip over cell */}
+                      {isHovered && (
+                        <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 bg-ink-900 text-white text-[10px] py-1 px-2.5 rounded shadow-2xl border border-white/10 z-40 whitespace-nowrap pointer-events-none animate-fade-in font-mono flex flex-col items-center">
+                          <span className="font-bold text-rose-300">{cell.count} cases</span>
+                          <span className="text-[9px] text-white/70">{day.name} {hour.toString().padStart(2, "0")}:00</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

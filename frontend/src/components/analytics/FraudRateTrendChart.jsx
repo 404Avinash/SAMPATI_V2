@@ -87,6 +87,8 @@ export default function FraudRateTrendChart({ data = [] }) {
                 strokeWidth={2.5}
                 dot={{ r: 3, fill: "#c8641e" }}
                 activeDot={{ r: 5, fill: "#0b1f3a" }}
+                isAnimationActive={true}
+                animationDuration={800}
               />
             </LineChart>
           </ResponsiveContainer>

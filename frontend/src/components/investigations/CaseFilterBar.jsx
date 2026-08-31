@@ -16,14 +16,46 @@ export default function CaseFilterBar({
   filteredCount,
 }) {
   const VERDICTS = ["ALL", "HOLD", "BLOCK", "ALLOW"];
-  const STATUSES = ["ALL", "OPEN", "REVIEWED", "ESCALATED", "DISMISSED", "RESOLVED"];
+  const STATUSES = ["ALL", "OPEN", "ESCALATED", "DISMISSED", "REVIEWED", "RESOLVED"];
+
+  const getStatusActiveClass = (st) => {
+    switch (st) {
+      case "OPEN":
+        return "bg-sky-600 text-white border-sky-600 shadow-sm";
+      case "ESCALATED":
+        return "bg-purple-700 text-white border-purple-700 shadow-sm";
+      case "DISMISSED":
+        return "bg-slate-600 text-white border-slate-600 shadow-sm";
+      case "REVIEWED":
+        return "bg-indigo-600 text-white border-indigo-600 shadow-sm";
+      case "RESOLVED":
+        return "bg-emerald-600 text-white border-emerald-600 shadow-sm";
+      case "ALL":
+      default:
+        return "bg-ink-900 text-white border-ink-900 shadow-sm";
+    }
+  };
+
+  const getVerdictActiveClass = (v) => {
+    switch (v) {
+      case "HOLD":
+        return "bg-verdict-hold text-white border-transparent shadow-sm";
+      case "BLOCK":
+        return "bg-verdict-block text-white border-transparent shadow-sm";
+      case "ALLOW":
+        return "bg-verdict-allow text-white border-transparent shadow-sm";
+      case "ALL":
+      default:
+        return "bg-ink-900 text-white border-transparent shadow-sm";
+    }
+  };
 
   return (
-    <div className="panel p-4 space-y-4">
-      {/* Top row: Search input + Status Dropdown + Sort + Reset */}
+    <div className="panel p-4 space-y-3 bg-white border border-hairline rounded-xl shadow-xs">
+      {/* Top row: Search input + Sort Dropdown + Reset */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="relative flex-1 min-w-[240px]">
+        <div className="relative flex-1 min-w-[260px]">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -45,31 +77,16 @@ export default function CaseFilterBar({
             <button
               onClick={() => onSearchChange("")}
               className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted hover:text-ink-900"
+              title="Clear search"
             >
               ✕
             </button>
           )}
         </div>
 
-        {/* Status Dropdown */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-mono uppercase text-muted">Status:</label>
-          <select
-            value={statusFilter}
-            onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="border border-hairline rounded-md px-3 py-2 text-xs font-mono font-medium bg-white focus:outline-none focus:ring-1 focus:ring-ink-900"
-          >
-            {STATUSES.map((st) => (
-              <option key={st} value={st}>
-                {st}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* Sort selector */}
         <div className="flex items-center gap-2">
-          <label className="text-xs font-mono uppercase text-muted">Sort:</label>
+          <label className="text-xs font-mono uppercase text-muted font-semibold">Sort:</label>
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
@@ -86,32 +103,50 @@ export default function CaseFilterBar({
         {(search || verdictFilter !== "ALL" || statusFilter !== "ALL" || minRisk > 0) && (
           <button
             onClick={onReset}
-            className="text-xs text-saffron hover:underline font-mono px-2 py-1 ml-auto"
+            className="text-xs text-saffron hover:underline font-mono px-2 py-1 ml-auto font-semibold"
           >
             Reset Filters
           </button>
         )}
       </div>
 
-      {/* Bottom row: Verdict Pills + Risk Score Range Slider */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-hairline">
+      {/* Interactive Status Badges Filter Bar */}
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-hairline">
+        <span className="text-xs font-mono uppercase text-muted font-semibold mr-1">Status:</span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {STATUSES.map((st) => {
+            const active = statusFilter === st;
+            return (
+              <button
+                key={st}
+                onClick={() => onStatusFilterChange(st)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold font-mono transition-all border ${
+                  active
+                    ? getStatusActiveClass(st)
+                    : "bg-surface-muted text-muted border-hairline hover:bg-white hover:text-ink-900"
+                }`}
+              >
+                {st}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Verdict Pills + Risk Score Range Slider + Counter */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-hairline">
         {/* Verdict Pills */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-mono uppercase text-muted mr-1.5">Verdict:</span>
+          <span className="text-xs font-mono uppercase text-muted font-semibold mr-1">Verdict:</span>
           {VERDICTS.map((v) => {
             const active = verdictFilter === v;
-            let activeColor = "bg-ink-900 text-white";
-            if (active && v === "HOLD") activeColor = "bg-verdict-hold text-white";
-            if (active && v === "BLOCK") activeColor = "bg-verdict-block text-white";
-            if (active && v === "ALLOW") activeColor = "bg-verdict-allow text-white";
-
             return (
               <button
                 key={v}
                 onClick={() => onVerdictFilterChange(v)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold font-mono transition-colors border ${
+                className={`px-3 py-1 rounded-full text-xs font-semibold font-mono transition-all border ${
                   active
-                    ? `${activeColor} border-transparent shadow-sm`
+                    ? getVerdictActiveClass(v)
                     : "bg-surface-muted text-muted border-hairline hover:bg-white hover:text-ink-900"
                 }`}
               >
@@ -122,8 +157,8 @@ export default function CaseFilterBar({
         </div>
 
         {/* Risk Threshold Slider */}
-        <div className="flex items-center gap-3 min-w-[220px]">
-          <span className="text-xs font-mono uppercase text-muted">
+        <div className="flex items-center gap-3 min-w-[200px]">
+          <span className="text-xs font-mono uppercase text-muted font-semibold">
             Min Risk: <strong className="text-ink-900 font-bold">{minRisk}</strong>
           </span>
           <input
@@ -133,7 +168,7 @@ export default function CaseFilterBar({
             step={5}
             value={minRisk}
             onChange={(e) => onMinRiskChange(Number(e.target.value))}
-            className="w-32 accent-saffron"
+            className="w-28 accent-saffron"
           />
         </div>
 

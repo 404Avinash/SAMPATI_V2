@@ -112,9 +112,9 @@ export default function TimeSeriesVerdictChart({ timeSeriesData = [], interval, 
                   </span>
                 )}
               />
-              <Bar dataKey="allow" name="ALLOW" stackId="a" fill="#0f7a3d" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="hold" name="HOLD" stackId="a" fill="#a8660a" radius={[0, 0, 0, 0]} />
-              <Bar dataKey="block" name="BLOCK" stackId="a" fill="#b3261e" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="allow" name="ALLOW" stackId="a" fill="#0f7a3d" radius={[0, 0, 0, 0]} isAnimationActive={true} animationDuration={800} />
+              <Bar dataKey="hold" name="HOLD" stackId="a" fill="#a8660a" radius={[0, 0, 0, 0]} isAnimationActive={true} animationDuration={800} />
+              <Bar dataKey="block" name="BLOCK" stackId="a" fill="#b3261e" radius={[3, 3, 0, 0]} isAnimationActive={true} animationDuration={800} />
             </BarChart>
           </ResponsiveContainer>
         </div>

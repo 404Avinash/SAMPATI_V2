@@ -126,6 +126,13 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("DB state sync skipped: %s", exc)
 
+    # Trigger background demo seeding if fresh instance
+    try:
+        from app.services.upi_cases import trigger_demo_seed
+        trigger_demo_seed()
+    except Exception as exc:
+        logger.warning("Startup demo seed trigger skipped: %s", exc)
+
     yield
 
     try:
@@ -268,15 +275,31 @@ async def api_info():
 
 
 # Static frontend mount and SPA fallback handling
-_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+_root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_dist = os.path.join(_root_dir, "frontend", "dist")
 _index_html = os.path.join(_dist, "index.html")
+_static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))
+
+# Ensure static directory structure exists
+os.makedirs(os.path.join(_static_dir, "upi_cases"), exist_ok=True)
 
 if FASTAPI_AVAILABLE:
     @app.exception_handler(404)
     async def spa_fallback_404_handler(request: Request, exc: Any):
         """Serve SPA index.html on direct client-side route navigation while preserving API 404s."""
         path = request.url.path
-        api_prefixes = ("/upi", "/federation", "/gateway", "/cases", "/synthetic", "/ws", "/health", "/api", "/stats")
+        api_prefixes = (
+            "/upi",
+            "/federation",
+            "/gateway",
+            "/cases",
+            "/synthetic",
+            "/ws",
+            "/health",
+            "/api",
+            "/stats",
+            "/static",
+        )
         is_api = any(path.startswith(prefix) for prefix in api_prefixes)
         has_extension = "." in path.split("/")[-1]
 
@@ -287,5 +310,10 @@ if FASTAPI_AVAILABLE:
             content={"detail": getattr(exc, "detail", f"Path '{path}' not found")},
         )
 
+    # 1. Mount /static BEFORE root SPA mount so ring PNGs are directly accessible
+    if os.path.isdir(_static_dir):
+        app.mount("/static", StaticFiles(directory=_static_dir), name="static")
+
+    # 2. Mount root SPA
     if os.path.isdir(_dist):
         app.mount("/", StaticFiles(directory=_dist, html=True), name="frontend")

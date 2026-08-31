@@ -16,7 +16,15 @@ export default function VerdictDonut({ allowed, held, blocked }) {
       <div className="w-32 h-32 relative shrink-0">
         <ResponsiveContainer>
           <PieChart>
-            <Pie data={data} dataKey="value" innerRadius={40} outerRadius={58} paddingAngle={2} isAnimationActive>
+            <Pie
+              data={data}
+              dataKey="value"
+              innerRadius={40}
+              outerRadius={58}
+              paddingAngle={2}
+              isAnimationActive={true}
+              animationDuration={800}
+            >
               {data.map((d) => (
                 <Cell key={d.name} fill={COLORS[d.name]} />
               ))}
