@@ -1,19 +1,22 @@
 """3-Layer UPI Fraud Risk Scorer Engine for SAMPATI V2.
 
-Layer 1: Deterministic rules (0 - 100 points, including R_HONEYPOT_HIT).
+Layer 1: Deterministic rules (0 - 100 points, including R_HONEYPOT_HIT, device telemetry, and campaign DNA).
 Layer 2: Adaptive EWMA anomaly detection (0 - 25 points).
 Layer 3: Cross-PSP federated graph network score (0 - 40 points).
+Enriched with Dead Money Velocity (DMV) scoring and Campaign Signature clustering.
 """
 from __future__ import annotations
 
 import time
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 
 from app.engine.adaptive import AdaptiveBehaviorModel, get_adaptive_model
-from app.engine.upi_rules import evaluate_rules
+from app.engine.campaign import CampaignSignatureStore, get_campaign_store
+from app.engine.dmv import DmvTracker, calculate_dmv_score, get_dmv_tracker
+from app.engine.upi_rules import evaluate_rules, record_payer_telemetry
 from app.engine.upi_state import UpiHotState, get_upi_state
-from app.models.upi_models import RuleHit, UpiEvaluationResponse, UpiTransaction
+from app.models.upi_models import UpiEvaluationResponse, UpiTransaction
 
 ALLOW_BELOW: int = 45
 BLOCK_AT: int = 70
@@ -29,15 +32,19 @@ class UpiRiskScorer:
         self,
         state: Optional[UpiHotState] = None,
         adaptive: Optional[AdaptiveBehaviorModel] = None,
+        dmv_tracker: Optional[DmvTracker] = None,
+        campaign_store: Optional[CampaignSignatureStore] = None,
     ) -> None:
         self.state: UpiHotState = state if state is not None else get_upi_state()
         self.adaptive: AdaptiveBehaviorModel = adaptive if adaptive is not None else get_adaptive_model()
+        self.dmv_tracker: DmvTracker = dmv_tracker if dmv_tracker is not None else get_dmv_tracker()
+        self.campaign_store: CampaignSignatureStore = campaign_store if campaign_store is not None else get_campaign_store()
 
     def evaluate(self, txn: UpiTransaction, network_score: float = 0.0) -> UpiEvaluationResponse:
         """Score an incoming UPI transaction through all 3 evaluation layers."""
         t0 = time.perf_counter()
 
-        hits = evaluate_rules(txn, self.state)
+        hits = evaluate_rules(txn, self.state, self.campaign_store)
         rule_score = min(100, sum(h.points for h in hits))
 
         adaptive_score = self.adaptive.score(txn)
@@ -64,8 +71,20 @@ class UpiRiskScorer:
         if network_score >= 0.5:
             reasons.append("FEDERATED_MULE_NETWORK")
 
+        # DMV Score calculation
+        dmv_score = calculate_dmv_score(txn, self.dmv_tracker)
+
+        # Active Campaign Fingerprint matching
+        matched_campaign = self.campaign_store.match_campaign(txn, threshold=0.82)
+        campaign_id = matched_campaign[0] if matched_campaign is not None else None
+
+        # On BLOCK verdict, ingest behavioral fingerprint into campaign signature store
+        if action == "BLOCK":
+            self.campaign_store.ingest_fingerprint(txn)
+
         elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 4)
 
+        # Update historical state and telemetry
         self.state.record_txn(
             timestamp=txn.timestamp,
             payer_vpa=txn.payer_vpa,
@@ -73,6 +92,16 @@ class UpiRiskScorer:
             amount=txn.amount,
             device_id=txn.device_id,
             sim_id=txn.sim_id,
+        )
+
+        self.dmv_tracker.record_txn(txn)
+
+        record_payer_telemetry(
+            payer_vpa=txn.payer_vpa,
+            device_id=txn.device_id,
+            sim_id=txn.sim_id,
+            location=txn.location,
+            timestamp=txn.timestamp,
         )
 
         self.adaptive.observe(txn)
@@ -86,6 +115,8 @@ class UpiRiskScorer:
             rule_score=rule_score,
             adaptive_score=round(adaptive_score, 4),
             network_score=round(network_score, 4),
+            dmv_score=dmv_score,
+            campaign_id=campaign_id,
             execution_latency_ms=elapsed_ms,
             evaluated_at=datetime.now(timezone.utc),
         )

@@ -103,6 +103,49 @@ export const api = {
     })),
 
   caseGraphUrl: (caseId) => `/upi/cases/${caseId}/graph.png`,
+
+  // Auto-Feed Lifecycle Endpoints (R3 / R6)
+  startAutoFeed: (options = {}) =>
+    req("/upi/autofeed/start", {
+      method: "POST",
+      body: JSON.stringify({
+        rate_tps: options.rate_tps || 10.0,
+        fraud_ratio: options.fraud_ratio !== undefined ? options.fraud_ratio : 0.15,
+        bursty: options.bursty !== false,
+      }),
+    }),
+
+  stopAutoFeed: () => req("/upi/autofeed/stop", { method: "POST" }),
+
+  getAutoFeedStatus: () =>
+    req("/upi/autofeed/status").catch(() => ({
+      active: false,
+      rate_tps: 10.0,
+      total_generated: 0,
+      total_flagged: 0,
+    })),
+
+  // SAR PDF Export Endpoints (R1 / R4)
+  sarPdfUrl: (caseId) => `/cases/${caseId}/sar/pdf`,
+
+  downloadSarPdf: async (caseId) => {
+    let res = await fetch(`/cases/${caseId}/sar/pdf`);
+    if (!res.ok) {
+      res = await fetch(`/upi/cases/${caseId}/sar/pdf`);
+    }
+    if (!res.ok) {
+      throw new Error(`PDF download failed: ${res.status} ${res.statusText}`);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SAR_${caseId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
 };
 
 export function formatINR(amount) {
@@ -183,3 +226,36 @@ export function getVerdictTone(verdict) {
       };
   }
 }
+
+export function getDmvTone(score) {
+  const num = typeof score === "number" ? score : parseFloat(score) || 0;
+  if (num >= 70) {
+    return {
+      text: "text-rose-700",
+      bg: "bg-rose-50",
+      border: "border-rose-200",
+      bar: "bg-rose-600",
+      label: "CRITICAL DRAIN",
+      category: "Critical Mule Signature (>70)",
+    };
+  }
+  if (num >= 40) {
+    return {
+      text: "text-amber-700",
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      bar: "bg-amber-500",
+      label: "ELEVATED VELOCITY",
+      category: "Elevated Velocity (40-70)",
+    };
+  }
+  return {
+    text: "text-emerald-700",
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    bar: "bg-emerald-500",
+    label: "LOW VELOCITY",
+    category: "Normal Flow (<40)",
+  };
+}
+

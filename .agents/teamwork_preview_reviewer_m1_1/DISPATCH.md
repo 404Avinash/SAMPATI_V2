@@ -1,19 +1,24 @@
-## 2026-08-30T19:32:16Z
-You are Reviewer 1 for Milestone 1 (Federation Signal Exchange API) of SAMPATI V2.
-Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_reviewer_m1_1`.
-Read `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`, `/home/avi/Downloads/Sampati_v2/PROJECT.md`, and `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1/handoff.md`.
+## 2026-08-31T03:33:47Z
+You are Reviewer 1 for Milestone 1 (M1: Core Risk Engine Extensions) of SAMPATI V2 Sprint 2.
+Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_reviewer_m1_1/
+Original user request is authoritative at: /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md
+Project architecture is at: /home/avi/Downloads/Sampati_v2/PROJECT.md
+Worker handoff report is at: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1/handoff.md
 
-Review the implementation of Milestone 1 in:
-- `app/api/federation.py`
-- `app/federation/coordinator.py`
-- `app/models/upi_models.py`
-- `app/main.py`
-- `app/services/upi_cases.py` and `app/engine/upi_scorer.py`
-- `tests/test_federation_api.py`
+Review Scope:
+1. Examine code in app/models/upi_models.py, app/engine/dmv.py, app/engine/upi_rules.py, app/engine/campaign.py, app/engine/upi_scorer.py, app/services/upi_cases.py.
+2. Verify correctness and completeness of:
+   - DMV (Dead Money Velocity) Score (0-100) per VPA
+   - R_SIM_DEVICE_MISMATCH rule
+   - R_IMPOSSIBLE_TRAVEL rule
+   - R_DATACENTER_IP rule
+   - R_CAMPAIGN_MATCH rule & campaign fingerprint store
+   - Model response contracts (dmv_score, campaign_id)
+3. Execute verification commands:
+   - ./.venv/bin/pytest tests/test_engine_sprint2.py -v
+   - ./.venv/bin/pytest tests/ -v
+   - ./.venv/bin/ruff check app tests
+4. Issue verdict (APPROVE or REQUEST_CHANGES) with clear evidence.
 
-Check:
-1. Correctness, completeness, and adherence to requirements.
-2. Run build and tests: `.venv/bin/pytest tests/test_federation_api.py -v` and `.venv/bin/pytest tests/ -v`.
-3. Provide a clear verdict (APPROVE or REQUEST_CHANGES).
-
-Write your review to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_reviewer_m1_1/handoff.md` and notify parent.
+Write report to /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_reviewer_m1_1/handoff.md.
+Send message when done.

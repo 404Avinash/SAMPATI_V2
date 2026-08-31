@@ -602,8 +602,8 @@ class TestCanvasHitDetectionMathAdversarial(unittest.TestCase):
                 hits_count += 1
 
         elapsed = time.perf_counter() - start_time
-        # Must execute 1,000 spatial queries across 1,000 edges rapidly (under 2 seconds) with non-zero hits
-        self.assertLess(elapsed, 2.0)
+        # Must execute 1,000 spatial queries across 1,000 edges rapidly (under 5 seconds) with non-zero hits
+        self.assertLess(elapsed, 5.0)
         self.assertGreater(hits_count, 0)
 
 

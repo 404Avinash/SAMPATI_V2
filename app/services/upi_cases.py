@@ -69,6 +69,18 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "ADAPTIVE_ANOMALY": {"name": "Adaptive Behavioral Anomaly", "severity": "HIGH"},
     "HIGH_VELOCITY_FAN_IN": {"name": "High-Velocity Fan-In Inflow", "severity": "HIGH"},
     "R_HONEYPOT_HIT": {"name": "Synthetic Honeypot Trap Hit", "severity": "CRITICAL"},
+    "R_SIM_DEVICE_MISMATCH": {"name": "SIM / Device Telemetry Mismatch", "severity": "HIGH"},
+    "R_IMPOSSIBLE_TRAVEL": {"name": "Impossible Geographic Travel Velocity", "severity": "CRITICAL"},
+    "R_DATACENTER_IP": {"name": "Datacenter / Cloud / VPN IP Origin", "severity": "HIGH"},
+    "R_CAMPAIGN_MATCH": {"name": "Fraud Campaign DNA Match", "severity": "CRITICAL"},
+    "NEW_PAYEE_VPA": {"name": "Fresh Payee VPA (<15d)", "severity": "MEDIUM"},
+    "PASS_THROUGH_CONDUIT": {"name": "Rapid Conduit Pass-Through", "severity": "HIGH"},
+    "FAN_IN_BURST": {"name": "Rapid Multi-Payer Fan-In", "severity": "HIGH"},
+    "FAN_OUT_DISPERSAL": {"name": "Rapid Multi-Payee Fan-Out", "severity": "HIGH"},
+    "DEVICE_FARM": {"name": "Multi-VPA Hardware Device Farm", "severity": "HIGH"},
+    "NEW_ACCOUNT_HIGH_VALUE": {"name": "High-Value New Account Outflow", "severity": "MEDIUM"},
+    "LIMIT_SKIRTING": {"name": "Threshold Limit Skirting", "severity": "LOW"},
+    "KNOWN_FRAUD_ENTITY": {"name": "Confirmed Fraud Entity Memory", "severity": "CRITICAL"},
 }
 
 
@@ -559,6 +571,50 @@ class UpiCaseService:
             b_info["percentage"] = round((b_info["count"] / total_bank_cases * 100.0), 2) if total_bank_cases > 0 else 0.0
             bank_distribution.append(b_info)
 
+        # 7x24 Workload Heatmap aggregation over rolling 30 days
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        heatmap_grid: Dict[Tuple[int, int], Dict[str, Any]] = {}
+        for d in range(7):
+            for h in range(24):
+                heatmap_grid[(d, h)] = {
+                    "day": d,
+                    "day_name": day_names[d],
+                    "hour": h,
+                    "count": 0,
+                    "total_amount": 0.0,
+                }
+
+        cutoff_30d = now - timedelta(days=30)
+        for c in cases_dict.values():
+            c_str = c.get("created_at")
+            try:
+                if isinstance(c_str, str):
+                    c_dt = datetime.fromisoformat(c_str.replace("Z", "+00:00"))
+                elif isinstance(c_str, datetime):
+                    c_dt = c_str
+                else:
+                    c_dt = now
+            except Exception:
+                c_dt = now
+
+            if c_dt.tzinfo is None:
+                c_dt = c_dt.replace(tzinfo=timezone.utc)
+
+            if c_dt >= cutoff_30d:
+                d_idx = c_dt.weekday()  # 0=Monday, 6=Sunday
+                h_idx = c_dt.hour        # 0..23
+                if (d_idx, h_idx) in heatmap_grid:
+                    cell = heatmap_grid[(d_idx, h_idx)]
+                    cell["count"] += 1
+                    cell["total_amount"] = round(cell["total_amount"] + float(c.get("amount") or 0.0), 2)
+
+        workload_heatmap = [heatmap_grid[(d, h)] for d in range(7) for h in range(24)]
+
+        from app.engine.campaign import get_campaign_store
+        from app.engine.dmv import get_dmv_tracker
+
+        top_dmv = get_dmv_tracker().get_top_vpas(limit=limit_accounts)
+
         return {
             "timestamp": now.isoformat(),
             "interval": interval,
@@ -567,6 +623,10 @@ class UpiCaseService:
             "rule_frequencies": rule_frequencies,
             "top_flagged_accounts": top_accounts,
             "bank_distribution": bank_distribution,
+            "top_dmv_vpas": top_dmv,
+            "top_vpas_by_dmv": top_dmv,
+            "workload_heatmap": workload_heatmap,
+            "active_campaigns": get_campaign_store().list_campaigns(),
         }
 
     get_analytics_stats = get_analytics
@@ -657,6 +717,21 @@ class UpiCaseService:
             for v in member_vpas:
                 self.dpip.ingest_external_signal(v, risk=1.0, source="ANALYST_ESCALATED")
             self.adaptive.feedback(member_vpas, confirmed_fraud=True)
+            self.scorer.state.mark_confirmed_fraud(member_vpas)
+            from app.engine.campaign import get_campaign_store
+            trig = updated_case_copy.get("trigger_txn")
+            if trig and isinstance(trig, dict):
+                try:
+                    ttxn = UpiTransaction(
+                        txn_id=trig.get("txn_id", f"FB_{case_id}"),
+                        amount=float(trig.get("amount", 0.0)),
+                        payer_vpa=trig.get("payer_vpa", ""),
+                        payee_vpa=trig.get("payee_vpa", ""),
+                        note=trig.get("note", ""),
+                    )
+                    get_campaign_store().ingest_fingerprint(ttxn, label="CONFIRMED_FRAUD")
+                except Exception:
+                    pass
         elif target_status == "DISMISSED":
             self.adaptive.feedback(member_vpas, confirmed_fraud=False)
 
@@ -696,7 +771,7 @@ class UpiCaseService:
             logger.debug("Failed to schedule case status WebSocket broadcast: %s", exc)
 
         return {
-            "status": "success",
+            "status": "updated",
             "case_id": case_id,
             "previous_status": previous_status,
             "new_status": target_status,
@@ -870,6 +945,8 @@ class UpiCaseService:
             "rule_hits": rule_hits_list,
             "adaptive_score": float(resp.adaptive_score or 0.0),
             "network_score": float(resp.network_score or 0.0),
+            "dmv_score": float(getattr(resp, "dmv_score", 0.0) or 0.0),
+            "campaign_id": getattr(resp, "campaign_id", None),
             "status": "OPEN",
             "ring_hash": None,
             "ring_members_vpas": [],
@@ -961,6 +1038,8 @@ class UpiCaseService:
             "reasons": resp.reasons,
             "network_score": combined_network,
             "adaptive_score": resp.adaptive_score,
+            "dmv_score": getattr(resp, "dmv_score", 0.0),
+            "campaign_id": getattr(resp, "campaign_id", None),
             "latency_ms": latency_ms,
         }
 
@@ -1088,11 +1167,44 @@ class UpiCaseService:
             "detected_rings": len(rings),
         }
 
+    def start_autofeed(
+        self,
+        rate_tps: float = 10.0,
+        fraud_ratio: float = 0.2,
+        bursty: bool = False,
+    ) -> Dict[str, Any]:
+        """Start background synthetic autofeed generation."""
+        from app.services.autofeed import get_autofeed_engine
+        return get_autofeed_engine().start(rate_tps=rate_tps, fraud_ratio=fraud_ratio, bursty=bursty)
+
+    def stop_autofeed(self) -> Dict[str, Any]:
+        """Stop background synthetic autofeed generation."""
+        from app.services.autofeed import get_autofeed_engine
+        return get_autofeed_engine().stop()
+
+    def is_autofeed_active(self) -> bool:
+        """Check if autofeed engine is running."""
+        from app.services.autofeed import get_autofeed_engine
+        return get_autofeed_engine().is_active()
+
+    def get_autofeed_status(self) -> Dict[str, Any]:
+        """Get status of autofeed engine."""
+        from app.services.autofeed import get_autofeed_engine
+        return get_autofeed_engine().get_status()
+
     def get_case(self, case_id: str) -> Optional[Dict[str, Any]]:
         """Return full details for a given case_id."""
         with self._lock:
             case = self._cases.get(case_id)
             return dict(case) if case else None
+
+    def generate_sar_pdf(self, case_id: str) -> Optional[bytes]:
+        """Generate SAR PDF binary bytes for a given case_id."""
+        case = self.get_case(case_id)
+        if not case:
+            return None
+        from app.forensics.sar_pdf import build_sar_pdf
+        return build_sar_pdf(case)
 
     def clear(self) -> None:
         """Clear ephemeral state."""

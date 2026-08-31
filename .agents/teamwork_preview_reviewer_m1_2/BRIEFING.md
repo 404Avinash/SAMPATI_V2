@@ -1,7 +1,7 @@
-# BRIEFING — 2026-08-30T19:34:00Z
+# BRIEFING — 2026-08-31T03:36:30Z
 
 ## Mission
-Independently review and adversarially stress-test Milestone 1 (Federation Signal Exchange API) implementation of SAMPATI V2.
+Review and adversarially stress-test Milestone 1 (M1: Core Risk Engine Extensions) of SAMPATI V2 Sprint 2.
 
 ## 🔒 My Identity
 - Archetype: reviewer_critic
@@ -10,52 +10,61 @@ Independently review and adversarially stress-test Milestone 1 (Federation Signa
 - Original parent: b33a73fc-97af-4495-93e6-44ce23dadb99
 - Milestone: Milestone 1 (Federation Signal Exchange API)
 - Instance: 2 of 2
+- Milestone (Sprint 2): Milestone 1 (Core Risk Engine Extensions)
+- Instance (Sprint 2): 2 of 2
+- Parent (Sprint 2): 1a77121b-3a79-4485-bfe4-db30788be55e
 
 ## 🔒 Key Constraints
 - Review-only — do NOT modify implementation code
 - Thoroughly check for integrity violations (hardcoded test data, fake implementations, bypasses)
 - Independent verification and adversarial stress-testing
+- Zero regressions across existing test suite
 
 ## Current Parent
-- Conversation ID: b33a73fc-97af-4495-93e6-44ce23dadb99
-- Updated: 2026-08-30T19:34:00Z
+- Conversation ID: 1a77121b-3a79-4485-bfe4-db30788be55e
+- Updated: 2026-08-31T03:36:30Z
 
 ## Review Scope
 - **Files to review**:
-  - `app/api/federation.py`
-  - `app/federation/coordinator.py`
   - `app/models/upi_models.py`
-  - `app/main.py`
+  - `app/engine/dmv.py`
+  - `app/engine/upi_rules.py`
+  - `app/engine/campaign.py`
+  - `app/engine/upi_scorer.py`
   - `app/services/upi_cases.py`
-  - `tests/test_federation_api.py`
+  - `tests/test_engine_sprint2.py`
 - **Interface contracts**: PROJECT.md, ORIGINAL_REQUEST.md
-- **Review criteria**: API contracts, error handling, status codes, query validation, routing, concurrency, latency SLA, zero regressions
+- **Review criteria**: Interface conformance, error handling (e.g. invalid IPs, missing coordinates, division by zero), performance (<5ms), correctness, adversarial resilience, zero regressions
 
 ## Review Checklist
 - **Items reviewed**:
-  - API schemas and models (`FederationSignalRequest`, `FederationSignalResponse`, `FederationQueryResponse`)
-  - Federation coordinator thread-safe storage, normalization, and multi-key lookup
-  - REST endpoints (`/federation/signal`, `/federation/query`, `/federation/signals`, `/federation/run`)
-  - Routing and SPA fallback protection in `app/main.py`
-  - Inline UPI transaction evaluation gate dynamic network scoring in `app/services/upi_cases.py`
-  - Unit, integration, and master E2E test suites
+  - `UpiEvaluationResponse` model extensions (`dmv_score`, `campaign_id`)
+  - `DmvTracker` sliding window statistics, dormancy index, burst velocity calculation, and top VPAs ranking
+  - Device telemetry rules (`R_SIM_DEVICE_MISMATCH`, `R_IMPOSSIBLE_TRAVEL`, `R_DATACENTER_IP`)
+  - Campaign DNA store (`CampaignSignatureStore`, `R_CAMPAIGN_MATCH`, dynamic clustering)
+  - `UpiRiskScorer.evaluate` composite pipeline integration and latency tracking
+  - `UpiCaseService` analytics integration (`top_vpas_by_dmv`, `active_campaigns`)
+  - 28 unit tests in `tests/test_engine_sprint2.py` (ALL PASSED)
+  - 587 full regression tests across all suites (ALL PASSED)
+  - Code quality lint via `ruff` (ALL PASSED)
 - **Verdict**: APPROVE
-- **Unverified claims**: None. All claims verified independently via direct test runs and stress scripts.
+- **Unverified claims**: None. All claims verified independently via test runs and custom adversarial stress script.
 
 ## Attack Surface
 - **Hypotheses tested**:
-  - 100-thread concurrent signal submission and querying (Thread safety: PASS)
-  - Extreme/special character/case-insensitive hashes (PASS)
-  - Out-of-bounds numeric risk scores (Clamping [0.0, 1.0]: PASS)
-  - Missing and empty parameters returning HTTP 422 (PASS)
-  - Multi-node reporting aggregation and ring member discovery (PASS)
-  - Coordinator engine lookup latency under 5ms (Measured ~4µs: PASS)
+  - Sub-5ms latency SLA: Verified avg=0.269ms, p50=0.248ms, p99=1.728ms << 5.0ms (PASS)
+  - Arithmetic boundaries and division by zero (amounts: 0, negative, 1e12): Bounded [0.0, 100.0] (PASS)
+  - Adversarial IP strings (IPv6, empty, unparseable, broadcast, localhost, cloud subnets): Handled cleanly (PASS)
+  - Geographic travel edge cases (identical coordinates, antipodal points, emoji, null island): Evaluated cleanly (PASS)
+  - 50-thread concurrent evaluation stress test: 2,500 evaluations executed without deadlock or race conditions (PASS)
+  - Dynamic syndicate clustering and novel fingerprint ingestion: Clustered into auto-generated campaigns (PASS)
 - **Vulnerabilities found**: None.
-- **Untested angles**: Hardware failure/OOM on billions of cached signals (recommend TTL/LRU in future if scale exceeds 10M records).
+- **Untested angles**: Hardware failure/OOM on millions of concurrent VPAs (in-memory tracker has sliding window eviction).
 
 ## Key Decisions Made
-- Confirmed full compliance with requirements R2 and interface contracts in PROJECT.md.
-- Verified 502/502 tests passing with 0 regressions.
+- Confirmed full compliance with M1 requirements and interface contracts in PROJECT.md.
+- Verified zero integrity violations or shortcuts.
+- Verified 587/587 tests pass with 0 regressions and 0 ruff errors.
 - Issued verdict: APPROVE.
 
 ## Artifact Index

@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 try:
     from fastapi import APIRouter, Depends, HTTPException, Query
-    from fastapi.responses import FileResponse, JSONResponse
+    from fastapi.responses import FileResponse, JSONResponse, Response
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -76,6 +76,7 @@ except Exception:
 from app.synthetic.upi_generator import generate_labeled_stream
 
 from app.models.upi_models import (
+    AutoFeedStartRequest,
     CaseStatusUpdateRequest,
     FeedbackRequest,
     SimulateRequest,
@@ -308,6 +309,39 @@ async def get_case_graph(
     return FileResponse(path, media_type="image/png")
 
 
+@router.get("/cases/{case_id}/sar/pdf", summary="Export Case SAR as PDF")
+async def get_case_sar_pdf(
+    case_id: str,
+    db: Optional[AsyncSession] = Depends(get_db),
+):
+    """Export complete Suspicious Activity Report (SAR) for a case as a PDF document."""
+    service: UpiCaseService = get_upi_case_service()
+    case = None
+    if db is not None and SQLALCHEMY_AVAILABLE:
+        try:
+            res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
+            db_c = res.scalar_one_or_none()
+            if db_c:
+                case = db_c.to_dict(include_sar=True)
+        except Exception:
+            pass
+
+    if case is None:
+        case = service.get_case(case_id)
+
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+
+    from app.forensics.sar_pdf import build_sar_pdf
+    pdf_bytes = build_sar_pdf(case)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="SAR_{case_id}.pdf"'},
+    )
+
+
+
 @router.patch("/cases/{case_id}/status", summary="Update Case Review Status")
 async def update_upi_case_status(
     case_id: str,
@@ -450,6 +484,32 @@ async def simulate_traffic(
     return summary
 
 
+@router.post("/autofeed/start", summary="Start Autonomous Synthetic Traffic Auto-Feed")
+async def start_autofeed(
+    body: Optional[AutoFeedStartRequest] = None,
+) -> Dict[str, Any]:
+    """Start autonomous background generation and live evaluation of synthetic UPI traffic."""
+    service: UpiCaseService = get_upi_case_service()
+    rate_tps = body.rate_tps if body is not None else 10.0
+    fraud_ratio = body.fraud_ratio if body is not None else 0.2
+    bursty = body.bursty if body is not None else False
+    return service.start_autofeed(rate_tps=rate_tps, fraud_ratio=fraud_ratio, bursty=bursty)
+
+
+@router.get("/autofeed/status", summary="Get Auto-Feed Engine Telemetry & Active Status")
+async def get_autofeed_status() -> Dict[str, Any]:
+    """Return real-time active status, configured rate, and generation metrics of the auto-feed engine."""
+    service: UpiCaseService = get_upi_case_service()
+    return service.get_autofeed_status()
+
+
+@router.post("/autofeed/stop", summary="Stop Autonomous Synthetic Traffic Auto-Feed")
+async def stop_autofeed() -> Dict[str, Any]:
+    """Halt background transaction generation and live evaluation loop cleanly."""
+    service: UpiCaseService = get_upi_case_service()
+    return service.stop_autofeed()
+
+
 @router.get("/stats", summary="Real-Time System and Persistence Telemetry")
 async def upi_stats(
     db: Optional[AsyncSession] = Depends(get_db),
@@ -462,6 +522,14 @@ async def upi_stats(
     investigated_cases = 0
     resolved_cases = 0
     rings_known = 0
+
+    current_stats = service.get_current_stats()
+    hp_24h = current_stats.get("honeypot_hits_24h", 0)
+    hp_total = current_stats.get("honeypot_hits", 0)
+    eval_count = current_stats.get("evaluated", 0)
+    allow_count = current_stats.get("allowed", 0)
+    hold_count = current_stats.get("held", 0)
+    block_count = current_stats.get("blocked", 0)
 
     if db is not None and SQLALCHEMY_AVAILABLE:
         try:
@@ -476,34 +544,16 @@ async def upi_stats(
 
             rings_count = await db.scalar(select(func.count(MuleRingModel.ring_hash)))
             rings_known = rings_count or 0
-
-            if total_cases > 0 or rings_known > 0 or not service.list_cases():
-                return {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "cases": {
-                        "total": total_cases,
-                        "open": open_cases,
-                        "investigated": investigated_cases,
-                        "resolved": resolved_cases,
-                    },
-                    "rings_known": rings_known,
-                    "dpip": service.dpip.stats(),
-                    "adaptive_sensitivity": round(service.adaptive.sensitivity, 3),
-                }
         except Exception as exc:
             logger.debug(f"DB stats query failed, falling back to memory: {exc}")
 
-    cases = service.list_cases()
-    total_cases = len(cases)
-    open_cases = sum(1 for c in cases if c.get("status") == "OPEN")
-    investigated_cases = sum(1 for c in cases if c.get("status") in ("INVESTIGATED", "REVIEWED", "ESCALATED"))
-    current_stats = service.get_current_stats()
-    hp_24h = current_stats.get("honeypot_hits_24h", 0)
-    hp_total = current_stats.get("honeypot_hits", 0)
-    eval_count = current_stats.get("evaluated", 0)
-    allow_count = current_stats.get("allowed", 0)
-    hold_count = current_stats.get("held", 0)
-    block_count = current_stats.get("blocked", 0)
+    if total_cases == 0 and not rings_known:
+        cases = service.list_cases()
+        total_cases = len(cases)
+        open_cases = sum(1 for c in cases if c.get("status") == "OPEN")
+        investigated_cases = sum(1 for c in cases if c.get("status") in ("INVESTIGATED", "REVIEWED", "ESCALATED"))
+        resolved_cases = sum(1 for c in cases if c.get("status") in ("RESOLVED", "DISMISSED"))
+        rings_known = len(service.federation.current_rings())
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -522,8 +572,13 @@ async def upi_stats(
         "allowed": allow_count,
         "held": hold_count,
         "blocked": block_count,
+        "total_evaluated": eval_count,
+        "total_allowed": allow_count,
+        "total_held": hold_count,
+        "total_blocked": block_count,
         "rings": rings_known,
     }
+
 
 
 @router.get("/honeypots", summary="List Active Synthetic Honeypots and Hit Metrics")

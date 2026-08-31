@@ -13,7 +13,7 @@ import backend  # noqa: F401
 try:
     from fastapi import Depends, FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import FileResponse, JSONResponse
+    from fastapi.responses import FileResponse, JSONResponse, Response
     from fastapi.staticfiles import StaticFiles
     from starlette.exceptions import HTTPException as StarletteHTTPException
     FASTAPI_AVAILABLE = True
@@ -238,6 +238,24 @@ async def update_case_status_root(
         raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.get("/cases/{case_id}/sar/pdf", tags=["Cases"])
+async def get_case_sar_pdf_root(case_id: str):
+    """Export complete Suspicious Activity Report (SAR) for a case as a PDF document."""
+    from app.services.upi_cases import get_upi_case_service
+    svc = get_upi_case_service()
+    case = svc.get_case(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+    from app.forensics.sar_pdf import build_sar_pdf
+    pdf_bytes = build_sar_pdf(case)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="SAR_{case_id}.pdf"'},
+    )
+
 
 
 @app.get("/api/info", tags=["System"])

@@ -333,5 +333,81 @@ class TestFrontendTimelineAndKpiContracts(unittest.TestCase):
         self.assertIn("honeypot_hits_24h", content)
 
 
+class TestFrontendSprint2Contracts(unittest.TestCase):
+    """Verify Sprint 2 Frontend Features: DMV Gauge, SAR PDF Export, Workload Heatmap, Top DMV Table, Auto-Feed."""
+
+    def test_case_drawer_dmv_gauge_and_export_sar_button(self):
+        """Verify CaseDrawer.jsx contains DMV score gauge and Export SAR PDF button."""
+        path = os.path.join(FRONTEND_SRC, "components", "CaseDrawer.jsx")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("dmv_score", content)
+        self.assertIn("Dead Money Velocity", content)
+        self.assertIn("Export SAR", content)
+        self.assertIn("downloadSarPdf", content)
+
+    def test_analytics_workload_heatmap_and_top_dmv_table_integration(self):
+        """Verify AnalyticsPage.jsx embeds AnalystWorkloadHeatmap and TopDmvAccountsTable."""
+        page_path = os.path.join(FRONTEND_SRC, "pages", "AnalyticsPage.jsx")
+        self.assertTrue(os.path.exists(page_path))
+        with open(page_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("AnalystWorkloadHeatmap", content)
+        self.assertIn("TopDmvAccountsTable", content)
+        self.assertIn("workload_heatmap", content)
+        self.assertIn("top_dmv_vpas", content)
+
+        # Check that individual components exist
+        heatmap_path = os.path.join(FRONTEND_SRC, "components", "analytics", "AnalystWorkloadHeatmap.jsx")
+        self.assertTrue(os.path.exists(heatmap_path))
+        with open(heatmap_path, "r", encoding="utf-8") as f:
+            h_content = f.read()
+        self.assertIn("7 × 24", h_content)
+        self.assertIn("HOURS", h_content)
+        self.assertIn("DAYS", h_content)
+
+        dmv_table_path = os.path.join(FRONTEND_SRC, "components", "analytics", "TopDmvAccountsTable.jsx")
+        self.assertTrue(os.path.exists(dmv_table_path))
+        with open(dmv_table_path, "r", encoding="utf-8") as f:
+            t_content = f.read()
+        self.assertIn("Dead Money Velocity", t_content)
+        self.assertIn("dmv_score", t_content)
+
+    def test_control_bar_autofeed_toggle_and_tps_controls(self):
+        """Verify ControlBar.jsx contains Live Auto-Feed toggle and TPS telemetry."""
+        path = os.path.join(FRONTEND_SRC, "components", "ControlBar.jsx")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("autoFeedActive", content)
+        self.assertIn("toggleAutoFeed", content)
+        self.assertIn("Live Auto-Feed", content)
+
+    def test_app_state_context_autofeed_methods(self):
+        """Verify AppStateContext.jsx tracks auto-feed state, start, stop, and toggle methods."""
+        path = os.path.join(FRONTEND_SRC, "context", "AppStateContext.jsx")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("autoFeedActive", content)
+        self.assertIn("startAutoFeed", content)
+        self.assertIn("stopAutoFeed", content)
+        self.assertIn("toggleAutoFeed", content)
+
+    def test_api_service_sprint2_endpoints(self):
+        """Verify api.js defines startAutoFeed, stopAutoFeed, getAutoFeedStatus, and downloadSarPdf."""
+        path = os.path.join(FRONTEND_SRC, "services", "api.js")
+        self.assertTrue(os.path.exists(path))
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("startAutoFeed", content)
+        self.assertIn("stopAutoFeed", content)
+        self.assertIn("getAutoFeedStatus", content)
+        self.assertIn("downloadSarPdf", content)
+        self.assertIn("getDmvTone", content)
+
+
 if __name__ == "__main__":
     unittest.main()
+

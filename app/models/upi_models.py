@@ -69,6 +69,8 @@ class UpiEvaluationResponse(BaseModel):
     execution_latency_ms: float = Field(default=0.0, description="Decision latency in milliseconds")
     evaluated_at: datetime = Field(default_factory=utcnow, description="Evaluation timestamp")
     case_id: Optional[str] = Field(default=None, description="Investigative case ID if HOLD or BLOCK")
+    dmv_score: float = Field(default=0.0, description="Dead Money Velocity score (0-100)")
+    campaign_id: Optional[str] = Field(default=None, description="Active fraud campaign identifier if matched")
 
 
 class MuleRingSummary(BaseModel):
@@ -185,6 +187,32 @@ class AnalyticsResponse(BaseModel):
     rule_frequencies: List[Dict[str, Any]] = Field(default_factory=list, description="Rule trigger ranking")
     top_flagged_accounts: List[Dict[str, Any]] = Field(default_factory=list, description="Top high-risk accounts")
     bank_distribution: List[Dict[str, Any]] = Field(default_factory=list, description="Bank-wise fraud distribution")
+    workload_heatmap: List[Dict[str, Any]] = Field(default_factory=list, description="7x24 grid of flagged case volume")
+    top_dmv_vpas: List[Dict[str, Any]] = Field(default_factory=list, description="Top VPAs ranked by DMV score")
+    top_vpas_by_dmv: List[Dict[str, Any]] = Field(default_factory=list, description="Top VPAs ranked by DMV score alias")
+    active_campaigns: List[Dict[str, Any]] = Field(default_factory=list, description="Active fraud campaigns")
+
+
+class AutoFeedStartRequest(BaseModel):
+    rate_tps: float = Field(10.0, ge=0.1, le=50.0, description="Transactions per second (max 50)")
+    fraud_ratio: float = Field(0.2, ge=0.0, le=1.0, description="Ratio of fraudulent / high-risk transactions")
+    bursty: bool = Field(False, description="Enable bursty traffic pattern")
+
+
+class AutoFeedStatusResponse(BaseModel):
+    active: bool = Field(False, description="Whether the live auto-feed generator is active")
+    rate_tps: float = Field(10.0, description="Configured transactions per second rate")
+    fraud_ratio: float = Field(0.2, description="Target fraud ratio")
+    bursty: bool = Field(False, description="Bursty mode enabled")
+    txns_generated: int = Field(0, description="Total synthetic transactions generated")
+    started_at: Optional[str] = Field(None, description="ISO timestamp of when autofeed started")
+
+
+class AutoFeedControlResponse(BaseModel):
+    status: str = Field(..., description="Operation status: started, already_running, stopped, not_running")
+    active: bool = Field(..., description="Current active state")
+    rate_tps: Optional[float] = Field(None, description="Current TPS rate")
+
 
 
 class DetailedHealthResponse(BaseModel):

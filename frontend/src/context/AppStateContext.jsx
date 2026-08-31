@@ -21,6 +21,14 @@ export function AppStateProvider({ children }) {
   const [live, setLive] = useState(false);
   const [sensitivity, setSensitivity] = useState(1.0);
   const [deployStatus, setDeployStatus] = useState(null);
+  const [autoFeedActive, setAutoFeedActive] = useState(false);
+  const [autoFeedTps, setAutoFeedTps] = useState(10.0);
+  const [autoFeedStats, setAutoFeedStats] = useState({
+    active: false,
+    rate_tps: 10.0,
+    total_generated: 0,
+    total_flagged: 0,
+  });
   const seenTotals = useRef({ allowed: 0, held: 0, blocked: 0 });
 
   // Rolling 40-point time-series history
@@ -114,6 +122,57 @@ export function AppStateProvider({ children }) {
       console.warn("deploy status refresh failed", err);
     }
   }, []);
+
+  const refreshAutoFeedStatus = useCallback(async () => {
+    try {
+      const data = await api.getAutoFeedStatus();
+      if (data && typeof data === "object") {
+        if (typeof data.active === "boolean") {
+          setAutoFeedActive(data.active);
+        }
+        if (data.rate_tps || data.tps) {
+          setAutoFeedTps(data.rate_tps || data.tps);
+        }
+        setAutoFeedStats(data);
+      }
+    } catch (err) {
+      console.warn("autofeed status refresh failed", err);
+    }
+  }, []);
+
+  const startAutoFeed = useCallback(
+    async (tps = 10.0, fraudRatio = 0.15, bursty = true) => {
+      try {
+        const res = await api.startAutoFeed({ rate_tps: tps, fraud_ratio: fraudRatio, bursty });
+        setAutoFeedActive(true);
+        setAutoFeedTps(tps);
+        setAutoFeedStats((prev) => ({ ...prev, active: true, rate_tps: tps }));
+        return res;
+      } catch (err) {
+        console.error("startAutoFeed failed", err);
+      }
+    },
+    []
+  );
+
+  const stopAutoFeed = useCallback(async () => {
+    try {
+      const res = await api.stopAutoFeed();
+      setAutoFeedActive(false);
+      setAutoFeedStats((prev) => ({ ...prev, active: false }));
+      return res;
+    } catch (err) {
+      console.error("stopAutoFeed failed", err);
+    }
+  }, []);
+
+  const toggleAutoFeed = useCallback(async () => {
+    if (autoFeedActive) {
+      await stopAutoFeed();
+    } else {
+      await startAutoFeed(autoFeedTps, 0.15, true);
+    }
+  }, [autoFeedActive, autoFeedTps, startAutoFeed, stopAutoFeed]);
 
   // WebSocket Live Handlers
   const handleWsNewCase = useCallback(
@@ -299,6 +358,7 @@ export function AppStateProvider({ children }) {
     refreshStats();
     refreshCases();
     refreshDeployStatus();
+    refreshAutoFeedStatus();
     const timer = setTimeout(() => {
       runSimulation(300, 0.15);
     }, 400);
@@ -306,16 +366,33 @@ export function AppStateProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Poll auto-feed status while active
+  useEffect(() => {
+    if (!autoFeedActive) return;
+    const interval = setInterval(() => {
+      refreshAutoFeedStatus();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [autoFeedActive, refreshAutoFeedStatus]);
+
   const value = {
     stats,
     cases,
     verdictHistory,
     selectedCase,
     busy,
-    live: live || connected,
+    live: live || connected || autoFeedActive,
     connected,
     sensitivity,
     deployStatus,
+    autoFeedActive,
+    autoFeedTps,
+    autoFeedStats,
+    setAutoFeedTps,
+    startAutoFeed,
+    stopAutoFeed,
+    toggleAutoFeed,
+    refreshAutoFeedStatus,
     runSimulation,
     runFederation,
     refreshCases,

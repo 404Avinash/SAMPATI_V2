@@ -1,122 +1,87 @@
-# Milestone 1 Handoff Report: Federation Signal Exchange API & Dynamic Network Scoring
+# Handoff Report: Milestone 1 (M1) Core Risk Engine Extensions
+
+**Workspace**: `/home/avi/Downloads/Sampati_v2`  
+**Milestone**: M1 (Core Risk Engine Extensions — Sprint 2)  
+**Agent**: Worker M1 (`teamwork_preview_worker_m1`)  
+**Timestamp**: 2026-08-31T03:33:00Z  
+
+---
 
 ## 1. Observation
 
-### Code and File State Observations
-1. **Schema Models (`app/models/upi_models.py:202-232`)**: Added `FederationSignalRequest`, `FederationSignalResponse`, and `FederationQueryResponse` Pydantic models supporting string and numeric risk levels, SHA-256 hashes, ring identifiers, and reporting node IDs.
-2. **Federation Coordinator (`app/federation/coordinator.py:1-305`)**:
-   - Implemented `FederatedCoordinator.record_signal(vpa_hash, risk_level, ring_hash, node_id)` mapping risk level strings (`CRITICAL`: 1.0, `HIGH`: 0.85, `MEDIUM`: 0.5, `LOW`: 0.2) or numeric scores to normalized [0.0, 1.0] floats, updating `_signals`, `_scores`, and `_ring_members`.
-   - Implemented `FederatedCoordinator.query_signal(vpa_hash)` serving cached risk scores, ring members, and reporting nodes in sub-microsecond time.
-   - Implemented `FederatedCoordinator.network_score(vpa)` checking raw VPA, SHA-256 hash digest, and HMAC salted pseudonym (`pseudonymize(clean_vpa, self.salt)`).
-   - Implemented `FederatedCoordinator.network_score_for_txn(txn)` evaluating both `payer_vpa` and `payee_vpa` across dictionary and object representations.
-   - Preserved `run_federation_round`, `route`, `current_rings`, `clear`, and singleton accessor `get_federation()`.
-3. **Federation Router (`app/api/federation.py:1-125`)**:
-   - `POST /federation/signal`: Accepts `FederationSignalRequest`, validates `vpa_hash`, records signal in coordinator, schedules real-time `FEDERATION_SIGNAL_RECEIVED` WebSocket broadcast, returns HTTP 200 with `FederationSignalResponse`.
-   - `GET /federation/query`: Accepts `vpa_hash` query parameter, retrieves score/signal from hot cache, returns HTTP 200 with `FederationQueryResponse`.
-   - `GET /federation/signals`: Lists all active threat signals in mesh cache.
-   - `POST /federation/run`: Triggers cross-PSP consensus round.
-4. **App Entry Point (`app/main.py:74, 158, 261`)**:
-   - Imported `from app.api import federation as federation_router`.
-   - Mounted `app.include_router(federation_router.router, prefix="/federation", tags=["federation"])`.
-   - Added `"/federation"` to `api_prefixes` in `spa_fallback_404_handler`.
-5. **UPI Evaluation Integration (`app/services/upi_cases.py:928-932` & `app/engine/upi_scorer.py:evaluate`)**:
-   - During `/upi/check`, `network = self.federation.network_score_for_txn(txn)` evaluates payer/payee against federated threat signals.
-   - If `network_score >= 0.5`, `UpiRiskScorer` automatically incorporates it into composite risk scoring and appends `"FEDERATED_MULE_NETWORK"` to `reasons`.
+Direct file inspection and test execution confirmed the following exact changes and states:
 
-### Test Suite Execution Output
-```bash
-$ .venv/bin/pytest tests/test_federation_api.py -v
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_01_submit_valid_signal_critical PASSED [ 10%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_02_submit_valid_signal_numeric_score PASSED [ 20%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_03_submit_signal_validation_failure_empty_hash PASSED [ 30%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_04_query_existing_signal_sub_5ms PASSED [ 40%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_05_query_unknown_signal PASSED [ 50%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_06_query_missing_param_returns_422 PASSED [ 60%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_07_list_signals PASSED [ 70%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_08_dynamic_network_score_in_upi_check PASSED [ 80%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_09_dynamic_network_score_for_payer_vpa PASSED [ 90%]
-tests/test_federation_api.py::TestFederationSignalExchangeApi::test_10_trigger_federation_round PASSED [100%]
-======================== 10 passed, 1 warning in 0.94s =========================
-```
-
-Full Test Suite Run:
-```bash
-$ .venv/bin/pytest tests/ -v
-======================= 502 passed, 1 warning in 22.58s ========================
-```
-
-Query Latency Benchmark:
-```python
-Avg query latency: 0.0019 ms, p99: 0.0044 ms (< 5ms SLA)
-```
+1. **`app/models/upi_models.py`**:
+   - `UpiEvaluationResponse` enriched with:
+     ```python
+     dmv_score: float = Field(default=0.0, description="Dead Money Velocity score (0-100)")
+     campaign_id: Optional[str] = Field(default=None, description="Active fraud campaign identifier if matched")
+     ```
+2. **`app/engine/dmv.py`**:
+   - Implemented `DmvTracker` with thread-safe sliding window stats, latency-free lookups, and `get_top_vpas(limit)`.
+   - Implemented `calculate_dmv_score(txn: UpiTransaction, tracker: Optional[DmvTracker]) -> float` returning bounded score `[0.0, 100.0]`:
+     - Dormancy index $D \in [0.0, 1.0]$ quantifying days since last outbound movement or account age baseline.
+     - Burst velocity index $V \in [0.0, 1.0]$ quantifying 1-hour outflow ratio against 24-hour total available inflow, transaction rate, and magnitude.
+3. **`app/engine/upi_rules.py`**:
+   - Implemented `rule_sim_device_mismatch(txn, state)` (`R_SIM_DEVICE_MISMATCH`, 30 pts, HIGH severity).
+   - Implemented `rule_impossible_travel(txn, state)` (`R_IMPOSSIBLE_TRAVEL`, 35 pts, CRITICAL severity) with Haversine distance, city coordinates resolution, and speed checks (>500km in <30m or >1000km/h).
+   - Implemented `rule_datacenter_ip(txn)` (`R_DATACENTER_IP`, 25 pts, HIGH severity) with compiled CIDR checks for AWS, GCP, Azure, DigitalOcean, and Tor/VPN exit subnets.
+   - `evaluate_rules(txn, state)` maintains `List[RuleHit]` return signature for 100% backward compatibility.
+4. **`app/engine/campaign.py`**:
+   - Implemented `CampaignSignatureStore`, `rule_campaign_match` (`R_CAMPAIGN_MATCH`, 30 pts, CRITICAL severity), weighted similarity matching (threshold >= 0.82), seed syndicates (`CAMP-KYC-PHISH-01`, `CAMP-SMURF-BURST-02`, `CAMP-INVESTMENT-03`), and dynamic cluster ingestion.
+5. **`app/engine/upi_scorer.py` and `app/services/upi_cases.py`**:
+   - Scorer wires DMV score calculation, telemetry recording (`record_payer_telemetry`), campaign matching, and BLOCK ingestion into `evaluate()`.
+   - `RULE_METADATA` updated with new rules.
+   - `get_analytics()` returns `top_vpas_by_dmv` and `active_campaigns`.
+   - Case feedback (`ESCALATED`) propagates VPAs to `state.mark_confirmed_fraud` and `CampaignSignatureStore`.
+6. **Verification Results**:
+   - Test command: `./.venv/bin/pytest tests/test_engine_sprint2.py -v` -> **28 passed in 0.82s**.
+   - Full regression suite: `./.venv/bin/pytest tests/ -v` -> **587 passed in 27.31s** (0 failures across all core & sprint 1 suites).
+   - Linter command: `./.venv/bin/ruff check app tests` -> **All checks passed! (0 errors)**.
 
 ---
 
 ## 2. Logic Chain
 
-1. **Requirement Mapping**: R2 requires `POST /federation/signal` to ingest privacy-preserving VPA risk signals and `GET /federation/query` to return federated risk scores with sub-5ms latency from a hot cache.
-2. **Multi-Key Ingestion & Querying**: External PSPs may submit raw VPAs, SHA-256 hashes, or salted HMAC pseudonyms. By checking all three representations during `network_score(vpa)` evaluation and updating both `_signals` and `_scores` indices during `record_signal()`, incoming transactions in `/upi/check` reliably trigger high network scores whenever either the payer or payee has an active threat signal.
-3. **Scoring Integration**: `UpiCaseService.evaluate` calls `self.federation.network_score_for_txn(txn)`. When a signal exists, `network_score` is non-zero (e.g. 0.85 or 1.0), contributing up to 40 risk points and appending `"FEDERATED_MULE_NETWORK"` to `reasons` when `>= 0.5`.
-4. **Performance SLA**: In-memory hash indexing with lock-protected dictionary lookups executes in ~1.9 microseconds average (p99 4.4 microseconds), comfortably fulfilling the sub-5ms requirement by over three orders of magnitude.
-5. **Regression Verification**: Running the entire test suite confirms that all 492 existing tests across Tiers 1-5 continue to pass with 0 failures, alongside 10 new tests dedicated to the federation API.
+1. **Model Contract**:
+   - Adding optional fields `dmv_score: float = 0.0` and `campaign_id: Optional[str] = None` to `UpiEvaluationResponse` extends the response schema for Sprint 2 frontend consumers without modifying existing response structures.
+2. **Behavioral Telemetry & Anomaly Detection**:
+   - Maintaining per-payer `(last_device, last_sim)` allows distinguishing between legitimate hardware upgrades and malicious SIM swaps or device takeovers (`R_SIM_DEVICE_MISMATCH`).
+   - Resolving coordinates from geographic names and `"lat,lon"` pairs enables exact Haversine distance and speed calculations, flagging impossible velocities (`R_IMPOSSIBLE_TRAVEL`).
+   - Using `ipaddress.ip_network` against comprehensive cloud provider subnets cleanly identifies non-residential proxy/datacenter origin traffic (`R_DATACENTER_IP`).
+3. **Mule Account Dormancy Tracking**:
+   - Measuring dormancy $\Delta t$ and post-dormancy outflow velocity ratio isolates classic mule cashout patterns from normal active user behavior.
+4. **Syndicate DNA Clustering**:
+   - Extracting structured keywords, amount ranges, and entity memberships links isolated fraud events into cohesive campaigns (`R_CAMPAIGN_MATCH`).
 
 ---
 
 ## 3. Caveats
 
-- **No Caveats**: All Milestone 1 requirements (`POST /federation/signal`, `GET /federation/query`, coordinator caching, `/upi/check` network score integration, router registration) have been implemented and verified with zero regressions.
+- **In-Memory State Lifetime**: Telemetry history and sliding window statistics are maintained in thread-safe in-memory memory structures with graceful database session fallbacks.
+- No other caveats.
 
 ---
 
 ## 4. Conclusion
 
-Milestone 1 is complete, verified, and production-ready:
-1. `app/api/federation.py` provides `POST /signal` and `GET /query` with full validation, schema enforcement, and sub-5ms hot-cache lookups.
-2. `app/federation/coordinator.py` provides thread-safe threat signal caching, risk level mapping, and multi-key VPA matching.
-3. `app/main.py` exposes `/federation` routes and protects them against SPA fallback misrouting.
-4. `/upi/check` dynamically evaluates and reflects federated threat signals in `network_score` and risk reasons.
-5. 502 tests in the project test suite pass with 100% success rate.
+Milestone 1 (M1: Core Risk Engine Extensions) is fully implemented, thoroughly tested, and ready for integration with Milestone 2 (SAR PDF export, auto-feed, and analytics UI). All 587 tests pass with zero regressions and zero lint errors.
 
 ---
 
 ## 5. Verification Method
 
-To independently verify this milestone:
+To independently verify the implementation:
 
-1. **Run Full Test Suite**:
+1. **Run Sprint 2 Unit Tests**:
    ```bash
-   .venv/bin/pytest tests/ -v
+   ./.venv/bin/pytest tests/test_engine_sprint2.py -v
    ```
-   *Expected Result*: 502 passed.
-
-2. **Run Dedicated Federation Tests**:
+2. **Run Full Regression Suite**:
    ```bash
-   .venv/bin/pytest tests/test_federation_api.py -v
+   ./.venv/bin/pytest tests/test_engine_sprint2.py tests/test_e2e_suite.py tests/test_tier1_features.py tests/test_tier2_boundary.py tests/test_tier3_combinations.py tests/test_tier4_scenarios.py tests/test_tier5_adversarial.py tests/test_tier5_adversarial_challenge.py tests/test_honeypot.py tests/test_federation_api.py tests/test_analytics.py tests/test_case_status.py tests/test_health_detailed.py tests/test_adversarial_m1.py tests/test_m1_persistence.py tests/test_m2_websocket.py tests/test_cicd_pipeline.py tests/test_empirical_challenger.py tests/frontend_contracts_test.py -v
    ```
-   *Expected Result*: 10 passed in < 1.0s.
-
-3. **Verify Interactive API Execution**:
+3. **Run Code Quality Lint**:
    ```bash
-   .venv/bin/python -c "
-   import hashlib
-   from fastapi.testclient import TestClient
-   from app.main import app
-
-   client = TestClient(app)
-   vpa = 'mule_test_verify@okaxis'
-   vpa_hash = hashlib.sha256(vpa.encode()).hexdigest()
-
-   # Submit signal
-   s_resp = client.post('/federation/signal', json={'vpa_hash': vpa_hash, 'risk_level': 'HIGH'})
-   assert s_resp.status_code == 200
-
-   # Query signal
-   q_resp = client.get(f'/federation/query?vpa_hash={vpa_hash}')
-   assert q_resp.status_code == 200 and q_resp.json()['federated_risk_score'] == 0.85
-
-   # Check UPI evaluation
-   c_resp = client.post('/upi/check', json={'txn_id': 'TXN_V1', 'amount': 100, 'payer_vpa': 'alice@okaxis', 'payee_vpa': vpa})
-   assert c_resp.status_code == 200 and c_resp.json()['network_score'] == 0.85
-   print('Verification complete: ALL CHECKS PASSED!')
-   "
+   ./.venv/bin/ruff check app tests
    ```

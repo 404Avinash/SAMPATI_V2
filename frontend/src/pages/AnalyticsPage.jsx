@@ -6,9 +6,11 @@ import TimeSeriesVerdictChart from "../components/analytics/TimeSeriesVerdictCha
 import FraudRateTrendChart from "../components/analytics/FraudRateTrendChart";
 import TopFlaggedAccountsTable from "../components/analytics/TopFlaggedAccountsTable";
 import BankDistributionChart from "../components/analytics/BankDistributionChart";
+import AnalystWorkloadHeatmap from "../components/analytics/AnalystWorkloadHeatmap";
+import TopDmvAccountsTable from "../components/analytics/TopDmvAccountsTable";
 
 export default function AnalyticsPage() {
-  const { stats, cases, busy, runSimulation } = useAppState();
+  const { stats, cases, busy, runSimulation, openCase } = useAppState();
   const [interval, setInterval] = useState("hourly");
   const [loading, setLoading] = useState(false);
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -120,6 +122,65 @@ export default function AnalyticsPage() {
       { bank: "Paytm Payments Bank (@paytm)", count: 10, percentage: 7.1, flagged_amount: 380000 },
     ];
 
+    // Top DMV Accounts
+    const topDmvVpas = [
+      {
+        vpa: "dormant.cashout.hub88@okhdfcbank",
+        bank: "HDFC Bank",
+        dmv_score: 94.2,
+        dormancy_days: 84,
+        outflow_rate: "98% in 6m",
+        amount: 1850000,
+      },
+      {
+        vpa: "mule.revival.node01@icici",
+        bank: "ICICI Bank",
+        dmv_score: 88.6,
+        dormancy_days: 62,
+        outflow_rate: "95% in 11m",
+        amount: 1420000,
+      },
+      {
+        vpa: "silent.sleeper.fund@oksbi",
+        bank: "State Bank of India",
+        dmv_score: 81.0,
+        dormancy_days: 51,
+        outflow_rate: "91% in 15m",
+        amount: 980000,
+      },
+      {
+        vpa: "rapid.drain.syndicate@okaxis",
+        bank: "Axis Bank",
+        dmv_score: 76.4,
+        dormancy_days: 43,
+        outflow_rate: "89% in 18m",
+        amount: 750000,
+      },
+      {
+        vpa: "burst.transfers.hub@paytm",
+        bank: "Paytm Payments Bank",
+        dmv_score: 68.2,
+        dormancy_days: 28,
+        outflow_rate: "74% in 25m",
+        amount: 480000,
+      },
+    ];
+
+    // 7x24 Workload Heatmap
+    const workloadHeatmap = [];
+    for (let d = 0; d < 7; d++) {
+      for (let h = 0; h < 24; h++) {
+        const isPeak = (h >= 1 && h <= 4) || (h >= 20 && h <= 23);
+        const count = isPeak ? (d === 1 ? 16 : 9) : 2;
+        workloadHeatmap.push({
+          day: d,
+          hour: h,
+          count,
+          total_amount: count * 48000,
+        });
+      }
+    }
+
     return {
       summary: {
         total_evaluated: totalEval,
@@ -130,6 +191,8 @@ export default function AnalyticsPage() {
       },
       time_series: timeSeries,
       top_accounts: topAccounts,
+      top_dmv_vpas: topDmvVpas,
+      workload_heatmap: workloadHeatmap,
       bank_distribution: bankDistribution,
     };
   }, [stats]);
@@ -144,7 +207,7 @@ export default function AnalyticsPage() {
         limit_accounts: 10,
       });
 
-      if (data && (data.summary || data.time_series?.length > 0 || data.top_accounts?.length > 0)) {
+      if (data && (data.summary || data.time_series?.length > 0 || data.top_accounts?.length > 0 || data.workload_heatmap?.length > 0)) {
         setAnalyticsData(data);
       } else {
         setAnalyticsData(getFallbackAnalytics(activeInterval));
@@ -186,11 +249,11 @@ export default function AnalyticsPage() {
               Analytics &amp; Mule Intelligence Console
             </h2>
             <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold">
-              Time-Series Engine
+              Time-Series &amp; Threat Fabric
             </span>
           </div>
           <p className="text-xs text-muted">
-            Aggregated verdict velocity, fraud rate SLA monitoring, top flagged entities, and banking rail distribution.
+            Aggregated verdict velocity, 7×24 attack workload heatmap, Dead Money Velocity rankings, and banking rail telemetry.
           </p>
         </div>
 
@@ -240,6 +303,12 @@ export default function AnalyticsPage() {
         stats={stats}
       />
 
+      {/* 7x24 Analyst Workload Heatmap */}
+      <AnalystWorkloadHeatmap
+        data={analyticsData?.workload_heatmap}
+        cases={cases}
+      />
+
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Hourly / Daily Verdict Volume */}
@@ -254,6 +323,12 @@ export default function AnalyticsPage() {
           data={analyticsData?.time_series || []}
         />
       </div>
+
+      {/* Top VPAs by Dead Money Velocity (DMV) */}
+      <TopDmvAccountsTable
+        accounts={analyticsData?.top_dmv_vpas || []}
+        onSelectAccount={openCase}
+      />
 
       {/* Bottom Grid: Top Flagged Mule Accounts + Bank Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

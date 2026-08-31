@@ -1,14 +1,16 @@
-## 2026-08-31T01:02:16Z
-You are Challenger 1 for Milestone 1 (Federation Signal Exchange API) of SAMPATI V2.
-Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_m1_1`.
-Read `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`, `/home/avi/Downloads/Sampati_v2/PROJECT.md`, and `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1/handoff.md`.
+## 2026-08-30T22:04:00Z
+You are Challenger 1 for Milestone 1 (M1: Core Risk Engine Extensions) of SAMPATI V2 Sprint 2.
+Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_m1_1/
+Original user request is authoritative at: /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md
+Project architecture is at: /home/avi/Downloads/Sampati_v2/PROJECT.md
+Worker handoff report is at: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m1/handoff.md
 
-Adversarially challenge the Federation Signal API:
-1. Empirically test `POST /federation/signal` and `GET /federation/query` with edge cases:
-   - Case sensitivity, normalization, unusual hex lengths, numeric vs string risk levels, unknown queries.
-   - Concurrent signal submissions and query throughput.
-   - Latency benchmark verifying sub-5ms response time under load.
-2. Empirically test `/upi/check` with transactions matching submitted signals (payer matching, payee matching, neither matching).
-3. Report your empirical findings and verdict (APPROVE or REQUEST_CHANGES).
+Scope:
+Empirically stress-test the new engine components (DMV, SIM-Device Mismatch, Impossible Travel, Datacenter IP, Campaign Fingerprinting):
+1. Write adversarial test generators / stress tests for extreme boundaries, concurrent calls, and unexpected inputs.
+2. Execute the tests against the live code in app/engine/.
+3. Verify that all edge cases behave robustly without unhandled exceptions.
+4. Report your empirical findings and verdict (APPROVE or REQUEST_CHANGES).
 
-Write your report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_m1_1/handoff.md` and notify parent.
+Write report to /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_m1_1/handoff.md.
+Send message when done.
