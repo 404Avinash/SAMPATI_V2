@@ -534,7 +534,9 @@ async def upi_stats(
     # Trigger background demo seeding on first request if service is fresh (zero evaluations)
     # Never seed during test runs — it adds synthetic rings that break adversarial test assertions.
     import os as _os
-    if eval_count == 0 and not _os.environ.get("PYTEST_CURRENT_TEST") and not _os.environ.get("SAMPATI_SKIP_DEMO_SEED"):
+    import sys as _sys
+    _is_test = _os.environ.get("PYTEST_CURRENT_TEST") or "unittest" in _sys.modules or "test_e2e_suite.py" in _sys.argv[0]
+    if eval_count == 0 and not _is_test and not _os.environ.get("SAMPATI_SKIP_DEMO_SEED"):
         try:
             from app.services.upi_cases import trigger_demo_seed
             trigger_demo_seed(service=service)
