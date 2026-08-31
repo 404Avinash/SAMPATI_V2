@@ -535,7 +535,7 @@ async def upi_stats(
     # Never seed during test runs — it adds synthetic rings that break adversarial test assertions.
     import os as _os
     import sys as _sys
-    _is_test = _os.environ.get("PYTEST_CURRENT_TEST") or "unittest" in _sys.modules or "test_e2e_suite.py" in _sys.argv[0]
+    _is_test = _os.environ.get("PYTEST_CURRENT_TEST") or "unittest" in _sys.modules or any("test_" in arg for arg in getattr(_sys, "argv", []))
     if eval_count == 0 and not _is_test and not _os.environ.get("SAMPATI_SKIP_DEMO_SEED"):
         try:
             from app.services.upi_cases import trigger_demo_seed

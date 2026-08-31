@@ -129,7 +129,7 @@ async def lifespan(app: FastAPI):
     # Trigger background demo seeding if fresh instance (skip during test runs)
     import os as _os
     import sys as _sys
-    _is_test = _os.environ.get("PYTEST_CURRENT_TEST") or "unittest" in _sys.modules or "test_e2e_suite.py" in _sys.argv[0]
+    _is_test = _os.environ.get("PYTEST_CURRENT_TEST") or "unittest" in _sys.modules or any("test_" in arg for arg in getattr(_sys, "argv", []))
     if not _is_test and not _os.environ.get("SAMPATI_SKIP_DEMO_SEED"):
         try:
             from app.services.upi_cases import trigger_demo_seed
