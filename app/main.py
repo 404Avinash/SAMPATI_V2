@@ -126,12 +126,14 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("DB state sync skipped: %s", exc)
 
-    # Trigger background demo seeding if fresh instance
-    try:
-        from app.services.upi_cases import trigger_demo_seed
-        trigger_demo_seed()
-    except Exception as exc:
-        logger.warning("Startup demo seed trigger skipped: %s", exc)
+    # Trigger background demo seeding if fresh instance (skip during test runs)
+    import os as _os
+    if not _os.environ.get("PYTEST_CURRENT_TEST") and not _os.environ.get("SAMPATI_SKIP_DEMO_SEED"):
+        try:
+            from app.services.upi_cases import trigger_demo_seed
+            trigger_demo_seed()
+        except Exception as exc:
+            logger.warning("Startup demo seed trigger skipped: %s", exc)
 
     yield
 
