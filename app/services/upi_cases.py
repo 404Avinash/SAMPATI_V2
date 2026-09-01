@@ -1435,7 +1435,7 @@ class UpiCaseService:
 
             async with sm() as session:
                 # Load cases
-                result = await session.execute(select(UpiCaseModel).order_by(UpiCaseModel.created_at.desc()))
+                result = await session.execute(select(UpiCaseModel).order_by(UpiCaseModel.created_at.desc()).limit(200))
                 cases = result.scalars().all()
                 with self._lock:
                     for c in cases:
@@ -1443,7 +1443,7 @@ class UpiCaseService:
                 logger.info(f"Loaded {len(cases)} persistent cases from PostgreSQL into active service cache.")
 
                 # Load rings
-                r_result = await session.execute(select(MuleRingModel))
+                r_result = await session.execute(select(MuleRingModel).order_by(MuleRingModel.created_at.desc()).limit(500))
                 rings = r_result.scalars().all()
                 with self.federation._lock:
                     for r in rings:
