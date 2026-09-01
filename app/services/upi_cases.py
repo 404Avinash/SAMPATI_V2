@@ -1443,7 +1443,7 @@ class UpiCaseService:
                 logger.info(f"Loaded {len(cases)} persistent cases from PostgreSQL into active service cache.")
 
                 # Load rings
-                r_result = await session.execute(select(MuleRingModel).order_by(MuleRingModel.created_at.desc()).limit(500))
+                r_result = await session.execute(select(MuleRingModel).order_by(MuleRingModel.detected_at.desc()).limit(500))
                 rings = r_result.scalars().all()
                 with self.federation._lock:
                     for r in rings:
