@@ -11,3 +11,7 @@ make_stubs.py
 commit.ps1
 commit.sh
 *.db
+
+.env
+.env.local
+.env.*

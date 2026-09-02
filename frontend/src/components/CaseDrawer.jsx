@@ -16,6 +16,7 @@ import ForensicImageViewer from "./investigations/ForensicImageViewer";
 import PayeeBreakdownTable from "./investigations/PayeeBreakdownTable";
 import StatusTransitionActions from "./investigations/StatusTransitionActions";
 import NetworkConstellation from "./NetworkConstellation";
+import CaseAiCopilotView from "./investigations/CaseAiCopilotView";
 
 export function DmvArcGauge({ score }) {
   const numScore = typeof score === "number" ? score : parseFloat(score) || 0;
@@ -207,7 +208,36 @@ export function RuleBreakdownChart({ ruleHits = [], reasons = [], riskScore = 0 
   );
 }
 
+const copyToClipboard = async (text) => {
+  if (!text) return false;
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (err) {
+    console.warn("Clipboard API writeText failed, falling back to execCommand", err);
+  }
+  try {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "-9999px";
+    textArea.setAttribute("readonly", "");
+    document.body.appendChild(textArea);
+    textArea.select();
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textArea);
+    return successful;
+  } catch (err) {
+    console.error("Fallback clipboard copy failed", err);
+    return false;
+  }
+};
+
 export default function CaseDrawer({ caseData, onClose, onFeedback }) {
+  const [activeTab, setActiveTab] = useState("forensics");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [sarError, setSarError] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -223,11 +253,13 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
 
   const dmvTone = getDmvTone(dmvScore);
 
-  const handleCopyCaseId = () => {
+  const handleCopyCaseId = async () => {
     if (caseData.case_id) {
-      navigator.clipboard?.writeText(caseData.case_id);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const ok = await copyToClipboard(caseData.case_id);
+      if (ok) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
     }
   };
 
@@ -305,6 +337,40 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
               </div>
             </div>
 
+            {/* Navigation Tabs Bar */}
+            <div className="bg-surface-muted/90 border-b border-hairline px-5 py-2 flex items-center gap-2 z-10 sticky top-[65px] backdrop-blur-xs">
+              <button
+                onClick={() => setActiveTab("forensics")}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${
+                  activeTab === "forensics"
+                    ? "bg-white text-ink-900 shadow-xs border border-hairline"
+                    : "text-muted hover:text-ink-900 hover:bg-white/60"
+                }`}
+              >
+                <span>📋</span>
+                <span>Forensic Dossier</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("copilot")}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${
+                  activeTab === "copilot"
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "text-indigo-900 bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200/80"
+                }`}
+              >
+                <span>✨</span>
+                <span>AI Copilot</span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded-full uppercase font-bold tracking-wider ${
+                    activeTab === "copilot" ? "bg-white/20 text-white" : "bg-indigo-200 text-indigo-900"
+                  }`}
+                >
+                  Gemini
+                </span>
+              </button>
+            </div>
+
             {/* Inline SAR Export Error Toast Message */}
             {sarError && (
               <div className="mx-5 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start justify-between gap-2 text-xs font-mono text-rose-800 shadow-sm animate-fadeIn">
@@ -327,14 +393,22 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
 
             {/* Scrollable Content Body */}
             <div className="p-5 space-y-5 flex-1">
-              {/* Top Status & Amount Summary Banner */}
-              <div className="bg-surface-muted/60 p-4 rounded-xl border border-hairline flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <VerdictBadge verdict={caseData.verdict} />
-                  <StatusBadge status={caseData.status} />
-                  <RiskScoreBadge score={caseData.risk_score} />
-                </div>
-                <div className="flex items-center gap-6 font-mono text-xs text-muted">
+              {activeTab === "copilot" ? (
+                <CaseAiCopilotView
+                  caseData={caseData}
+                  onExportSar={handleExportSar}
+                  downloadingPdf={downloadingPdf}
+                />
+              ) : (
+                <>
+                  {/* Top Status & Amount Summary Banner */}
+                  <div className="bg-surface-muted/60 p-4 rounded-xl border border-hairline flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <VerdictBadge verdict={caseData.verdict} />
+                      <StatusBadge status={caseData.status} />
+                      <RiskScoreBadge score={caseData.risk_score} />
+                    </div>
+                    <div className="flex items-center gap-6 font-mono text-xs text-muted">
                   <div>
                     <span className="text-[10px] uppercase block text-muted/80">Trigger Amount</span>
                     <span className="text-sm font-bold text-ink-900">
@@ -467,7 +541,9 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
 
               {/* Status Transition Actions */}
               <StatusTransitionActions caseData={caseData} />
-            </div>
+            </>
+          )}
+        </div>
 
             {/* Bottom Actions Footer */}
             <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-hairline p-4 space-y-2">

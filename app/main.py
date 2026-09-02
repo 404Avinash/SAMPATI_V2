@@ -5,7 +5,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # bootstrap the backend.app.* -> app.* redirector
 import backend  # noqa: F401
@@ -73,7 +73,7 @@ except Exception:
 # UPI mule-network router
 from app.api import federation as federation_router
 from app.api import upi as upi_router
-from app.models.upi_models import CaseStatusUpdateRequest
+from app.models.upi_models import AiChatRequest, CaseStatusUpdateRequest
 
 # DB + settings
 try:
@@ -83,7 +83,18 @@ except Exception:
     settings = None
 
 try:
-    from app.db.session import check_db_health, close_db, init_db
+    from sqlalchemy import select
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from app.models.upi_persistence import UpiCaseModel
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+    AsyncSession = Any  # type: ignore
+    UpiCaseModel = None  # type: ignore
+    select = None  # type: ignore
+
+try:
+    from app.db.session import check_db_health, close_db, get_db, init_db
 except Exception:
     async def check_db_health() -> Dict[str, Any]:
         return {
@@ -97,6 +108,9 @@ except Exception:
 
     async def init_db() -> bool:
         return False
+
+    async def get_db():
+        yield None
 
 logging.basicConfig(
     level=logging.INFO,
@@ -267,6 +281,118 @@ async def get_case_sar_pdf_root(case_id: str):
         headers={"Content-Disposition": f'attachment; filename="SAR_{case_id}.pdf"'},
     )
 
+
+@app.get("/cases/{case_id}/ai-briefing", tags=["Cases"])
+@app.post("/cases/{case_id}/ai-briefing", tags=["Cases"])
+async def get_case_ai_briefing_root(
+    case_id: str,
+    refresh: bool = Query(False, description="Force refresh and bypass cache"),
+    db: Optional[AsyncSession] = Depends(get_db),
+):
+    """Generate an AI-powered forensic executive briefing and scam typology analysis for a case."""
+    from app.services.gemini_service import get_gemini_copilot_service
+    from app.services.upi_cases import get_upi_case_service
+    svc = get_upi_case_service()
+    case = None
+    if db is not None and SQLALCHEMY_AVAILABLE and UpiCaseModel is not None:
+        try:
+            res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
+            db_c = res.scalar_one_or_none()
+            if db_c:
+                case = db_c.to_dict(include_sar=True)
+        except Exception as exc:
+            logger.debug("DB case lookup failed for '%s': %s", case_id, exc)
+
+    if case is None:
+        case = svc.get_case(case_id)
+
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+    copilot = get_gemini_copilot_service()
+    briefing = await copilot.generate_case_briefing(case, force_refresh=refresh)
+    briefing["case_id"] = case_id
+    return JSONResponse(status_code=200, content=briefing)
+
+
+@app.post("/cases/{case_id}/ai-chat", tags=["Cases"])
+async def chat_with_case_ai_root(
+    case_id: str,
+    body: AiChatRequest,
+    db: Optional[AsyncSession] = Depends(get_db),
+):
+    """Interactive context-aware chat with AI Copilot for investigating a specific case."""
+    from app.services.gemini_service import get_gemini_copilot_service
+    from app.services.upi_cases import get_upi_case_service
+    svc = get_upi_case_service()
+    case = None
+    if db is not None and SQLALCHEMY_AVAILABLE and UpiCaseModel is not None:
+        try:
+            res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
+            db_c = res.scalar_one_or_none()
+            if db_c:
+                case = db_c.to_dict(include_sar=True)
+        except Exception as exc:
+            logger.debug("DB case lookup failed for '%s': %s", case_id, exc)
+
+    if case is None:
+        case = svc.get_case(case_id)
+
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+    copilot = get_gemini_copilot_service()
+    result = await copilot.chat_with_case_copilot(
+        case_data=case,
+        question=body.question,
+        conversation_history=body.history,
+    )
+    return JSONResponse(
+        status_code=200,
+        content={
+            "case_id": case_id,
+            "question": body.question,
+            "answer": result.get("answer", ""),
+            "source": result.get("source", "gemini-ai"),
+            "model": result.get("model"),
+        },
+    )
+
+
+@app.get("/cases/{case_id}/ai-sar", tags=["Cases"])
+@app.post("/cases/{case_id}/ai-sar", tags=["Cases"])
+async def get_case_ai_sar_root(
+    case_id: str,
+    db: Optional[AsyncSession] = Depends(get_db),
+):
+    """Draft a regulatory FIU-IND compliant Suspicious Activity Report (SAR) narrative using AI Copilot."""
+    from app.services.gemini_service import get_gemini_copilot_service
+    from app.services.upi_cases import get_upi_case_service
+    svc = get_upi_case_service()
+    case = None
+    if db is not None and SQLALCHEMY_AVAILABLE and UpiCaseModel is not None:
+        try:
+            res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
+            db_c = res.scalar_one_or_none()
+            if db_c:
+                case = db_c.to_dict(include_sar=True)
+        except Exception as exc:
+            logger.debug("DB case lookup failed for '%s': %s", case_id, exc)
+
+    if case is None:
+        case = svc.get_case(case_id)
+
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+    copilot = get_gemini_copilot_service()
+    report = await copilot.generate_sar_report(case)
+    return JSONResponse(
+        status_code=200,
+        content={
+            "case_id": case_id,
+            "sar_narrative": report.get("sar_narrative", ""),
+            "source": report.get("source", "deterministic-fallback"),
+            "model": report.get("model"),
+        },
+    )
 
 
 @app.get("/api/info", tags=["System"])

@@ -155,6 +155,28 @@ export const api = {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   },
+
+  // Gemini AI Fraud Analyst Copilot Endpoints
+  getAiBriefing: (caseId, refresh = false) => {
+    const qs = refresh ? "?refresh=true" : "";
+    return req(`/cases/${caseId}/ai-briefing${qs}`).catch(() =>
+      req(`/upi/cases/${caseId}/ai-briefing${qs}`)
+    );
+  },
+
+  chatAiCopilot: (caseId, question, history = []) =>
+    req(`/cases/${caseId}/ai-chat`, {
+      method: "POST",
+      body: JSON.stringify({ question, history }),
+    }).catch(() =>
+      req(`/upi/cases/${caseId}/ai-chat`, {
+        method: "POST",
+        body: JSON.stringify({ question, history }),
+      })
+    ),
+
+  getAiSarNarrative: (caseId) =>
+    req(`/cases/${caseId}/ai-sar`).catch(() => req(`/upi/cases/${caseId}/ai-sar`)),
 };
 
 export function formatINR(amount) {

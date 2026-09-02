@@ -76,6 +76,7 @@ except Exception:
 from app.synthetic.upi_generator import generate_labeled_stream
 
 from app.models.upi_models import (
+    AiChatRequest,
     AutoFeedStartRequest,
     CaseStatusUpdateRequest,
     FeedbackRequest,
@@ -84,6 +85,7 @@ from app.models.upi_models import (
     UpiTransaction,
 )
 from app.models.upi_persistence import MuleRingModel, UpiCaseModel
+from app.services.gemini_service import get_gemini_copilot_service
 from app.services.upi_cases import UpiCaseService, get_upi_case_service
 
 logger = logging.getLogger("sampati.api.upi")
@@ -340,6 +342,109 @@ async def get_case_sar_pdf(
         headers={"Content-Disposition": f'attachment; filename="SAR_{case_id}.pdf"'},
     )
 
+
+@router.get("/cases/{case_id}/ai-briefing", summary="Generate AI Case Briefing")
+@router.post("/cases/{case_id}/ai-briefing", summary="Generate or Refresh AI Case Briefing")
+async def get_case_ai_briefing(
+    case_id: str,
+    refresh: bool = Query(False, description="Force refresh and bypass cache"),
+    db: Optional[AsyncSession] = Depends(get_db),
+) -> Dict[str, Any]:
+    """Generate an AI-powered forensic executive briefing and scam typology analysis for a case."""
+    service: UpiCaseService = get_upi_case_service()
+    case = None
+    if db is not None and SQLALCHEMY_AVAILABLE:
+        try:
+            res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
+            db_c = res.scalar_one_or_none()
+            if db_c:
+                case = db_c.to_dict(include_sar=True)
+        except Exception as exc:
+            logger.debug(f"DB case lookup failed for '{case_id}': {exc}")
+
+    if case is None:
+        case = service.get_case(case_id)
+
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+
+    copilot = get_gemini_copilot_service()
+    briefing = await copilot.generate_case_briefing(case, force_refresh=refresh)
+    briefing["case_id"] = case_id
+    return briefing
+
+
+@router.post("/cases/{case_id}/ai-chat", summary="Interactive Case AI Copilot Chat")
+async def chat_with_case_ai(
+    case_id: str,
+    body: AiChatRequest,
+    db: Optional[AsyncSession] = Depends(get_db),
+) -> Dict[str, Any]:
+    """Interactive context-aware chat with AI Copilot for investigating a specific case."""
+    service: UpiCaseService = get_upi_case_service()
+    case = None
+    if db is not None and SQLALCHEMY_AVAILABLE:
+        try:
+            res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
+            db_c = res.scalar_one_or_none()
+            if db_c:
+                case = db_c.to_dict(include_sar=True)
+        except Exception as exc:
+            logger.debug(f"DB case lookup failed for '{case_id}': {exc}")
+
+    if case is None:
+        case = service.get_case(case_id)
+
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+
+    copilot = get_gemini_copilot_service()
+    result = await copilot.chat_with_case_copilot(
+        case_data=case,
+        question=body.question,
+        conversation_history=body.history,
+    )
+    return {
+        "case_id": case_id,
+        "question": body.question,
+        "answer": result.get("answer", ""),
+        "source": result.get("source", "gemini-ai"),
+        "model": result.get("model"),
+    }
+
+
+@router.get("/cases/{case_id}/ai-sar", summary="Generate AI SAR Narrative")
+@router.post("/cases/{case_id}/ai-sar", summary="Generate AI SAR Narrative")
+async def get_case_ai_sar(
+    case_id: str,
+    db: Optional[AsyncSession] = Depends(get_db),
+) -> Dict[str, Any]:
+    """Draft a regulatory FIU-IND compliant Suspicious Activity Report (SAR) narrative using AI Copilot."""
+    service: UpiCaseService = get_upi_case_service()
+    case = None
+    if db is not None and SQLALCHEMY_AVAILABLE:
+        try:
+            res = await db.execute(select(UpiCaseModel).where(UpiCaseModel.case_id == case_id))
+            db_c = res.scalar_one_or_none()
+            if db_c:
+                case = db_c.to_dict(include_sar=True)
+        except Exception as exc:
+            logger.debug(f"DB case lookup failed for '{case_id}': {exc}")
+
+    if case is None:
+        case = service.get_case(case_id)
+
+    if not case:
+        raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
+
+    copilot = get_gemini_copilot_service()
+    report = await copilot.generate_sar_report(case)
+    return {
+        "case_id": case_id,
+        "sar_narrative": report.get("sar_narrative", ""),
+        "source": report.get("source", "deterministic-fallback"),
+        "model": report.get("model"),
+    }
 
 
 @router.patch("/cases/{case_id}/status", summary="Update Case Review Status")
