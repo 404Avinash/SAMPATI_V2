@@ -1,115 +1,73 @@
-# Handoff Report: Backend Deployment Fix & Demo Seed Data (Sprint 3 Milestone 1: R1 & R2)
-
-**Author**: Worker 1 (`teamwork_preview_worker_m1`)  
-**Target**: Orchestrator / Parent Agent  
-**Date**: 2026-08-31T15:48:00Z  
-
----
+# Milestone M1 (Encyclopedia Knowledge Base) — Final Handoff Report
 
 ## 1. Observation
-
-1. **Static Mount & SPA Fallback (`app/main.py`)**:
-   - `app.mount("/static", ...)` was previously absent in `app/main.py`. Requests to `/static/upi_cases/...` were swallowed by the root SPA mount `app.mount("/", StaticFiles(directory=_dist, html=True))` or returned 404 falling back to `index.html`.
-   - `spa_fallback_404_handler` `api_prefixes` did not include `"/static"`.
-
-2. **Dependencies (`requirements.txt`)**:
-   - `requirements.txt` lacked `reportlab>=4.0.0`, required for containerized environments and SAR PDF generation.
-
-3. **In-Memory State & Demo Seed Data (`app/services/upi_cases.py`, `app/api/upi.py`, `app/main.py`)**:
-   - On server startup or after restarts without persisted DB state, initial transaction count was 0, leaving the frontend dashboard with empty charts and unpopulated constellation graphs.
-   - Unit tests like `test_analytics_empty_state_resilience` in `tests/test_analytics.py` instantiate `UpiCaseService()` directly and assert `total_evaluated == 0`.
+- **Original Assignment**: Implement Milestone M1 (`app/engine/encyclopedia_kb.py`, `tests/test_encyclopedia_kb.py`, and `app/engine/__init__.py`) to index mathematical formulas, detection thresholds, and plain-English detection rationales extracted directly from `ENCYCLOPEDIA.md`.
+- **Baseline Verification**: Ran `./.venv/bin/pytest tests/ -q` resulting in 737 passed tests with 0 failures prior to changes.
+- **Implemented Artifacts**:
+  1. `app/engine/encyclopedia_kb.py` (520 lines): Pure Python module indexing 19 canonical rules across Layer 1 (Deterministic Rules), Layer 2 (Adaptive EWMA), Layer 3 (Federation & DPIP), and Layer 4 (Graph Analytics).
+  2. `app/engine/__init__.py`: Cleanly exports `normalize_rule_code`, `get_rule_explanation`, `get_all_rule_definitions`, `get_all_rule_codes`, `build_case_encyclopedia_context`, and `search_encyclopedia`.
+  3. `tests/test_encyclopedia_kb.py` (36 unit tests): Exhaustively verifies canonical rules, alias normalization (50+ variations), unknown rule fallback handling, scalar metric interpolation, rich context unpacking, prompt context Markdown layout, Pydantic `RuleHit` compatibility, fast in-memory search, edge cases (NaN/Inf/None), and sub-millisecond execution latency.
+- **Linting Result**: `./.venv/bin/ruff check app tests` returned: `All checks passed!`.
+- **Target Unit Test Result**: `./.venv/bin/pytest tests/test_encyclopedia_kb.py -v` returned: `36 passed in 0.55s`.
+- **Full Project Test Suite Result**: `./.venv/bin/pytest tests/ -q` returned: `773 passed, 6 warnings in 61.81s (0:01:01)` (100% pass, 0 failures, 0 regressions).
+- **Standalone E2E Suite Result**: `./.venv/bin/python tests/test_e2e_suite.py` returned: `231 passed in 6.20s` (`RESULT: ALL E2E TESTS PASSED [OK]`).
 
 ---
 
 ## 2. Logic Chain
 
-1. **Static Mount Resolution**:
-   - In `app/main.py`, defined `_static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))` and ensured `os.makedirs(os.path.join(_static_dir, "upi_cases"), exist_ok=True)`.
-   - Mounted `app.mount("/static", StaticFiles(directory=_static_dir), name="static")` **before** the SPA mount `app.mount("/", ...)`.
-   - Added `"/static"` to `api_prefixes` in `spa_fallback_404_handler` so missing static files return standard 404 JSON rather than HTML SPA fallback.
+1. **Deterministic Rule Indexing (`RULE_DEFINITIONS`)**:
+   - Mapped all 19 platform rules (`DMV_RAPID_DRAIN`, `R_HONEYPOT_HIT`, `R_SIM_DEVICE_MISMATCH`, `R_IMPOSSIBLE_TRAVEL`, `R_DATACENTER_IP`, `R_CAMPAIGN_MATCH`, `PASS_THROUGH_CONDUIT`, `FAN_IN_BURST`, `FAN_OUT_DISPERSAL`, `DEVICE_FARM`, `NEW_ACCOUNT_HIGH_VALUE`, `LIMIT_SKIRTING`, `NEW_PAYEE_VPA`, `KNOWN_FRAUD_ENTITY`, `BEHAVIORAL_ANOMALY`, `FEDERATED_MULE_NETWORK`, `DPIP_BLACKLIST`, `GINI_INEQUALITY`, `GRAPH_ML_ROLE`).
+   - Sourced mathematical formulas, detection mechanisms, typical thresholds, plain-English rationales, and regulatory typologies directly from `ENCYCLOPEDIA.md` and engine source files (`upi_rules.py`, `dmv.py`, `adaptive.py`, `campaign.py`, `honeypot.py`).
 
-2. **Dependency Resolution**:
-   - Added `reportlab>=4.0.0` to `requirements.txt`.
+2. **Alias Normalization & Normalization Index (`normalize_rule_code`)**:
+   - Constructed precomputed mapping `_ALIAS_TO_CANONICAL` indexing canonical names, lowercase variants, human-readable titles, and stripped alphanumeric variants.
+   - Handled standard engine prefixes (`RULE_`, `R_`, `HIT_`, `CHECK_`) and case-insensitive lookup.
 
-3. **Non-Blocking Background Demo Seed Architecture**:
-   - Created `trigger_demo_seed(service, total_txns=150, fraud_ratio=0.25, seed=42)` in `app/services/upi_cases.py`.
-   - Used thread-safe double-checked locking (`_demo_seed_lock` and `_demo_seeded` flag).
-   - In the background daemon thread (`_seed_worker`), generated stream using `generate_labeled_stream(total_txns=150, fraud_ratio=0.25, seed=42)`, routed each transaction to federation nodes via `svc.federation.route(labeled.txn)` and evaluated via `svc.evaluate(labeled.txn)`, followed by `svc.run_federation(now=stream[-1].txn.timestamp)`.
-   - Hooked `trigger_demo_seed()` into:
-     - `app/main.py` application `lifespan` startup hook.
-     - `app/api/upi.py` `upi_stats()` endpoint handler on first request when `eval_count == 0`.
-   - Kept `UpiCaseService.__init__` pure so direct instantiation in isolated unit tests starts with 0 evaluations.
+3. **Dynamic Metric Interpolation & Context Unpacking (`get_rule_explanation`)**:
+   - Implemented polymorphic argument support: accepts `value` or `metric_value`, `metadata` or `context` for frictionless cross-module integration.
+   - Dynamically formats metrics into plain-English explanations: DMV score/severity, EWMA Z-scores, structuring currency amounts (₹), high-value outbound transfers, conduit forwarding ratios, impossible travel speeds (km/h) / distances (km) / cities, honeypot VPA traps, and device/SIM hardware IDs.
+   - Generates resilient fallback dictionaries for unknown or custom heuristic rules without throwing exceptions.
+
+4. **Prompt Context Builder (`build_case_encyclopedia_context`)**:
+   - Formatted two-tier prompt injection markdown:
+     - **Tier 1**: High-density markdown table indexing triggered rule codes, rule names, evaluated metrics, severity points, and detection summaries.
+     - **Tier 2**: Deep algorithmic breakdowns with mathematical formulas, plain-English forensic rationales, regulatory typologies, and compliance actions.
+   - Supported raw rule code strings, rule dictionaries (`{"code": ..., "points": ...}`), and Pydantic `RuleHit` objects with automatic alias deduplication.
+   - Seamlessly extracts and highlights `dmv_score` from case metrics even when not explicitly passed as a discrete rule hit.
+
+5. **Ranked In-Memory Keyword Search (`search_encyclopedia`)**:
+   - Implemented tokenized relevance scoring: exact code/alias match (100 pts), name match (50 pts), keyword match (30 pts), category match (20 pts), and formula/explanation text match (10 pts).
 
 ---
 
 ## 3. Caveats
-
-- **Thread Completion Time**: The demo seeder runs as an asynchronous daemon thread. On a fresh startup or first `/upi/stats` call, the initial response returns immediately while the background worker takes ~1-2 seconds to evaluate 150 transactions and render the ring PNGs.
-- **Direct Instantiation**: Direct `UpiCaseService()` instances in test suites will not auto-seed unless `trigger_demo_seed(service)` or HTTP endpoints are called.
+- No database or network dependencies were introduced (strictly pure Python standard library: `math`, `re`, `typing`).
+- `get_rule_explanation` sanitizes `NaN`, `Inf`, and invalid types to ensure system prompts and JSON serialization never fail under adversarial inputs.
 
 ---
 
 ## 4. Conclusion
-
-- Requirement R1 (Deployment Fix — Forensic Image Persistence & Static Mount) and Requirement R2 (Demo Seed Data on Load) are fully implemented and verified.
-- All 710 existing tests in `./.venv/bin/pytest tests/ -v` pass with 0 failures.
-- `ruff check app tests` passes cleanly with 0 violations.
-- Direct static file probes verify that `/static/upi_cases/{case_id}_ring.png` serves 200 OK, missing static files return 404 JSON, and auto-seeding populates cases and rings.
+- Milestone M1 is **100% complete and fully verified**.
+- The Encyclopedia Knowledge Base provides complete algorithmic ground truth for downstream milestones M2 (Context Injection & Rebranding) and M3 (Agentic Function Calling Operations).
+- Zero regressions across the full repository test suite (773 passed).
 
 ---
 
 ## 5. Verification Method
 
-1. **Verify Static Mount & Auto-Seed Functionality**:
-   ```bash
-   ./.venv/bin/python -c "
-   import os, time
-   from fastapi.testclient import TestClient
-   from app.main import app
-   from app.services.upi_cases import UpiCaseService, trigger_demo_seed
+To independently verify this implementation, run:
 
-   # 1. Test pure instantiation
-   fresh_service = UpiCaseService(artifact_dir='static/test_probe_fresh')
-   assert fresh_service.get_current_stats()['evaluated'] == 0
-   assert len(fresh_service.list_cases()) == 0
+```bash
+# 1. Run unit test suite for encyclopedia knowledge base (36 unit tests)
+./.venv/bin/pytest tests/test_encyclopedia_kb.py -v
 
-   # 2. Test static files mount
-   os.makedirs('static/upi_cases', exist_ok=True)
-   probe_file = 'static/upi_cases/probe_test_case_ring.png'
-   with open(probe_file, 'wb') as f:
-       f.write(b'\x89PNG\r\n\x1a\nprobe_data')
+# 2. Run Ruff linter check across app and tests
+./.venv/bin/ruff check app tests
 
-   client = TestClient(app)
-   res_static = client.get('/static/upi_cases/probe_test_case_ring.png')
-   assert res_static.status_code == 200
-   assert res_static.content == b'\x89PNG\r\n\x1a\nprobe_data'
+# 3. Run full regression test suite (773+ tests)
+./.venv/bin/pytest tests/ -q
 
-   # 3. Test static 404 JSON fallback
-   res_404 = client.get('/static/upi_cases/non_existent_file.png')
-   assert res_404.status_code == 404
-   assert res_404.headers['content-type'].startswith('application/json')
-   if os.path.exists(probe_file):
-       os.remove(probe_file)
-
-   # 4. Test trigger_demo_seed
-   test_svc = UpiCaseService(artifact_dir='static/test_probe_seeded')
-   assert trigger_demo_seed(test_svc, total_txns=150, fraud_ratio=0.25, seed=42) is True
-   time.sleep(2.5)
-   stats = test_svc.get_current_stats()
-   assert stats['evaluated'] == 150
-   assert len(test_svc.list_cases()) > 0
-   assert len(test_svc.federation.current_rings()) > 0
-   print('Static mount and auto-seed probe passed!')
-   "
-   ```
-
-2. **Verify Python Linting**:
-   ```bash
-   ./.venv/bin/ruff check app tests
-   ```
-
-3. **Verify Full Pytest Suite**:
-   ```bash
-   ./.venv/bin/pytest tests/ -v
-   ```
-   Expected: 710 passed, 0 failures.
+# 4. Run standalone E2E test suite (231 tests)
+./.venv/bin/python tests/test_e2e_suite.py
+```

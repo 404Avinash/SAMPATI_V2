@@ -1,14 +1,12 @@
-# Progress: Challenger 1 (Milestone 1)
+# Progress — Challenger 1 (Milestone M1)
 
-Last visited: 2026-08-30T22:04:00Z
-Status: Investigating M1 implementation files and designing empirical challenge suite
+- [x] Step 1: Initialize briefing, dispatch, progress tracking
+- [x] Step 2: Run baseline existing tests (`pytest tests/test_encyclopedia_kb.py`, ruff)
+- [x] Step 3: Run adversarial fuzzing harness (NaN, Inf, None, Unicode, deeply nested structures, invalid types)
+- [x] Step 4: Run prompt context generation stress tests (0 rules, 100 corrupted rules, missing fields, malformed objects)
+- [x] Step 5: Run throughput / latency benchmark (10,000 iterations for all public APIs)
+- [x] Step 6: Verify edge cases (regex special characters in search, SQL/script injection payloads in rule strings, extreme values)
+- [x] Step 7: Synthesize findings and write comprehensive `handoff.md` report
+- [x] Step 8: Send completion message to parent orchestrator
 
-## Steps:
-- [x] Step 1: Initialize DISPATCH.md, BRIEFING.md, and progress.md
-- [ ] Step 2: Deep code inspection of M1 engine files (`dmv.py`, `upi_rules.py`, `campaign.py`, `upi_scorer.py`, `upi_models.py`, `upi_cases.py`)
-- [ ] Step 3: Identify edge cases, failure modes, concurrency issues, boundary conditions, and potential bugs
-- [ ] Step 4: Write comprehensive empirical stress-test script / pytest file (`tests/test_m1_adversarial_stress.py`)
-- [ ] Step 5: Execute empirical test suite and evaluate live behavior
-- [ ] Step 6: Verify regression suite and ruff checks
-- [ ] Step 7: Formulate verdict (APPROVE or REQUEST_CHANGES) and write handoff.md
-- [ ] Step 8: Send summary message to parent
+Last visited: 2026-09-02T18:02:00Z

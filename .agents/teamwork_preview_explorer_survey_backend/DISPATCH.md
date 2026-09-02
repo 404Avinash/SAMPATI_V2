@@ -1,25 +1,11 @@
-## 2026-08-31T03:22:36Z
+# Backend Survey Explorer Dispatch
 
-You are an Explorer agent for SAMPATI V2 Sprint 2 Survey Phase.
-Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/
-Original user request is authoritative and located at: /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md
-
-Scope of investigation: Backend APIs, SAR PDF Export, Analytics Endpoints, Workload Heatmap Data, and Python Dependencies.
-
-Please investigate:
-1. Examine app/api/ (upi.py, cases.py, stats.py, federation.py, synthetic.py, ws.py, etc.) and app/services/ (upi_cases.py, sar.py if any).
-2. Inspect installed packages in .venv (check if reportlab, fpdf2, or other PDF tools are installed, or if ReportLab is available in .venv).
-3. Requirements for SAR PDF Export (`GET /cases/{case_id}/sar/pdf`):
-   - Narrative text generation / existing SAR formatting
-   - Ring member list formatting
-   - Embedded forensic graph image generation / inclusion
-   - Response headers (application/pdf, Content-Disposition)
-4. Requirements for Workload Heatmap API and Analytics:
-   - Aggregation of case timestamps into a 7x24 grid (day 0-6 x hour 0-23) over rolling 30 days
-   - "Top VPAs by DMV Score" endpoint or inclusion in stats/analytics
-   - Endpoint design and routing in app/api/
-5. Existing test architecture in tests/ (how tests run, DB fixtures, mock setups, existing 559 tests) to prepare test strategy.
-
-Write a complete, structured report to:
-/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/handoff.md
-Send a completion message when finished.
+## 2026-09-02T17:41:30Z
+Conduct a comprehensive investigation of the backend architecture regarding AI Copilot / Gemini Assistant.
+Investigate:
+1. All backend endpoints related to AI Copilot: `/cases/{case_id}/ai-briefing`, `/cases/{case_id}/ai-chat`, and any other AI/Copilot endpoints in `app/api/` or `app/routers/`.
+2. How LLM/Gemini is invoked (`app/services/gemini.py` or similar service layers).
+3. Data structures and models for Cases, Transactions, Rule Evaluations, and Graph/Network topology. How are they loaded and passed to AI endpoints?
+4. How system prompts and user prompts are currently constructed.
+5. All backend occurrences of "AI Copilot" / "Copilot" vs "Gemini Assistant" that need rebranding.
+6. How the backend can structure raw case transaction history, evaluated rule breakdown, and network topology data to inject into the system prompt.

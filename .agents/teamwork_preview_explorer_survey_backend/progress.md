@@ -1,11 +1,15 @@
 # Progress Log
 
-- **Status**: Completed Survey Phase for Backend
-- **Last visited**: 2026-08-31T03:25:35Z
-- **Completed Tasks**:
-  1. Examined `app/api/` and `app/services/` routers and services.
-  2. Inspected `.venv` packages: confirmed `matplotlib` + `PIL` are available; `reportlab` is absent and cannot be pip installed offline.
-  3. Formulated SAR PDF Export (`GET /cases/{case_id}/sar/pdf`) architecture using `matplotlib.backends.backend_pdf.PdfPages`.
-  4. Formulated Workload Heatmap (7x24 grid over rolling 30 days) and Top VPAs by DMV Score schema and aggregation in `get_analytics()`.
-  5. Verified existing test architecture (559 passed, 0 failures, 0 ruff errors).
-  6. Generated complete 5-component `handoff.md`.
+## Status: Complete
+- Last visited: 2026-09-02T17:45:45Z
+- Current step: Survey completed and reports written.
+
+## Completed Steps
+- [x] Initialized DISPATCH.md and BRIEFING.md
+- [x] Explored all backend AI endpoints in `app/api/upi.py` and `app/main.py`
+- [x] Analyzed LLM service layer `app/services/gemini_service.py` and test suite `tests/test_gemini_copilot.py`
+- [x] Investigated case, transaction, rule evaluation, and network topology data models
+- [x] Analyzed `ENCYCLOPEDIA.md` definitions for DMV, EWMA, 3-Layer Scorer, and expert rules
+- [x] Investigated function calling capabilities for Block/Hold, Federation round, SAR PDF, and Simulation
+- [x] Conducted exhaustive rebranding audit of "AI Copilot" vs "Gemini Assistant"
+- [x] Authored `analysis.md` and 5-component `handoff.md`

@@ -1,34 +1,42 @@
-# E2E Test Infra: SAMPATI V2 Sprint 2
+# E2E Test Infra: SAMPATI_V2 Gemini Assistant Upgrade
 
 ## Test Philosophy
-- Opaque-box, requirement-driven testing. Derived strictly from `ORIGINAL_REQUEST.md`.
-- Zero-tolerance for regressions: All existing 559 tests must remain 100% green.
-- Multi-tier systematic coverage: Category-Partition (Tier 1), Boundary & Corner Cases (Tier 2), Combinations (Tier 3), Real-World Scenarios (Tier 4), and Adversarial Hardening (Tier 5).
+- Opaque-box, requirement-driven, derived strictly from `ORIGINAL_REQUEST.md`.
+- Verifies:
+  1. Deep context injection in `/cases/{case_id}/ai-briefing` and `/cases/{case_id}/ai-chat` (transactions, rules, topology, Encyclopedia definitions).
+  2. Autonomous agentic operations (Federation trigger, Simulation batch, Block/Hold VPA/Txn, SAR PDF export) via chat endpoint and intent routing.
+  3. Frontend branding to "Gemini Assistant" and UI rendering of tool execution statuses in chat log.
+  4. Non-regression of existing 737+ pytest test suite and frontend ESLint/Build.
 
-## Feature Inventory & Test Mapping
-| # | Feature | Source (Requirement) | Tier 1 (Isolation) | Tier 2 (Boundaries) | Tier 3 (Interactions) | Tier 4 (E2E Scenarios) |
-|---|---------|----------------------|:------------------:|:-------------------:|:---------------------:|:----------------------:|
-| 1 | Dead Money Velocity (DMV) Score | ORIGINAL_REQUEST §R1 | 5 | 5 | ✓ | ✓ |
-| 2 | SIM-Device Mismatch Rule (`R_SIM_DEVICE_MISMATCH`) | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ | ✓ |
-| 3 | Impossible Travel Rule (`R_IMPOSSIBLE_TRAVEL`) | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ | ✓ |
-| 4 | Datacenter / VPN IP Rule (`R_DATACENTER_IP`) | ORIGINAL_REQUEST §R2 | 5 | 5 | ✓ | ✓ |
-| 5 | Transaction DNA Campaign Fingerprinting (`R_CAMPAIGN_MATCH`) | ORIGINAL_REQUEST §R3 | 5 | 5 | ✓ | ✓ |
-| 6 | One-Click SAR PDF Export (`GET /cases/{case_id}/sar/pdf`) | ORIGINAL_REQUEST §R4 | 5 | 5 | ✓ | ✓ |
-| 7 | Analyst Workload Heatmap (7x24 Grid) | ORIGINAL_REQUEST §R5 | 5 | 5 | ✓ | ✓ |
-| 8 | Autonomous Live Auto-Feed Mode | ORIGINAL_REQUEST §R6 | 5 | 5 | ✓ | ✓ |
+## Feature Inventory & Test Matrix
+| # | Feature | Source (Requirement) | Tier 1 (Feature) | Tier 2 (Boundary) | Tier 3 (Pairwise) | Tier 4 (Scenario) |
+|---|---------|----------------------|:----------------:|:-----------------:|:-----------------:|:-----------------:|
+| 1 | Encyclopedia KB & Algorithmic Explanations | R1 | 5 | 5 | ✓ | ✓ |
+| 2 | Deep Context Injection in Briefing/Chat | R1 | 5 | 5 | ✓ | ✓ |
+| 3 | Backend Rebranding (Gemini Assistant) | R1 | 5 | 5 | ✓ | ✓ |
+| 4 | Agentic Tool: Block / Hold VPA & Txn | R2(a) | 5 | 5 | ✓ | ✓ |
+| 5 | Agentic Tool: Trigger Federation Round | R2(b) | 5 | 5 | ✓ | ✓ |
+| 6 | Agentic Tool: Export SAR to PDF | R2(c) | 5 | 5 | ✓ | ✓ |
+| 7 | Agentic Tool: Simulate Transaction Batch | R2(d) | 5 | 5 | ✓ | ✓ |
+| 8 | Frontend Rebranding & Tool Status UI | R3 | 5 | 5 | ✓ | ✓ |
 
 ## Test Architecture
-- Test runner: `./.venv/bin/pytest tests/ -v`
-- Python linter: `./.venv/bin/ruff check app tests`
-- Frontend lint: `cd frontend && npm run lint`
-- Frontend build: `cd frontend && npm run build`
-- Dedicated Sprint 2 Test Suite: `tests/test_sprint2_e2e_suite.py`
+- Unit/Integration Test Suite: `tests/test_gemini_assistant.py` (executed via `./.venv/bin/pytest tests/test_gemini_assistant.py -v`)
+- E2E Test Suite: `tests/test_e2e_gemini_assistant.py` (executed via `./.venv/bin/pytest tests/test_e2e_gemini_assistant.py -v`)
+- Full Regression Test: `./.venv/bin/pytest tests/ -v` (737+ tests)
+- Frontend Checks: `cd frontend && npm run lint && npm run build`
 
 ## Real-World Application Scenarios (Tier 4)
-| # | Scenario | Features Exercised | Complexity |
-|---|----------|--------------------|------------|
-| 1 | Dormant Mule Ring Drain & Campaign Clustering | DMV + Campaign DNA + Telemetry + SAR PDF | High |
-| 2 | High-Speed Cross-City SIM-Swap Attack | SIM-Device Mismatch + Impossible Travel + Blocking | High |
-| 3 | Cloud-Hosted Botnet Surge with Auto-Feed Live Rail | Datacenter IP + Live Auto-Feed + WebSocket + KPI Ticking | High |
-| 4 | Enterprise Compliance Investigator Workflow | SAR PDF Export + 7x24 Heatmap + Top DMV Ranked Table | Medium |
-| 5 | Clean Lifecycle & Invariant Defense | Auto-Feed Start/Stop + State Preservation + Zero Leaks | High |
+| # | Scenario | Features Exercised | Expected Outcome |
+|---|----------|--------------------|------------------|
+| 1 | Analyst asks "Explain why DMV score spiked for case X" | Encyclopedia KB + Context Injection | Assistant details dormancy gap, outflow velocity, math formula, and plain English explanation |
+| 2 | Analyst commands "Trigger a federation round to sync intelligence" | Agentic Tool: Federation Round | Assistant triggers federation coordinator, returns success summary and structured tool execution object |
+| 3 | Analyst commands "Simulate a batch of 50 mule transactions" | Agentic Tool: Simulation Batch | Assistant executes simulation stream, returns generated counts, anomalies detected, and tool execution status |
+| 4 | Analyst commands "Block VPA suspect@upi and export SAR to PDF" | Agentic Tool: Block + SAR PDF | Assistant marks VPA frozen in hot state, compiles PDF SAR, and returns download link / summary |
+| 5 | Full investigation cycle from briefing to mitigation | All Features | Analyst gets enriched briefing, asks clarifying algorithm questions, triggers federation, blocks suspect, verifies frontend card display |
+
+## Coverage Thresholds
+- Tier 1: ≥5 per feature
+- Tier 2: ≥5 per feature
+- Tier 3: Pairwise coverage of multi-tool queries and combined context queries
+- Tier 4: ≥5 realistic operational scenarios

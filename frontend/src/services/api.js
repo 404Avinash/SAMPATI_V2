@@ -156,7 +156,7 @@ export const api = {
     document.body.removeChild(a);
   },
 
-  // Gemini AI Fraud Analyst Copilot Endpoints
+  // Gemini Assistant & AI Forensic Endpoints
   getAiBriefing: (caseId, refresh = false) => {
     const qs = refresh ? "?refresh=true" : "";
     return req(`/cases/${caseId}/ai-briefing${qs}`).catch(() =>
@@ -164,7 +164,7 @@ export const api = {
     );
   },
 
-  chatAiCopilot: (caseId, question, history = []) =>
+  chatGeminiAssistant: (caseId, question, history = []) =>
     req(`/cases/${caseId}/ai-chat`, {
       method: "POST",
       body: JSON.stringify({ question, history }),
@@ -174,6 +174,9 @@ export const api = {
         body: JSON.stringify({ question, history }),
       })
     ),
+
+  chatAiCopilot: (caseId, question, history = []) =>
+    api.chatGeminiAssistant(caseId, question, history),
 
   getAiSarNarrative: (caseId) =>
     req(`/cases/${caseId}/ai-sar`).catch(() => req(`/upi/cases/${caseId}/ai-sar`)),

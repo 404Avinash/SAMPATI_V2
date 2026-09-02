@@ -1,116 +1,113 @@
-# Handoff Report: Analytics & Overview Visual Polish (R5 & R6)
+# Handoff Report: Milestone M4 (Frontend UI Command Integration & Rebranding)
 
-**Author**: Worker 4 (Analytics & Overview Polish: R5 & R6)  
-**Target Milestone**: SAMPATI V2 Sprint 3 Milestone 4  
-**Working Directory**: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_worker_m4`  
-**Date**: 2026-08-31T15:49:00Z  
+**Agent**: Worker M4 (`teamwork_preview_worker_m4`)  
+**Timestamp**: 2026-09-02T18:22:50Z  
+**Target Scope**: Frontend Rebranding to "Gemini Assistant", UI Command Integration, Tool Execution Status Cards, and Quick Action Pills.
 
 ---
 
 ## 1. Observation
 
-All 15 target files within Worker 4 scope were inspected, updated, and validated:
+1. **Rebranding Verification**:
+   - `frontend/src/components/CaseDrawer.jsx`:
+     - Line 354–372: Rebranded tab button from "AI Copilot" / "Gemini" to "Gemini Assistant" with "Autonomous" badge pill and tooltip `"Interactive Gemini Assistant & Platform Agent"`.
+   - `frontend/src/components/investigations/CaseAiCopilotView.jsx`:
+     - Header banner rebranded to `"Google Gemini Assistant"` with `"Autonomous Agent"` status badge.
+     - Subtitle updated to `"Autonomous forensic intelligence, algorithmic explainability & active countermeasure execution"`.
+     - Initial greeting updated to `"Hello Investigator. I am your **SAMPATI Gemini Assistant** powered by Google Gemini..."`.
+     - Chat author badge updated to `"✨ Gemini Assistant"`.
+     - Typing indicator updated to `"Gemini Assistant is processing…"`.
+     - Chat placeholder updated to `"Ask Gemini Assistant to analyze case, explain rules, trigger federation, simulate transactions, or block VPAs..."`.
+     - Error banners and fallback strings updated from "Copilot" to "Assistant".
+   - `frontend/src/services/api.js`:
+     - Lines 167–177: Added `chatGeminiAssistant: (caseId, question, history = []) => ...` with backwards-compatible `chatAiCopilot` alias method.
 
-1. **Recharts Animations (R5)**:
-   - `frontend/src/components/analytics/TimeSeriesVerdictChart.jsx`: Added `isAnimationActive={true}` and `animationDuration={800}` to all `<Bar>` series (`allow`, `hold`, `block`).
-   - `frontend/src/components/analytics/FraudRateTrendChart.jsx`: Added `isAnimationActive={true}` and `animationDuration={800}` to `<Line dataKey="fraud_rate_pct">`.
-   - `frontend/src/components/analytics/BankDistributionChart.jsx`: Added `isAnimationActive={true}` and `animationDuration={800}` to `<Pie>`.
-   - `frontend/src/components/VerdictHistoryChart.jsx`: Added `isAnimationActive={true}` and `animationDuration={800}` to all `<Area>` series (`ALLOW`, `HOLD`, `BLOCK`).
-   - `frontend/src/components/VerdictDonut.jsx`: Added `isAnimationActive={true}` and `animationDuration={800}` to `<Pie>`.
+2. **Tool Execution Display (`ToolExecutionCard`)**:
+   - `CaseAiCopilotView.jsx` now parses `tool_executions` (and `tool_calls`) returned from backend API responses.
+   - Designed and integrated `ToolExecutionCard` component rendering rich structured system status cards inside the chat stream:
+     - **🔄 Federation Round (`trigger_federation_round` / `trigger_federation`)**:
+       - Icon `🔄`, Title `Federation Intelligence Round`, Category `Federated Mesh Sync`.
+       - Badge styling: `bg-purple-900/60 text-purple-300 border-purple-500/40`.
+       - Metric chips: Participating PSP nodes (e.g. 5 nodes), Mule rings synced, New rings, Suspicious entities flagged.
+       - Result summary quote block.
+     - **⚡ Synthetic Batch Simulation (`simulate_transactions` / `simulate_synthetic_batch`)**:
+       - Icon `⚡`, Title `Synthetic Batch Simulation`, Category `Traffic Stream Generator`.
+       - Badge styling: `bg-emerald-900/60 text-emerald-300 border-emerald-500/40`.
+       - Metric chips: Generated transaction count, Fraud ratio %, Verdict breakdown (`ALLOW` / `HOLD` / `BLOCK`), Cases opened.
+       - Result summary quote block.
+     - **🛑 Block / Hold VPA & Txn (`block_vpa_or_transaction` / `block_vpa` / `hold_transaction`)**:
+       - Icon `🛑`, Title `VPA & Transaction [ACTION] Enforcement`, Category `Autonomous Interception`.
+       - Badge styling: `bg-rose-900/60 text-rose-300` (for `BLOCK`) / `bg-amber-900/60 text-amber-300` (for `HOLD`).
+       - Metric chips: Suspect target VPA, Action type, Case state (`ESCALATED`), DPIP signal status.
+       - Result summary quote block.
+     - **📄 SAR Report PDF Export (`export_sar_pdf` / `export_sar_to_pdf`)**:
+       - Icon `📄`, Title `SAR Report PDF Export`, Category `Regulatory Compliance`.
+       - Badge styling: `bg-indigo-900/60 text-indigo-300 border-indigo-500/40`.
+       - Metric chips: Target Case ID, PDF artifact size in KB, Filename (`SAR_<caseId>.pdf`).
+       - Interactive action button: `📥 Download SAR PDF` triggering real-time download and export.
+     - Status Pills: Emerald `✓ SUCCESS` or Rose `✕ FAILED`.
+   - Tool execution success triggers real-time state synchronization via `useAppState()` (`refreshStats()` and `refreshCases()`).
 
-2. **Workload Heatmap (R5)**:
-   - `frontend/src/components/analytics/AnalystWorkloadHeatmap.jsx`:
-     - Added native `title` tooltips and floating popovers (`absolute bottom-full mb-1.5`) showing exact case count and timestamp per day/hour cell.
-     - Added a 7×24 skeleton/ghost loading state with `animate-pulse` when `loading` is true or data is unseeded/empty.
+3. **Quick Command Pills**:
+   - Expanded `SUGGESTED_QUESTIONS` in `CaseAiCopilotView.jsx`:
+     - `"Explain why DMV score spiked"`
+     - `"Why was this transaction flagged?"`
+     - `"Explain the mule ring structure and linked entities"`
+     - `"Trigger a federation round"`
+     - `"Block payee VPA"`
+     - `"Simulate 20 mule transactions"`
+     - `"Export SAR to PDF"`
 
-3. **Top VPAs by DMV Score Table (R5)**:
-   - `frontend/src/components/analytics/TopDmvAccountsTable.jsx`:
-     - Added sortable column headers (`sortField`, `sortAsc`) with directional sort indicators (`▲`/`▼`/`↕`).
-     - Added inline mini horizontal progress bars representing the DMV score (0–100%) alongside numeric badges.
+4. **Alias Re-Exports**:
+   - Created `frontend/src/views/CaseAiCopilotView.jsx`, `frontend/src/views/CaseGeminiAssistantView.jsx`, and `frontend/src/components/investigations/CaseGeminiAssistantView.jsx` re-exporting `CaseAiCopilotView`, `CaseAiAssistantView`, `ToolExecutionCard`, and `SUGGESTED_QUESTIONS`.
 
-4. **Active Campaigns Metric Card (R5)**:
-   - `frontend/src/components/analytics/AnalyticsSummaryKpis.jsx`:
-     - Added "Active Campaigns" metric card calculating distinct fingerprinted fraud campaigns (`campaign_id` / `campaign`).
-     - Reconfigured grid to 5 responsive columns (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4`).
-   - `frontend/src/pages/AnalyticsPage.jsx`: Passed `cases={cases}` and `loading={loading}` to child components.
-
-5. **KPI Count-Up Animation (R6)**:
-   - `frontend/src/hooks/useCountUp.js`:
-     - Initialized starting count at 0 so numeric KPI tiles animate count-up on load from 0 to target value.
-     - Updated frame interpolation to smoothly transition from current rendered number to new targets during live auto-feed traffic.
-
-6. **Live Feed Visual Dynamics (R6)**:
-   - `frontend/src/components/LiveFeed.jsx`:
-     - Capped displayed rows at 30 items (`slice(0, 30)`).
-     - Applied smooth top slide-in transition (`initial={{ opacity: 0, y: -20 }}` -> `animate={{ opacity: 1, y: 0 }}`) and fade-out exit (`exit={{ opacity: 0, y: 15 }}`).
-
-7. **Auto-Feed Controls & Indicators (R6)**:
-   - `frontend/src/components/ControlBar.jsx`:
-     - Button text updated to "Stop Live Feed" when active and "Start Live Feed" when inactive.
-     - Added pulsing green dot indicator (`w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse`) and live TPS counter adjacent to the toggle button.
-
-8. **Honeypot Interception Red Toast Alert (R6)**:
-   - `frontend/src/hooks/useWebSocket.js`: Added `onHoneypotHit` callback handler parsing `honeypot_hit`, `HONEYPOT_HIT`, and `R_HONEYPOT_HIT` rule triggers.
-   - `frontend/src/context/AppStateContext.jsx`: Added `honeypotAlerts` state management with 5-second automatic dismissal timer and context export.
-   - `frontend/src/pages/OverviewPage.jsx`: Implemented prominent red toast alert (`bg-rose-700 text-white rounded-lg shadow-2xl border-2 border-rose-400/80 p-4`) displaying intercepted VPA, protected amount, and 5-second linear countdown progress bar.
+5. **Build and Test Verification Commands**:
+   - `cd frontend && npm run lint`: Exit code 0, 0 errors, 0 warnings (`--max-warnings 0`).
+   - `cd frontend && npm run build`: Exit code 0, Vite production bundle built successfully in `dist/`.
+   - `./.venv/bin/pytest tests/ -q`: Exit code 0, 803 passed in 70.03s, 0 failures.
+   - `./.venv/bin/ruff check app tests`: Exit code 0, All checks passed!
 
 ---
 
 ## 2. Logic Chain
 
-1. **Synchronized 800ms Recharts Rendering**:
-   - Setting `isAnimationActive={true}` and `animationDuration={800}` uniformly across all Recharts `<Bar>`, `<Line>`, `<Area>`, and `<Pie>` components prevents default static or mismatched animations, creating a unified 800ms visual refresh cadence.
-2. **Resilient Heatmap Experience**:
-   - The skeleton grid prevents visual layout thrashing while analytics data loads. Individual hover popovers and title attributes allow analysts to immediately inspect case volume and intercepted values at specific day/hour intersections.
-3. **Interactive DMV Prioritization**:
-   - Sortable columns allow analysts to triage highest-risk mule accounts by DMV score, dormancy days, drain velocity, or volume. The inline progress bar provides instant visual proportion on a 0–100 scale.
-4. **Campaign Intelligence Visibility**:
-   - The "Active Campaigns" metric card extracts unique campaign identifiers from active case clusters, providing high-level situational awareness of coordinated attack syndicates.
-5. **Fluid KPI Transitions & Feed Motion**:
-   - By initializing `useCountUp` state at 0 and tracking `fromRef.current = current`, tiles smoothly count up 0 -> target on mount and smoothly increment during auto-feed. The 30-item cap and vertical slide-in/fade-out in `LiveFeed` deliver a clean, non-overflowing live stream.
-6. **Instant Honeypot Threat Feedback**:
-   - Integrating `onHoneypotHit` from WebSocket into `AppStateContext` and rendering a 5s red toast in `OverviewPage` guarantees real-time notification whenever an attacker attempts a transaction against a synthetic trap VPA.
+1. *Requirement R1 & R3*: The user requested renaming UI elements from "AI Copilot" / "Copilot" to "Gemini Assistant" and displaying tool execution cards in the chat log.
+2. *Implementation in CaseDrawer.jsx*: Updating the tab button label to "Gemini Assistant" with the "Autonomous" pill provides clear, prominent rebranding on the primary case investigation screen while preserving existing tab state handling.
+3. *Implementation in CaseAiCopilotView.jsx*: The chat message pipeline renders assistant responses and iterates over `tool_executions`, rendering `ToolExecutionCard` with tailored styling, metric badges, and interactive controls (SAR PDF download).
+4. *Live State Sync*: Connecting tool completion events to `useAppState()` ensures that backend changes (e.g. newly opened simulation cases or escalated blocked VPAs) immediately reflect on global KPI counters and case lists.
+5. *Verification*: The clean pass of ESLint (`--max-warnings 0`), Vite build, and the full backend pytest test suite confirms structural integrity and zero regressions.
 
 ---
 
 ## 3. Caveats
 
-- In high-tps auto-feed burst scenarios (>30 TPS with multiple honeypot hits), `honeypotAlerts` is capped at the 3 most recent alerts to prevent visual flooding.
-- No caveats regarding backend contracts or lint rules.
+No caveats. All frontend components conform strictly to React 18 standards, zero ESLint warnings, and complete backend contract alignment.
 
 ---
 
 ## 4. Conclusion
 
-All requirements for R5 (Analytics Page Visual Polish) and R6 (Overview & Live Feed Visual Polish) are fully implemented and verified.
-- Frontend ESLint passes cleanly with 0 warnings (`--max-warnings 0`).
-- Vite production build passes with 0 errors.
-- Pytest backend test suite passes 100% (710 passed, 0 failures).
+Milestone M4 (Frontend UI Command Integration & Rebranding) is complete. The frontend now features full "Gemini Assistant" branding, rich structured tool execution cards for Federation, Simulation, Block/Hold, and SAR PDF generation, quick action prompt chips, and verified production builds.
 
 ---
 
 ## 5. Verification Method
 
-1. **Verify Frontend Linting**:
+To independently verify this milestone:
+1. Run frontend ESLint:
    ```bash
-   cd /home/avi/Downloads/Sampati_v2/frontend && npm run lint
+   cd frontend && npm run lint
    ```
-   *Expected*: Exits with code 0 and 0 warnings (`--max-warnings 0`).
+   *Expected: Exit code 0, 0 errors, 0 warnings.*
 
-2. **Verify Frontend Build**:
+2. Run frontend Vite build:
    ```bash
-   cd /home/avi/Downloads/Sampati_v2/frontend && npm run build
+   cd frontend && npm run build
    ```
-   *Expected*: Exits with code 0 and outputs production bundle in `dist/`.
+   *Expected: Exit code 0, production bundle emitted to `frontend/dist`.*
 
-3. **Verify Backend Pytest Suite**:
+3. Run full backend pytest suite:
    ```bash
-   cd /home/avi/Downloads/Sampati_v2 && ./.venv/bin/pytest tests/ -q
+   ./.venv/bin/pytest tests/ -q
    ```
-   *Expected*: 710 passed with 0 failures.
-
-4. **Verify Ruff Python Linter**:
-   ```bash
-   cd /home/avi/Downloads/Sampati_v2 && ./.venv/bin/ruff check app tests
-   ```
-   *Expected*: All checks passed.
+   *Expected: 803 passed, 0 failures.*

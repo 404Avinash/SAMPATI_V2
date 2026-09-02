@@ -1,32 +1,26 @@
 # Original User Request
 
-## Initial Request — 2026-09-02T06:54:33Z
+## Initial Request — 2026-09-02T17:40:48Z
 
-<USER_REQUEST>
-This is a single self-contained feature integration; keep it small and focused.
-Integrate Google Gemini API into the SAMPATI V2 FastAPI/React platform to act as an intelligent Fraud Analyst Copilot. This includes generating automated case briefings, interactive case Q&A, and regulatory SAR narrative drafting, all with a zero-latency impact on core payment scoring and a deterministic graceful fallback.
+Upgrade the existing Gemini AI Copilot into an autonomous "Gemini Assistant". The assistant must have deep contextual awareness of the platform's inner workings and the ability to execute platform operations autonomously via function calling.
 
-Working directory: /home/avi/Downloads/Sampati_v2
-Integrity mode: benchmark
+Requirements:
+1. R1. Deep Context Injection & Rebranding:
+   - Rename UI and backend references from "AI Copilot" to "Gemini Assistant".
+   - Enhance `/cases/{case_id}/ai-briefing` and `/cases/{case_id}/ai-chat` backend endpoints to inject maximum context into the LLM system prompt (raw case transaction history, evaluated rule breakdown, network topology data, core algorithmic definitions extracted directly from `ENCYCLOPEDIA.md` to explain *exactly* why a rule fired in plain English).
+2. R2. Agentic Operations (Function Calling):
+   - Equip Gemini Assistant with an agentic loop (Gemini native function calling or robust prompt routing) allowing operations:
+     a) Block or Hold a specific transaction/VPA.
+     b) Trigger a Federation Intelligence Round.
+     c) Export the SAR (Suspicious Activity Report) to PDF.
+     d) Simulate a new batch of transactions.
+3. R3. UI Command Integration:
+   - Update frontend (e.g. `CaseAiCopilotView.jsx` or equivalent renamed component) to seamlessly display tool execution statuses in the chat log (e.g. showing system messages when Assistant triggers a federation round).
 
-## Requirements
-
-### R1. Backend Gemini Service
-Create a resilient `GeminiCopilotService` (using `httpx` or Google SDK) that handles case briefing generation, case chat, and SAR narrative drafting. It must gracefully fall back to a deterministic rule-based output if the API key is missing or fails. Do NOT block or slow down the main `/upi/check` payment scoring endpoint.
-
-### R2. API Endpoints
-Expose FastAPI routes (e.g., `GET /cases/{case_id}/ai-briefing` and `POST /cases/{case_id}/ai-chat`) to serve the Copilot features to the frontend.
-
-### R3. Frontend Copilot UI
-Update the React `CaseDrawer.jsx` (or add a related component) to include an "AI Copilot" tab with markdown-rendered briefings, scam pattern badges, and an interactive chat interface.
-
-## Acceptance Criteria
-
-### Integration & Fallback Verification
-- [ ] Programmatic: The command `./.venv/bin/pytest tests/ -v` must pass all tests successfully.
-- [ ] Programmatic: The test suite must pass even when the `GEMINI_API_KEY` environment variable is deliberately unset, proving the fallback logic works.
-
-### Feature Verification
-- [ ] Programmatic/Manual: The backend API endpoints successfully return structured JSON for AI briefings and chat without crashing.
-- [ ] Manual: The React frontend successfully compiles (`npm run build`) and renders the AI Copilot tab, handling loading and error states cleanly.
-</USER_REQUEST>
+Acceptance Criteria:
+- Automated Testing & Regression: Existing pytest suite (`.venv/bin/pytest tests/ -v`, 737+ tests) passes with 0 failures.
+- New unit tests specifically verifying that the Gemini Assistant's chat endpoint can successfully parse and route tool execution requests for Federation and Simulation.
+- Frontend UI displays "Gemini Assistant" instead of "AI Copilot".
+- When a user types "Trigger a federation round" into Assistant chat, system calls backend federation execution logic and reports success.
+- When a user asks "Explain why the DMV score spiked", response incorporates algorithmic definitions from Encyclopedia context.
+- Frontend ESLint (`cd frontend && npm run lint`) has 0 errors/warnings and `npm run build` succeeds.

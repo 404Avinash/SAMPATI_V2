@@ -1,13 +1,14 @@
-# Progress Log
+# Progress Tracking
 
-**Agent**: Frontend Architecture Investigator
-**Last visited**: 2026-08-31T03:25:00+05:30
+Last visited: 2026-09-02T17:44:00Z
 
-## Status
-- [x] Initialized DISPATCH.md and BRIEFING.md
-- [x] Explored frontend/src directory structure, layouts, pages, components, hooks, services, context
-- [x] Analyzed Live Auto-Feed Mode architecture (backend background transaction generator, live scoring pipeline, WebSocket broadcasting over /ws/feed, frontend controls)
-- [x] Analyzed CaseDrawer UI enhancements (DMV Gauge 0-100 with color coding, One-Click SAR PDF export)
-- [x] Analyzed AnalyticsPage UI enhancements (7x24 Analyst Workload Heatmap grid, Top VPAs by DMV Score ranked table)
-- [x] Validated test suite (.venv/bin/pytest: 559 tests passed) and frontend build/lint (bun run lint + bun run build: 0 warnings/errors)
-- [ ] Write handoff.md report and notify parent
+- [x] Initialized dispatch and briefing
+- [x] Find all frontend files referencing "AI Copilot" / "Copilot" / "copilot"
+- [x] Inspect `CaseAiCopilotView.jsx` and associated components/services
+- [x] Inspect API calls (`ai-briefing`, `ai-chat`, etc.) and payload structures
+- [x] Inspect chat state management, message schemas, and UI rendering logic
+- [x] Investigate tool execution status rendering (Block/Hold VPA, Federation Round, Export SAR PDF, Simulate Transactions)
+- [x] Check frontend ESLint configuration, build setup, dependencies, and gotchas
+- [x] Write comprehensive `analysis.md`
+- [x] Write structured `handoff.md`
+- [ ] Send message to orchestrator parent

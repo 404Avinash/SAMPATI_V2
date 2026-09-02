@@ -290,7 +290,7 @@ async def get_case_ai_briefing_root(
     db: Optional[AsyncSession] = Depends(get_db),
 ):
     """Generate an AI-powered forensic executive briefing and scam typology analysis for a case."""
-    from app.services.gemini_service import get_gemini_copilot_service
+    from app.services.gemini_service import get_gemini_assistant_service
     from app.services.upi_cases import get_upi_case_service
     svc = get_upi_case_service()
     case = None
@@ -308,8 +308,8 @@ async def get_case_ai_briefing_root(
 
     if not case:
         raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
-    copilot = get_gemini_copilot_service()
-    briefing = await copilot.generate_case_briefing(case, force_refresh=refresh)
+    assistant = get_gemini_assistant_service()
+    briefing = await assistant.generate_case_briefing(case, force_refresh=refresh)
     briefing["case_id"] = case_id
     return JSONResponse(status_code=200, content=briefing)
 
@@ -320,8 +320,8 @@ async def chat_with_case_ai_root(
     body: AiChatRequest,
     db: Optional[AsyncSession] = Depends(get_db),
 ):
-    """Interactive context-aware chat with AI Copilot for investigating a specific case."""
-    from app.services.gemini_service import get_gemini_copilot_service
+    """Interactive context-aware chat with Gemini Assistant for investigating a specific case and executing operations."""
+    from app.services.gemini_service import get_gemini_assistant_service
     from app.services.upi_cases import get_upi_case_service
     svc = get_upi_case_service()
     case = None
@@ -339,8 +339,8 @@ async def chat_with_case_ai_root(
 
     if not case:
         raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
-    copilot = get_gemini_copilot_service()
-    result = await copilot.chat_with_case_copilot(
+    assistant = get_gemini_assistant_service()
+    result = await assistant.chat_with_case_assistant(
         case_data=case,
         question=body.question,
         conversation_history=body.history,
@@ -350,9 +350,11 @@ async def chat_with_case_ai_root(
         content={
             "case_id": case_id,
             "question": body.question,
-            "answer": result.get("answer", ""),
+            "answer": result.get("answer", result.get("reply", "")),
+            "reply": result.get("reply", result.get("answer", "")),
             "source": result.get("source", "gemini-ai"),
             "model": result.get("model"),
+            "tool_executions": result.get("tool_executions", []),
         },
     )
 
@@ -363,8 +365,8 @@ async def get_case_ai_sar_root(
     case_id: str,
     db: Optional[AsyncSession] = Depends(get_db),
 ):
-    """Draft a regulatory FIU-IND compliant Suspicious Activity Report (SAR) narrative using AI Copilot."""
-    from app.services.gemini_service import get_gemini_copilot_service
+    """Draft a regulatory FIU-IND compliant Suspicious Activity Report (SAR) narrative using Gemini Assistant."""
+    from app.services.gemini_service import get_gemini_assistant_service
     from app.services.upi_cases import get_upi_case_service
     svc = get_upi_case_service()
     case = None
@@ -382,8 +384,8 @@ async def get_case_ai_sar_root(
 
     if not case:
         raise HTTPException(status_code=404, detail=f"UPI case '{case_id}' not found")
-    copilot = get_gemini_copilot_service()
-    report = await copilot.generate_sar_report(case)
+    assistant = get_gemini_assistant_service()
+    report = await assistant.generate_sar_report(case)
     return JSONResponse(
         status_code=200,
         content={

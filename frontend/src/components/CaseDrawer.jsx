@@ -353,6 +353,7 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
 
               <button
                 onClick={() => setActiveTab("copilot")}
+                title="Interactive Gemini Assistant & Platform Agent"
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all flex items-center gap-1.5 ${
                   activeTab === "copilot"
                     ? "bg-indigo-600 text-white shadow-xs"
@@ -360,13 +361,13 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
                 }`}
               >
                 <span>✨</span>
-                <span>AI Copilot</span>
+                <span>Gemini Assistant</span>
                 <span
                   className={`text-[9px] px-1.5 py-0.2 rounded-full uppercase font-bold tracking-wider ${
                     activeTab === "copilot" ? "bg-white/20 text-white" : "bg-indigo-200 text-indigo-900"
                   }`}
                 >
-                  Gemini
+                  Autonomous
                 </span>
               </button>
             </div>

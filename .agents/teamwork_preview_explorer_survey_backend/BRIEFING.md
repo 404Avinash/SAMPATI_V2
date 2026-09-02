@@ -1,45 +1,45 @@
-# BRIEFING — 2026-08-31T03:25:30Z
+# BRIEFING — 2026-09-02T17:45:30Z
 
 ## Mission
-Survey Backend APIs, SAR PDF Export, Analytics Endpoints, Workload Heatmap Data, and Python Dependencies for SAMPATI V2 Sprint 2.
+Comprehensive backend survey of AI Copilot to Gemini Assistant transition (endpoints, service layer, models, prompts, function calling capabilities, encyclopedia context injection, rebranding).
 
 ## 🔒 My Identity
 - Archetype: explorer
 - Roles: survey_backend, analysis, synthesis
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend
-- Original parent: 1a77121b-3a79-4485-bfe4-db30788be55e
-- Milestone: Sprint 2 Survey Phase
+- Original parent: 708f3126-0948-4197-8593-5296c58527f6
+- Milestone: Gemini Assistant Upgrade Phase 1 (Survey Complete)
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement
-- Produce a structured 5-component handoff report (handoff.md)
+- Produce analysis.md and structured 5-component handoff report (handoff.md)
 - Follow communication guideline: Send completion message to caller via send_message
 
 ## Current Parent
-- Conversation ID: 1a77121b-3a79-4485-bfe4-db30788be55e
-- Updated: 2026-08-31T03:25:30Z
+- Conversation ID: 708f3126-0948-4197-8593-5296c58527f6
+- Updated: 2026-09-02T17:45:30Z
 
 ## Investigation State
 - **Explored paths**:
-  - `app/main.py`, `app/api/upi.py`, `app/api/federation.py`, `app/api/websocket.py`
-  - `app/services/upi_cases.py`, `app/models/upi_models.py`, `app/models/upi_persistence.py`
-  - `app/engine/upi_scorer.py`, `app/engine/upi_rules.py`, `app/engine/honeypot.py`
-  - `app/forensics/upi_sar.pyc`, `app/forensics/renderer.pyc`
-  - `.venv` installed package list (`pip list`)
-  - `tests/` architecture (559 passing tests, `mock_env.py`, `test_analytics.py`, `test_federation_api.py`)
+  - `app/services/gemini_service.py`, `app/api/upi.py`, `app/main.py`
+  - `app/models/upi_models.py`, `app/models/upi_persistence.py`, `app/services/upi_cases.py`
+  - `app/engine/upi_rules.py`, `app/engine/upi_scorer.py`, `app/engine/dmv.py`, `app/engine/campaign.py`, `app/engine/honeypot.py`
+  - `app/federation/coordinator.py`, `app/forensics/sar_pdf.py`, `ENCYCLOPEDIA.md`
+  - `tests/test_gemini_copilot.py` (27 tests), full pytest suite (737 tests)
 - **Key findings**:
-  - `reportlab` is NOT installed in `.venv` and sandbox is offline; PDF export must be built using `matplotlib.backends.backend_pdf.PdfPages` + `PIL`, which works cleanly and generates standard `%PDF-1.4`.
-  - `app/forensics/upi_sar` already has `generate_upi_sar` and `render_ring_png` available.
-  - SAR PDF endpoint should be mounted at `GET /cases/{case_id}/sar/pdf` in `app/main.py` and `app/api/upi.py`.
-  - Workload Heatmap (7x24 grid over 30 days) and Top VPAs by DMV Score can be integrated directly into `get_analytics()` in `app/services/upi_cases.py` and returned at `/stats/analytics` and `/upi/stats/analytics`.
-  - Pytest runs 559 tests in ~30s with zero errors; Ruff check passes with 0 errors.
+  - `app/services/gemini_service.py` is the central service layer powering `/cases/{case_id}/ai-briefing`, `/cases/{case_id}/ai-chat`, and `/cases/{case_id}/ai-sar`.
+  - Upgrading to `GeminiAssistantService` with backwards-compatible aliases (`GeminiCopilotService`) enables seamless rebranding.
+  - Deep context injection can structure raw transaction parameters, DMV metrics, and rule breakdowns enriched with `ENCYCLOPEDIA.md` definitions.
+  - Autonomous function calling for 4 operations (`block_vpa`/`hold_case`, `trigger_federation_round`, `export_sar_pdf`, `simulate_transactions`) can be implemented via Gemini tools declarations and offline fallback intent routing.
+  - Full pytest suite has 737 passing tests.
 - **Unexplored areas**: None for backend survey.
 
 ## Key Decisions Made
-- Confirmed implementation design for SAR PDF export using built-in `matplotlib.backends.backend_pdf` to ensure 100% offline compatibility with no pip installation dependencies.
-- Completed comprehensive 5-component `handoff.md`.
+- Authored comprehensive survey analysis report in `analysis.md`.
+- Completed 5-component handoff report in `handoff.md`.
 
 ## Artifact Index
-- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/handoff.md` — Complete survey report.
-- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/progress.md` — Progress log.
-- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/DISPATCH.md` — Dispatch log.
+- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/analysis.md` — Detailed backend survey analysis
+- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/handoff.md` — 5-component handoff report
+- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/progress.md` — Progress log
+- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_backend/DISPATCH.md` — Dispatch log

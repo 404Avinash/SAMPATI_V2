@@ -204,3 +204,48 @@ After all frontend and backend changes are made:
 - [ ] `cd frontend && npm run lint` → 0 warnings
 - [ ] `cd frontend && npm run build` → clean build
 - [ ] `git log --oneline -1` shows new commit pushed to origin/main
+
+## 2026-09-02T17:39:48Z
+
+<USER_REQUEST>
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Full team
+
+Upgrade the existing Gemini AI Copilot into an autonomous "Gemini Assistant". The assistant must have deep contextual awareness of the platform's inner workings and the ability to execute platform operations autonomously via function calling.
+
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. Deep Context Injection & Rebranding
+Rename all UI and backend references from "AI Copilot" to "Gemini Assistant". Enhance the `/cases/{case_id}/ai-briefing` and `/cases/{case_id}/ai-chat` backend endpoints to inject maximum context into the LLM system prompt. This must include the raw case transaction history, the evaluated rule breakdown, the network topology data, and the core algorithmic definitions extracted directly from `ENCYCLOPEDIA.md`. The goal is to enable the Assistant to explain *exactly* why a specific rule fired in plain English.
+
+### R2. Agentic Operations (Function Calling)
+Equip the Gemini Assistant with the ability to execute operations. Implement an agentic loop (using Gemini's native function calling or robust prompt routing) that allows the Assistant to perform the following actions when requested by the user in the chat:
+1. Block or Hold a specific transaction/VPA.
+2. Trigger a Federation Intelligence Round.
+3. Export the SAR (Suspicious Activity Report) to PDF.
+4. Simulate a new batch of transactions.
+
+### R3. UI Command Integration
+Update the frontend (`CaseAiCopilotView.jsx` or equivalent) to seamlessly display tool execution statuses in the chat log (e.g., showing a system message when the Assistant triggers a federation round).
+
+## Verification Resources
+- Existing comprehensive pytest suite (737 tests) runs via `.venv/bin/pytest tests/ -v`.
+- Backend endpoints for Federation and Simulation are already implemented in `app/api/`.
+
+## Acceptance Criteria
+
+### Automated Testing & Regression
+- [ ] The existing test suite (`.venv/bin/pytest tests/ -v`) passes with 0 failures.
+- [ ] New unit tests are added specifically verifying that the Gemini Assistant's chat endpoint can successfully parse and route tool execution requests for Federation and Simulation.
+
+### Capabilities Verification
+- [ ] The frontend UI displays the title "Gemini Assistant" instead of "AI Copilot".
+- [ ] When a user types "Trigger a federation round" into the Assistant chat, the system successfully calls the backend federation execution logic and reports success.
+- [ ] When a user asks "Explain why the DMV score spiked", the Assistant's response incorporates the algorithmic definitions from the Encyclopedia context.
+</USER_REQUEST>

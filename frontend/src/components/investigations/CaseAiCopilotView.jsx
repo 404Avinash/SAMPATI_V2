@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { api } from "../../services/api";
+import { useAppState } from "../../context/AppStateContext";
 
-const SUGGESTED_QUESTIONS = [
+export const SUGGESTED_QUESTIONS = [
+  "Explain why DMV score spiked",
   "Why was this transaction flagged?",
   "Explain the mule ring structure and linked entities",
-  "Interpret the Dead Money Velocity (DMV) score",
-  "What regulatory actions are recommended for FIU-IND?",
-  "Draft a formal SAR executive summary",
+  "Trigger a federation round",
+  "Block payee VPA",
+  "Simulate 20 mule transactions",
+  "Export SAR to PDF",
 ];
 
 const copyToClipboard = async (text) => {
@@ -83,7 +86,185 @@ const MARKDOWN_COMPONENTS = {
   },
 };
 
+export function ToolExecutionCard({ toolCall, onDownloadPdf, downloadingPdf }) {
+  if (!toolCall) return null;
+
+  const rawTool = String(toolCall.tool_name || toolCall.tool || "").toLowerCase();
+  const statusStr = String(toolCall.status || "success").toUpperCase();
+  const isSuccess = statusStr === "SUCCESS" || statusStr === "COMPLETED" || statusStr === "EXECUTED";
+  const args = (toolCall.arguments || toolCall.parameters || {});
+  const data = (toolCall.data || toolCall.result || {});
+  const summary = toolCall.result_summary || toolCall.summary || "";
+
+  const getToolConfig = () => {
+    if (rawTool.includes("federat")) {
+      const nodes = Array.isArray(data.participating_nodes)
+        ? data.participating_nodes
+        : ["okaxis", "okhdfcbank", "okicici", "paytm", "oksbi"];
+      const rings = data.rings_detected ?? data.rings ?? 0;
+      const newRings = data.new_rings ?? 0;
+      const suspicious = data.suspicious_entities_count ?? data.suspicious_count ?? 0;
+
+      return {
+        icon: "🔄",
+        title: "Federation Intelligence Round",
+        category: "Federated Mesh Sync",
+        badgeClass: "bg-purple-900/60 text-purple-300 border-purple-500/40",
+        metrics: [
+          { label: "Participating Nodes", value: `${nodes.length} PSP Nodes` },
+          { label: "Mule Rings", value: `${rings} Synced (${newRings} new)` },
+          { label: "Suspicious Entities", value: `${suspicious} Flagged` },
+        ],
+        extraInfo: `Participating: ${nodes.join(", ")}`,
+      };
+    }
+
+    if (rawTool.includes("simulat")) {
+      const totalTxns = data.total_txns ?? args.total_txns ?? args.count ?? 50;
+      const fraudRatio = data.fraud_ratio ?? args.fraud_ratio ?? 0.20;
+      const verdicts = data.verdicts || {};
+      const opened = data.opened_cases ?? 0;
+
+      return {
+        icon: "⚡",
+        title: "Synthetic Batch Simulation",
+        category: "Traffic Stream Generator",
+        badgeClass: "bg-emerald-900/60 text-emerald-300 border-emerald-500/40",
+        metrics: [
+          { label: "Txns Generated", value: `${totalTxns} txns` },
+          { label: "Fraud Ratio", value: `${Math.round(fraudRatio * 100)}%` },
+          {
+            label: "Verdicts",
+            value: verdicts.ALLOW != null
+              ? `${verdicts.ALLOW} ALLOW / ${verdicts.HOLD} HOLD / ${verdicts.BLOCK} BLOCK`
+              : "Scored & Evaluated",
+          },
+          { label: "Cases Opened", value: `${opened} New` },
+        ],
+      };
+    }
+
+    if (rawTool.includes("block") || rawTool.includes("hold") || rawTool.includes("intercept")) {
+      const action = String(args.action || data.action || (rawTool.includes("hold") ? "HOLD" : "BLOCK")).toUpperCase();
+      const targetVpa = args.target_vpa || data.target_vpa || "Suspect Account";
+      const isBlock = action === "BLOCK";
+
+      return {
+        icon: "🛑",
+        title: `VPA & Transaction ${action} Enforcement`,
+        category: "Autonomous Interception",
+        badgeClass: isBlock
+          ? "bg-rose-900/60 text-rose-300 border-rose-500/40"
+          : "bg-amber-900/60 text-amber-300 border-amber-500/40",
+        metrics: [
+          { label: "Suspect Target", value: targetVpa },
+          { label: "Enforced Action", value: action },
+          { label: "Case State", value: data.status || "ESCALATED" },
+          { label: "DPIP Threat Signal", value: data.dpip_published ? "Propagated" : "Mesh Notified" },
+        ],
+      };
+    }
+
+    if (rawTool.includes("sar") || rawTool.includes("pdf")) {
+      const targetCaseId = data.case_id || args.case_id;
+      const pdfSize = data.pdf_size_kb ? `${data.pdf_size_kb} KB` : "FIU-IND Ready";
+      const filename = data.filename || `SAR_${targetCaseId || "CASE"}.pdf`;
+
+      return {
+        icon: "📄",
+        title: "SAR Report PDF Export",
+        category: "Regulatory Compliance",
+        badgeClass: "bg-indigo-900/60 text-indigo-300 border-indigo-500/40",
+        metrics: [
+          { label: "Case ID", value: targetCaseId || "Active Case" },
+          { label: "PDF Artifact", value: pdfSize },
+          { label: "File Name", value: filename },
+        ],
+        isPdfExport: true,
+        caseId: targetCaseId,
+      };
+    }
+
+    return {
+      icon: "⚙️",
+      title: toolCall.tool_name || toolCall.tool || "Platform Operation",
+      category: "Autonomous Agent Tool",
+      badgeClass: "bg-slate-800 text-slate-300 border-slate-600",
+      metrics: [],
+    };
+  };
+
+  const cfg = getToolConfig();
+
+  return (
+    <div className="my-2.5 p-3.5 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs border border-slate-800 shadow-md space-y-2.5">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+        <div className="flex items-center gap-2">
+          <span className="text-base">{cfg.icon}</span>
+          <div>
+            <div className="font-bold text-slate-100 text-xs tracking-wide flex items-center gap-1.5">
+              <span>{cfg.title}</span>
+            </div>
+            <div className="text-[10px] text-slate-400 font-sans">{cfg.category}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${
+              isSuccess
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                : "bg-rose-500/20 text-rose-300 border-rose-500/40"
+            }`}
+          >
+            {isSuccess ? `✓ ${statusStr}` : `✕ ${statusStr}`}
+          </span>
+        </div>
+      </div>
+
+      {/* Metrics Row */}
+      {cfg.metrics && cfg.metrics.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {cfg.metrics.map((m, i) => (
+            <div
+              key={i}
+              className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-[11px] flex items-center gap-1.5"
+            >
+              <span className="text-slate-400 text-[10px]">{m.label}:</span>
+              <span className="font-bold text-slate-200">{m.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Result Summary */}
+      {summary && (
+        <div className="p-2 rounded bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 font-sans leading-relaxed">
+          {summary}
+        </div>
+      )}
+
+      {/* PDF Interactive Action */}
+      {cfg.isPdfExport && isSuccess && (
+        <div className="pt-1 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onDownloadPdf && onDownloadPdf(cfg.caseId)}
+            disabled={downloadingPdf}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+          >
+            <span>{downloadingPdf ? "⏳" : "📥"}</span>
+            <span>{downloadingPdf ? "Downloading SAR PDF…" : "Download SAR PDF"}</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPdf }) {
+  const appState = useAppState();
   const [briefing, setBriefing] = useState(null);
   const [loadingBriefing, setLoadingBriefing] = useState(false);
   const [briefingError, setBriefingError] = useState(null);
@@ -99,6 +280,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
 
   const [copiedBriefing, setCopiedBriefing] = useState(false);
   const [copiedSar, setCopiedSar] = useState(false);
+  const [downloadingToolPdf, setDownloadingToolPdf] = useState(false);
 
   const chatBottomRef = useRef(null);
   const messagesBoxRef = useRef(null);
@@ -120,7 +302,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
       {
         id: "init",
         role: "assistant",
-        text: `Hello Investigator. I am your **SAMPATI AI Fraud Analyst Copilot** powered by Google Gemini. I have loaded case records for **\`${caseId}\`**. You can review the automated briefing below or ask me any question regarding money routing, DMV velocity, or regulatory compliance protocols.`,
+        text: `Hello Investigator. I am your **SAMPATI Gemini Assistant** powered by Google Gemini. I have loaded case records for **\`${caseId}\`**. You can review the automated briefing below, ask me to explain DMV / rule algorithms, or command autonomous platform actions (e.g., block suspect VPAs, trigger federation rounds, simulate transactions, or export SAR to PDF).`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         source: "system",
       },
@@ -172,6 +354,24 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
     }
   };
 
+  const handleDownloadToolPdf = async (targetCaseId) => {
+    const cId = targetCaseId || caseId;
+    if (!cId || downloadingToolPdf) return;
+    setDownloadingToolPdf(true);
+    try {
+      if (onExportSar) {
+        await onExportSar();
+      } else {
+        await api.downloadSarPdf(cId);
+      }
+    } catch (err) {
+      console.error("Tool SAR download failed", err);
+      setChatError(`Failed to download SAR PDF for ${cId}: ${err.message || "network error"}`);
+    } finally {
+      setDownloadingToolPdf(false);
+    }
+  };
+
   const handleSendMessage = async (textToSend) => {
     const q = (textToSend || input).trim();
     if (!q || !caseId || loadingChat) return;
@@ -199,23 +399,35 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
           content: m.text,
         }));
 
-      const res = await api.chatAiCopilot(caseId, q, historyTurns);
+      const res = await api.chatGeminiAssistant(caseId, q, historyTurns);
+      const toolExecs = res.tool_executions || res.tool_calls || [];
       const assistantMsg = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        text: res.answer || "No response received from Copilot.",
+        text: res.answer || res.reply || "No response received from Assistant.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         source: res.source,
         model: res.model,
+        tool_executions: Array.isArray(toolExecs) ? toolExecs : [],
       };
       setMessages((prev) => [...prev, assistantMsg]);
+
+      // If tool executions completed, sync platform state
+      if (Array.isArray(toolExecs) && toolExecs.length > 0) {
+        if (appState?.refreshStats) {
+          appState.refreshStats();
+        }
+        if (appState?.refreshCases) {
+          appState.refreshCases();
+        }
+      }
     } catch (err) {
       console.error("Chat error", err);
-      setChatError(err.message || "Failed to send message to Copilot");
+      setChatError(err.message || "Failed to send message to Assistant");
       const errorMsg = {
         id: `assistant-err-${Date.now()}`,
         role: "assistant",
-        text: `⚠️ **Copilot Error:** Unable to reach AI service (${err.message || "network error"}). Please try again.`,
+        text: `⚠️ **Assistant Error:** Unable to reach AI service (${err.message || "network error"}). Please try again.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         isError: true,
       };
@@ -269,7 +481,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
 
   return (
     <div className="space-y-6">
-      {/* Copilot Status Banner */}
+      {/* Gemini Assistant Status Banner */}
       <div className="p-3.5 bg-gradient-to-r from-indigo-900 via-slate-900 to-ink-900 rounded-xl text-white shadow-md border border-indigo-700/40 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-base">
@@ -277,23 +489,24 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-serif font-bold text-sm tracking-wide">Google Gemini AI Copilot</span>
+              <span className="font-serif font-bold text-sm tracking-wide">Google Gemini Assistant</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Active
+                Autonomous Agent
               </span>
             </div>
             <p className="text-[11px] text-slate-300 font-sans">
-              Real-time forensic synthesis, pattern typology classification &amp; regulatory Q&amp;A
+              Autonomous forensic intelligence, algorithmic explainability &amp; active countermeasure execution
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleRefreshBriefing}
             disabled={loadingBriefing}
-            className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-mono border border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-mono border border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             title="Refresh AI briefing from Gemini API"
           >
             <span className={loadingBriefing ? "animate-spin" : ""}>🔄</span>
@@ -313,8 +526,9 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
             </div>
           </div>
           <button
+            type="button"
             onClick={handleRefreshBriefing}
-            className="px-2 py-0.5 rounded bg-amber-200 hover:bg-amber-300 text-amber-900 text-[11px] font-semibold"
+            className="px-2 py-0.5 rounded bg-amber-200 hover:bg-amber-300 text-amber-900 text-[11px] font-semibold cursor-pointer"
           >
             Retry
           </button>
@@ -362,8 +576,9 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
                   {Math.round((briefing.confidence_score || 0.85) * 100)}% Confidence
                 </span>
                 <button
+                  type="button"
                   onClick={handleCopyBriefing}
-                  className="px-2 py-1 rounded bg-surface-muted hover:bg-slate-200 text-ink-900 text-xs font-mono border border-hairline transition-colors"
+                  className="px-2 py-1 rounded bg-surface-muted hover:bg-slate-200 text-ink-900 text-xs font-mono border border-hairline transition-colors cursor-pointer"
                   title="Copy briefing to clipboard"
                 >
                   {copiedBriefing ? "Copied ✓" : "Copy Briefing"}
@@ -455,27 +670,27 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
         )}
       </div>
 
-      {/* Interactive Case Copilot Chat Interface */}
+      {/* Interactive Case Gemini Assistant Chat Interface */}
       <div className="panel bg-white border border-hairline rounded-xl overflow-hidden shadow-xs flex flex-col">
         <div className="panel-header bg-surface-muted/50 px-4 py-3 border-b border-hairline flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-base">💬</span>
             <div>
               <div className="text-[10px] uppercase font-mono tracking-wider text-muted">
-                Interactive Analyst Q&amp;A
+                Interactive Analyst Q&amp;A &amp; Command Console
               </div>
               <div className="font-serif font-bold text-sm text-ink-900">
-                Case Copilot Chat Assistant
+                Gemini Assistant Console
               </div>
             </div>
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium">
-            Context-Aware
+            Context-Aware &amp; Agentic
           </span>
         </div>
 
         {/* Message History Thread */}
-        <div ref={messagesBoxRef} className="p-4 space-y-3 max-h-80 overflow-y-auto bg-slate-50/50">
+        <div ref={messagesBoxRef} className="p-4 space-y-3 max-h-96 overflow-y-auto bg-slate-50/50">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -483,13 +698,13 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
             >
               <div className="flex items-center gap-1.5 mb-1 px-1">
                 <span className="text-[10px] font-mono text-muted">
-                  {m.role === "user" ? "🧑‍💻 You (Analyst)" : "✨ Gemini Copilot"}
+                  {m.role === "user" ? "🧑‍💻 You (Analyst)" : "✨ Gemini Assistant"}
                 </span>
                 <span className="text-[9px] font-mono text-slate-400">· {m.timestamp}</span>
               </div>
 
               <div
-                className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-xs break-words overflow-hidden ${
+                className={`max-w-[88%] rounded-xl px-3.5 py-2.5 text-xs break-words overflow-hidden ${
                   m.role === "user"
                     ? "bg-ink-900 text-white shadow-xs"
                     : m.isError
@@ -498,8 +713,25 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
                 }`}
               >
                 {m.role === "assistant" ? (
-                  <div className="prose prose-xs max-w-none font-sans space-y-1 break-words">
-                    <ReactMarkdown components={MARKDOWN_COMPONENTS}>{m.text}</ReactMarkdown>
+                  <div className="space-y-2">
+                    {/* Render tool execution status cards */}
+                    {Array.isArray(m.tool_executions) && m.tool_executions.length > 0 && (
+                      <div className="space-y-2">
+                        {m.tool_executions.map((toolCall, tIdx) => (
+                          <ToolExecutionCard
+                            key={tIdx}
+                            toolCall={toolCall}
+                            onDownloadPdf={handleDownloadToolPdf}
+                            downloadingPdf={downloadingToolPdf}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {m.text && (
+                      <div className="prose prose-xs max-w-none font-sans space-y-1 break-words">
+                        <ReactMarkdown components={MARKDOWN_COMPONENTS}>{m.text}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="font-sans leading-relaxed whitespace-pre-wrap break-words">{m.text}</p>
@@ -510,9 +742,9 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
 
           {/* Typing indicator */}
           {loadingChat && (
-            <div className="flex items-center gap-2 text-xs font-mono text-muted p-2 bg-white rounded-lg border border-hairline max-w-[200px] animate-pulse">
+            <div className="flex items-center gap-2 text-xs font-mono text-muted p-2 bg-white rounded-lg border border-hairline max-w-[240px] animate-pulse">
               <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
-              <span>Copilot is analyzing…</span>
+              <span>Gemini Assistant is processing…</span>
             </div>
           )}
 
@@ -527,9 +759,10 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
           {SUGGESTED_QUESTIONS.map((q, idx) => (
             <button
               key={idx}
+              type="button"
               disabled={loadingChat}
               onClick={() => handleSendMessage(q)}
-              className="text-[11px] font-sans px-2.5 py-1 rounded-full bg-surface-muted hover:bg-indigo-50 hover:text-indigo-700 border border-hairline hover:border-indigo-200 transition-colors disabled:opacity-40 text-slate-700"
+              className="text-[11px] font-sans px-2.5 py-1 rounded-full bg-surface-muted hover:bg-indigo-50 hover:text-indigo-700 border border-hairline hover:border-indigo-200 transition-colors disabled:opacity-40 text-slate-700 cursor-pointer"
             >
               {q}
             </button>
@@ -557,13 +790,13 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
               }
             }}
             disabled={loadingChat}
-            placeholder={`Ask Copilot about Case ${caseId || ""} (e.g., 'What is the mule topology?')...`}
+            placeholder={`Ask Gemini Assistant to analyze case, explain rules, trigger federation, simulate transactions, or block VPAs...`}
             className="flex-1 text-xs border border-hairline rounded-lg px-3 py-2 bg-surface-muted/40 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-sans"
           />
           <button
             type="submit"
             disabled={!input.trim() || loadingChat}
-            className="btn-primary py-2 px-4 text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5"
+            className="btn-primary py-2 px-4 text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
           >
             <span>Ask</span>
             <span>➔</span>
@@ -592,9 +825,10 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
           <div className="flex items-center gap-2">
             {!sarNarrative ? (
               <button
+                type="button"
                 onClick={handleGenerateSarDraft}
                 disabled={loadingSar}
-                className="px-3 py-1.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold font-mono transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-semibold font-mono transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
                 <span>📝</span>
                 <span>{loadingSar ? "Drafting SAR…" : "Draft SAR Narrative"}</span>
@@ -602,15 +836,17 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={handleCopySar}
-                  className="px-2.5 py-1 rounded bg-surface-muted hover:bg-slate-200 text-ink-900 text-xs font-mono border border-hairline transition-colors"
+                  className="px-2.5 py-1 rounded bg-surface-muted hover:bg-slate-200 text-ink-900 text-xs font-mono border border-hairline transition-colors cursor-pointer"
                 >
                   {copiedSar ? "Copied ✓" : "Copy SAR"}
                 </button>
                 <button
+                  type="button"
                   onClick={onExportSar}
                   disabled={downloadingPdf}
-                  className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-mono font-semibold transition-colors disabled:opacity-50"
+                  className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-mono font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {downloadingPdf ? "Exporting…" : "Export PDF"}
                 </button>
@@ -636,3 +872,5 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
     </div>
   );
 }
+
+export { CaseAiCopilotView as CaseAiAssistantView };
