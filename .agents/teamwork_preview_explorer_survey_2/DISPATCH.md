@@ -1,34 +1,31 @@
-## 2026-08-31T15:34:18Z
-You are Explorer 2 for SAMPATI V2 Sprint 3.
-Your task: Survey frontend NetworkConstellation (R3) and Investigations / CaseDrawer / ForensicImageViewer (R4, R1 frontend part).
+# Dispatch for teamwork_preview_explorer_survey_2
 
-Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2
-Workspace root: /home/avi/Downloads/Sampati_v2
-Read:
-- /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md (Sprint 3 section)
-- /home/avi/Downloads/Sampati_v2/frontend/src/components/NetworkConstellation.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/components/CaseDrawer.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/components/ForensicImageViewer.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/pages/InvestigationsPage.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/services/api.js (or relevant api client)
+- Role: Frontend & Dashboard Explorer
+- Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2
+- Parent orchestrator: teamwork_preview_orchestrator_10
+- Objective: Survey R2 (Threat Intelligence Dashboard frontend tab, real-time signal visualization, campaign similarity metrics, entity extraction flow) and R3 UI requirements (button wiring for Live Feed and simulation, reactive toasts).
 
-Investigate:
-1. `NetworkConstellation.jsx`:
-   - How canvas force graph and timeline are currently implemented.
-   - What is needed for:
-     a) Continuous spring-force physics simulation (smooth drift/settle even when paused).
-     b) Node pulsing glow animations on canvas (BLOCK = red, HOLD = amber, ALLOW = neutral).
-     c) Edge risk gradient (teal/amber/crimson) and animated particle flow dots along high-risk edges.
-     d) Auto-play on load when cases exist.
-     e) Mouse scroll-to-zoom and click-drag-to-pan.
-     f) Node click opening CaseDrawer.
-2. `InvestigationsPage.jsx` & `CaseDrawer.jsx` & `ForensicImageViewer.jsx`:
-   - Making case table rows clickable to open drawer.
-   - Status badge filtering (OPEN / ESCALATED / DISMISSED) without reload.
-   - Animated DMV arc/dial gauge in CaseDrawer (green <40, amber 40-70, red >70).
-   - Sorted horizontal bar chart with Recharts for rule breakdown.
-   - ForensicImageViewer: direct static fallback `/static/upi_cases/{case_id}_ring.png` on 404, smooth fade-in, and in-browser SVG ring topology fallback from `case.topology`.
-   - SAR export button: real PDF binary download and error toast if not PDF.
+## 2026-09-03T09:35:48Z
+You are teamwork_preview_explorer_survey_2.
+Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2`.
+You MUST read the authoritative user request at `/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md` (especially the latest section timestamp 2026-09-03T09:32:24Z) and your dispatch at `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/DISPATCH.md`.
 
-Write your findings to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/handoff.md`.
-Use `send_message` to report back to parent when complete with path to handoff.md.
+Your mission:
+Investigate the frontend architecture and UI requirements for Requirement 2 ("Threat Intelligence Dashboard") and R3 UI Interactivity.
+Specifically:
+1. Inspect `frontend/src/` navigation bar/tabs (e.g. `Navbar.jsx`, `App.jsx`, or router) to see how page tabs are defined and navigated.
+2. Investigate how to create a dedicated "Threat Intelligence" tab/page in the top navigation bar.
+3. Determine how to implement:
+   - Real-time visualization of incoming pre-transaction signals (WebSocket or polling, signal stream component).
+   - Suspected Campaign clustering metrics display (e.g., "Campaign similarity: 94%").
+   - Explicit visualization of entity extraction flow (SMS -> Phone/UPI/URL -> Graph) using animated or visual workflow diagram/cards.
+4. Investigate R3 UI wiring:
+   - "Start Live Feed" button in `ControlBar.jsx` or `OverviewPage.jsx` and its connection to `/upi/autofeed/start` and `/upi/autofeed/stop`.
+   - "Run batch simulation" button and its connection to `/upi/simulate`.
+   - How WebSocket events currently update the charts (e.g., "Verdict Velocity & History" chart) and what changes are needed to ensure real-time dynamic updates.
+   - Toast notification system: check if a toast library or custom toast component already exists in `frontend/src/` (e.g., in context/ or components/), or what is needed to implement reactive Toast Notifications for all button clicks.
+5. Check ESLint setup and frontend build requirements (`npm run lint`, `npm run build`) and potential gotchas (React hooks ref cleanup, etc.).
+
+Write your findings and recommendations into `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/handoff.md`.
+Use send_message to notify parent when complete with the path to your handoff file.
+

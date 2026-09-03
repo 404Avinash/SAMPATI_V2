@@ -1,7 +1,7 @@
-# BRIEFING — 2026-09-02T18:01:00Z
+# BRIEFING — 2026-09-03T10:36:08Z
 
 ## Mission
-Empirically stress-test search ranking, alias resolution, and prompt context integrity in `app/engine/encyclopedia_kb.py` for Milestone M1.
+Adversarially stress-test Early Warning Intelligence Layer (FastAPI endpoints under concurrent burst load, large 50KB payload handling, pagination edge cases, and SPA fallback disambiguation).
 
 ## 🔒 My Identity
 - Archetype: Empirical Challenger
@@ -10,6 +10,10 @@ Empirically stress-test search ranking, alias resolution, and prompt context int
 - Original parent: 708f3126-0948-4197-8593-5296c58527f6
 - Milestone: M1 (Encyclopedia Knowledge Base)
 - Instance: 2 of 2
+- Current Parent: 7db76162-5ffa-4602-861a-acf225296fb6
+- Current Milestone: M1 (True Machine Learning Layer — Isolation Forest)
+- New Parent: teamwork_preview_orchestrator_11 (93ffe563-3fed-400b-b381-966248be98c4)
+- Current Milestone: M1 (Early Warning Intelligence Layer — API & Load Stress Testing)
 
 ## 🔒 Key Constraints
 - Review-only — do NOT modify implementation code
@@ -18,34 +22,44 @@ Empirically stress-test search ranking, alias resolution, and prompt context int
 - Do NOT place source code or test files inside .agents/ metadata directories
 
 ## Current Parent
-- Conversation ID: 708f3126-0948-4197-8593-5296c58527f6
-- Updated: 2026-09-02T18:01:00Z
+- Conversation ID: 93ffe563-3fed-400b-b381-966248be98c4
+- Updated: 2026-09-03T10:36:08Z
 
 ## Review Scope
-- **Files to review**: `app/engine/encyclopedia_kb.py`, `tests/test_encyclopedia_kb.py`
-- **Interface contracts**: `/home/avi/Downloads/Sampati_v2/PROJECT.md`, `/home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md`
-- **Review criteria**: Alias normalization, collision resistance, search precision & recall across 19 rule families, Markdown prompt context syntax integrity (tables, brackets, escaping).
+- **Files to review**: `app/api/intel.py`, `app/main.py`, `app/services/threat_intel_service.py`, `app/models/threat_intel.py`, `app/services/graph_service.py`, `tests/test_threat_intel_r1.py`
+- **Interface contracts**: `/intel/signals`, `/intel/graph`, `/intel/campaigns`, `/intel/simulate`, `/threat-intel`
+- **Review criteria**:
+  1. Concurrent burst load (50+ signals in rapid succession)
+  2. Large payload handling (50KB message with dozens of extracted entities)
+  3. Pagination edge cases (limit=10000, offset=-5, limit=0)
+  4. SPA fallback disambiguation (/intel/invalid -> JSON 404, /threat-intel -> HTML 200)
+  5. Idempotent graph node deduplication (same phone/UPI)
 
 ## Attack Surface
 - **Hypotheses tested**:
-  1. Alias collisions between different rule families (0 collisions across 19 rules, 490 index entries).
-  2. Case-insensitivity, whitespace tolerance, punctuation variations, prefix handling (`RULE_`, `R_`, `HIT_`, `CHECK_`).
-  3. Keyword search precision/recall across all 19 canonical codes (100%), 154 aliases (100%), 19 rule names (100%), 155 keywords (83.2% Top-1, 98.1% Top-3, 100% Top-5), and 19 domain concept queries (100%).
-  4. Markdown context table formatting, bracket balancing, fence parity, and pipe/newline escaping under adversarial payloads.
+  - High-concurrency burst load on `POST /intel/signals` (50 threads): PASSED (62 req/s, 100% success, 0 deadlocks/race conditions).
+  - Large payload handling (50KB unstructured text): PASSED (183ms processing, 0 ReDoS, ~94% KYC similarity match).
+  - Extreme pagination parameters (`limit=10000`, `offset=-5`, `limit=0`): PASSED (422 validation on invalids, clean 200 on boundaries).
+  - SPA fallback route disambiguation: PASSED (`/intel/invalid` -> JSON 404, `/threat-intel` -> HTML 200).
+  - Idempotent graph node deduplication: PASSED (0 node explosion in NetworkX DiGraph).
 - **Vulnerabilities found**:
-  - Unsanitized pipe `|` and newline `\n` in custom rule `detail` strings can misalign Tier-1 Markdown table columns (7 cols vs 5 cols) or split rows across lines. Non-blocking; documented mitigation for downstream M2 prompt injection.
+  - Multi-Entity Array Truncation: `[phone] if phone else extracted.phones` in `ThreatIntelService.ingest_signal` discards secondary entities in unstructured messages containing multiple phones/UPIs because `phone` is auto-populated with `primary_phone`. Logged as Polish Advisory for M2/future work.
 - **Untested angles**:
-  - Multilingual queries (Hindi / Devanagari script) — current KB is English-centric.
+  - Long-term PostgreSQL storage migrations with millions of threat signals.
 
 ## Loaded Skills
 - None required for review-only challenger (safe-push noted).
 
 ## Key Decisions Made
-- Executed comprehensive Python test harnesses directly testing 19 rule families, 154 aliases, 155 keywords, and adversarial string payloads.
-- Final Verdict: **APPROVE**.
+- Executed empirical verification via `fastapi.testclient.TestClient` and `concurrent.futures.ThreadPoolExecutor` in `tests/test_adversarial_m1_empirical.py`.
+- Verified 100% pass rate across 5 adversarial stress test suites.
+- Verified Ruff check zero warnings.
+- Issued verdict: **APPROVE** (Production Ready with Polish Advisory).
+- Documented all empirical evidence, logic chains, and reproduction commands in `handoff.md`.
 
 ## Artifact Index
 - `.agents/teamwork_preview_challenger_m1_2/DISPATCH.md` — Inbound prompt log
 - `.agents/teamwork_preview_challenger_m1_2/BRIEFING.md` — Situational awareness
 - `.agents/teamwork_preview_challenger_m1_2/progress.md` — Execution heartbeat
 - `.agents/teamwork_preview_challenger_m1_2/handoff.md` — Final handoff report
+

@@ -66,6 +66,10 @@ class UpiEvaluationResponse(BaseModel):
     rule_score: int = Field(default=0, description="Layer 1 deterministic rule score")
     adaptive_score: float = Field(default=0.0, description="Layer 2 adaptive anomaly score")
     network_score: float = Field(default=0.0, description="Layer 3 federated graph network score")
+    ml_anomaly_score: float = Field(
+        default=0.0,
+        description="Unsupervised Isolation Forest multivariate anomaly score in [0.0, 1.0]",
+    )
     execution_latency_ms: float = Field(default=0.0, description="Decision latency in milliseconds")
     evaluated_at: datetime = Field(default_factory=utcnow, description="Evaluation timestamp")
     case_id: Optional[str] = Field(default=None, description="Investigative case ID if HOLD or BLOCK")

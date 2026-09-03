@@ -1,46 +1,50 @@
-# BRIEFING — 2026-08-31T15:38:30Z
+# BRIEFING — 2026-09-03T09:41:00Z
 
 ## Mission
-Survey backend codebase for Requirements R1 (Static Mount, Forensic Image Persistence, requirements.txt) and R2 (Demo Seed Data on Load) for SAMPATI V2 Sprint 3.
+Survey backend architecture, database models, FastAPI routes, and central Fraud Graph for Requirement 1: Early Warning Intelligence Layer (Backend).
 
 ## 🔒 My Identity
 - Archetype: explorer
-- Roles: investigation, synthesis
+- Roles: Backend & Threat Intel Explorer
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1
-- Original parent: e091e8ff-a378-4da9-bac2-dfc927cb605b
-- Milestone: Sprint 3 Backend Survey (R1 & R2)
+- Original parent: 1d0e3cfc-1bcd-4db9-88c0-55fb7981a628
+- Milestone: Survey R1 - Early Warning Intelligence Layer (Backend)
 
 ## 🔒 Key Constraints
-- Read-only investigation — do NOT modify application source code
-- Produce detailed 5-component handoff report
-- Deliver handoff path via send_message to parent (e091e8ff-a378-4da9-bac2-dfc927cb605b)
+- Read-only investigation — do NOT implement source code changes directly
+- Output structured analysis report to handoff.md in own folder
+- Notify parent agent via send_message when done
 
 ## Current Parent
-- Conversation ID: e091e8ff-a378-4da9-bac2-dfc927cb605b
-- Updated: 2026-08-31T15:38:30Z
+- Conversation ID: 1d0e3cfc-1bcd-4db9-88c0-55fb7981a628
+- Updated: 2026-09-03T09:41:00Z
 
 ## Investigation State
 - **Explored paths**:
-  - `app/main.py` (lines 270–292: static mount missing, SPA fallback handler structure)
-  - `app/services/upi_cases.py` (lines 120–128: artifact_dir init; lines 1088–1115: render_ring_png invocation)
-  - `app/api/upi.py` (endpoints /cases/{case_id}/graph.png, /simulate, /stats, /autofeed/*)
-  - `app/services/autofeed.py` (background thread worker loop design)
-  - `app/forensics/sar_pdf.py` (PDF binary generation using matplotlib and PIL)
-  - `requirements.txt` (checked reportlab absence and complete package catalog)
-  - `Dockerfile` (dependency installation and directory structures)
-  - `tests/` (ran full pytest suite: 710 passed)
-  - `frontend/src/services/api.js` & `ForensicImageViewer.jsx` (image URL resolution and fallback requirements)
+  - `ORIGINAL_REQUEST.md` (2026-09-03T09:32:24Z specification)
+  - `PROJECT.md`, `ENCYCLOPEDIA.md`, `AGENTS.md`
+  - `app/main.py` (lifespan, routers, `api_prefixes` SPA fallback)
+  - `app/api/` (`upi.py`, `federation.py`, `websocket.py`)
+  - `app/models/` (`upi_persistence.py`, `upi_models.py`)
+  - `app/services/` (`upi_cases.py`, `autofeed.py`, `gemini_service.py`)
+  - `app/engine/` (`campaign.py`, `upi_rules.py`, `upi_scorer.py`, `isolation_forest.py`)
+  - `tests/` (`test_federation_api.py`, `test_m1_persistence.py`, `test_m2_websocket.py`)
+  - `frontend/src/` (`App.jsx`, `services/api.js`, `components/NetworkConstellation.jsx`)
 - **Key findings**:
-  - `app.mount("/static", ...)` is missing from `app/main.py` and must be placed before `app.mount("/", ...)`.
-  - `render_ring_png` in `upi_cases.py` writes to `static/upi_cases/{case_id}_ring.png`.
-  - `reportlab>=4.0.0` needs to be added to `requirements.txt`.
-  - Demo auto-seeding (~150 txns, fraud_ratio=0.25) can be triggered non-blockingly via daemon thread on lifespan startup and on first `/upi/stats` query.
-- **Unexplored areas**: None. Backend investigation for R1 & R2 complete.
+  - No existing `graph_service.py`; `networkx` 3.6.1 is installed. Creating `FraudGraphService` provides a unified multi-entity graph.
+  - `app/models/threat_intel.py` and `ThreatSignalModel` in `upi_persistence.py` will handle Pydantic validation and PostgreSQL JSONB persistence.
+  - `app/engine/campaign.py` already implements cosine-weighted clustering (`CAMP-KYC-PHISH-01`, `CAMP-SMURF-BURST-02`, `CAMP-INVESTMENT-03`).
+  - `app/main.py` `api_prefixes` must include `/intel` and `/threat-intel` to avoid SPA 404 fallback interception.
+  - Full blueprint and 12-test suite defined in `analysis.md` and `handoff.md`.
+- **Unexplored areas**: Implementation delegated to implementer; survey complete.
 
 ## Key Decisions Made
-- Fully documented 5-component handoff report in `handoff.md`.
+- Designed hybrid structured + regex extraction engine for Indian telephone, UPI VPA, and URL formats.
+- Dual persistence pattern (PostgreSQL + in-memory fallback) to guarantee 100% test compatibility.
+- Expose endpoints under `/intel/*` and `/threat-intel/*` with real-time WebSocket push.
 
 ## Artifact Index
-- handoff.md — Complete 5-component survey report for implementers
-- progress.md — Liveness & step log
-- DISPATCH.md — Initial dispatch message
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/BRIEFING.md — Working memory
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/progress.md — Liveness heartbeat
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/analysis.md — In-depth architectural specification
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md — 5-component handoff report

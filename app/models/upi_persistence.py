@@ -288,3 +288,77 @@ class AggregateStatsModel(Base):
             "metadata_json": getattr(self, "metadata_json", None),
             "updated_at": self.updated_at.isoformat() if isinstance(getattr(self, "updated_at", None), datetime) else str(getattr(self, "updated_at", "")),
         }
+
+
+class ThreatSignalModel(Base):
+    """Persistent storage for pre-transaction threat intelligence signals."""
+    __tablename__ = "threat_signals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signal_id = Column(String(64), unique=True, index=True, nullable=False)
+    source = Column(String(64), default="external", nullable=False, index=True)
+    phone = Column(String(32), nullable=True, index=True)
+    upi_id = Column(String(128), nullable=True, index=True)
+    url = Column(String(512), nullable=True)
+    tags = Column(JSON_TYPE, default=list, nullable=False)
+    raw_content = Column(Text, nullable=True)
+    severity = Column(String(32), default="MEDIUM", nullable=False, index=True)
+    confidence = Column(Float, default=0.85, nullable=False)
+    extracted_entities = Column(JSON_TYPE, default=dict, nullable=True)
+    matched_campaign_id = Column(String(64), nullable=True, index=True)
+    matched_campaign_name = Column(String(128), nullable=True)
+    similarity_score = Column(Float, default=0.0, nullable=False)
+    case_id = Column(String(64), ForeignKey("upi_cases.case_id", ondelete="SET NULL"), nullable=True, index=True)
+    ring_hash = Column(String(64), ForeignKey("mule_rings.ring_hash", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+
+    # Relationships
+    case = relationship("UpiCaseModel", foreign_keys=[case_id])
+    mule_ring = relationship("MuleRingModel", foreign_keys=[ring_hash])
+
+    if SQLALCHEMY_AVAILABLE:
+        __table_args__ = (
+            Index("ix_threat_signals_source_created", "source", "created_at"),
+            Index("ix_threat_signals_severity_created", "severity", "created_at"),
+            Index("ix_threat_signals_phone_created", "phone", "created_at"),
+            Index("ix_threat_signals_upi_created", "upi_id", "created_at"),
+        )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert model instance to a JSON-serializable dictionary."""
+        def _safe_f(v, default=0.0):
+            try:
+                return float(v)
+            except Exception:
+                return default
+
+        return {
+            "id": getattr(self, "id", None) if not hasattr(getattr(self, "id", None), "name") else None,
+            "signal_id": getattr(self, "signal_id", None) if not hasattr(getattr(self, "signal_id", None), "name") else None,
+            "source": getattr(self, "source", "external") if isinstance(getattr(self, "source", None), str) else "external",
+            "phone": getattr(self, "phone", None) if isinstance(getattr(self, "phone", None), str) else None,
+            "upi_id": getattr(self, "upi_id", None) if isinstance(getattr(self, "upi_id", None), str) else None,
+            "url": getattr(self, "url", None) if isinstance(getattr(self, "url", None), str) else None,
+            "tags": getattr(self, "tags", None) if isinstance(getattr(self, "tags", None), list) else [],
+            "raw_content": getattr(self, "raw_content", None) if isinstance(getattr(self, "raw_content", None), str) else None,
+            "severity": getattr(self, "severity", "MEDIUM") if isinstance(getattr(self, "severity", None), str) else "MEDIUM",
+            "confidence": _safe_f(getattr(self, "confidence", 0.85), 0.85),
+            "extracted_entities": getattr(self, "extracted_entities", {}) if isinstance(getattr(self, "extracted_entities", None), dict) else {},
+            "matched_campaign_id": getattr(self, "matched_campaign_id", None) if isinstance(getattr(self, "matched_campaign_id", None), str) else None,
+            "matched_campaign_name": getattr(self, "matched_campaign_name", None) if isinstance(getattr(self, "matched_campaign_name", None), str) else None,
+            "similarity_score": _safe_f(getattr(self, "similarity_score", 0.0), 0.0),
+            "case_id": getattr(self, "case_id", None) if isinstance(getattr(self, "case_id", None), str) else None,
+            "ring_hash": getattr(self, "ring_hash", None) if isinstance(getattr(self, "ring_hash", None), str) else None,
+            "created_at": self.created_at.isoformat() if isinstance(getattr(self, "created_at", None), datetime) else str(getattr(self, "created_at", "")),
+        }
+

@@ -143,7 +143,7 @@ export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) 
             Mule Signature Metric · Dormancy vs Sudden Outflow
           </div>
           <div className="font-serif font-bold text-ink-900 text-base sm:text-lg">
-            Top VPAs by Dead Money Velocity (DMV)
+            Top VPAs by Dormant-to-Active Velocity (DAV)
           </div>
         </div>
 

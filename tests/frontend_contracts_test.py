@@ -343,7 +343,7 @@ class TestFrontendSprint2Contracts(unittest.TestCase):
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("dmv_score", content)
-        self.assertIn("Dead Money Velocity", content)
+        self.assertIn("Dormant-to-Active Velocity", content)
         self.assertIn("Export SAR", content)
         self.assertIn("downloadSarPdf", content)
 
@@ -371,7 +371,7 @@ class TestFrontendSprint2Contracts(unittest.TestCase):
         self.assertTrue(os.path.exists(dmv_table_path))
         with open(dmv_table_path, "r", encoding="utf-8") as f:
             t_content = f.read()
-        self.assertIn("Dead Money Velocity", t_content)
+        self.assertIn("Dormant-to-Active Velocity", t_content)
         self.assertIn("dmv_score", t_content)
 
     def test_control_bar_autofeed_toggle_and_tps_controls(self):

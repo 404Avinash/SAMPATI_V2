@@ -75,6 +75,13 @@ from app.api import federation as federation_router
 from app.api import upi as upi_router
 from app.models.upi_models import AiChatRequest, CaseStatusUpdateRequest
 
+# Threat Intelligence & Early-Warning Mesh router
+try:
+    from app.api import intel as intel_router
+except Exception:
+    intel_router = None
+
+
 # DB + settings
 try:
     from app.config import get_settings
@@ -189,6 +196,11 @@ if synthetic and hasattr(synthetic, "router"):
     app.include_router(synthetic.router, prefix="/synthetic", tags=["Synthetic"])
 if websocket and hasattr(websocket, "router"):
     app.include_router(websocket.router, tags=["WebSocket"])
+if intel_router and hasattr(intel_router, "router"):
+    app.include_router(intel_router.router, prefix="/intel", tags=["Threat Intel"])
+    app.include_router(intel_router.router, prefix="/threat-intel", tags=["Threat Intel"])
+    app.include_router(intel_router.router, prefix="/upi/intel", tags=["Threat Intel"])
+
 
 
 @app.get("/health", tags=["System"])
@@ -431,8 +443,11 @@ if FASTAPI_AVAILABLE:
             "/api",
             "/stats",
             "/static",
+            "/intel",
+            "/threat-intel",
         )
-        is_api = any(path.startswith(prefix) for prefix in api_prefixes)
+        is_ui_page = path in ("/threat-intel", "/threat-intel/")
+        is_api = any(path.startswith(prefix) for prefix in api_prefixes) and not is_ui_page
         has_extension = "." in path.split("/")[-1]
 
         if not is_api and not has_extension and os.path.isfile(_index_html):
@@ -441,6 +456,7 @@ if FASTAPI_AVAILABLE:
             status_code=404,
             content={"detail": getattr(exc, "detail", f"Path '{path}' not found")},
         )
+
 
     # 1. Mount /static BEFORE root SPA mount so ring PNGs are directly accessible
     if os.path.isdir(_static_dir):

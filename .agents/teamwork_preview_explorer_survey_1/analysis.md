@@ -1,406 +1,325 @@
-# Backend & Federation Architecture Analysis — SAMPATI V2
+# Backend Architecture Survey & Technical Specification: Requirement 1 — Early Warning Intelligence Layer
 
-## Executive Summary
-This report details the architectural investigation for upgrading SAMPATI V2 into an **Open Federated Fraud Intelligence Mesh**. It covers the complete backend design for two primary pillars:
-1. **R2. Federation Signal Exchange API**: High-throughput, privacy-preserving threat intelligence exchange (`POST /federation/signal`, `GET /federation/query?vpa_hash=<hash>`), sub-5ms in-memory/Redis hot state cache, and dynamic integration with Layer 3 `network_score` in `/upi/check` and `UpiEvaluationResponse`.
-2. **R3. VPA Honeypot Network Backend**: Seeded registry of synthetic honeypot UPI VPAs, deterministic `R_HONEYPOT_HIT` rule enforcing an immediate `BLOCK` verdict (100 risk points) with `R_HONEYPOT_HIT` in reasons, per-VPA hit counting & last-hit timestamp telemetry, and real-time "Honeypot Hits (24h)" aggregation exposed via `/upi/stats`, `get_current_stats()`, and WebSocket broadcasts.
-
-All 492 existing tests across Tiers 1-5 currently pass. The proposed changes preserve 100% backwards compatibility with zero regressions.
-
----
-
-## 1. Codebase Architecture Survey
-
-### 1.1 Existing Component Map
-
-| Component | File Path | Current State & Responsibility |
-|---|---|---|
-| **Entry Point & App Config** | `app/main.py` | FastAPI app instance, CORS middleware, route mounting (`/upi`, `/gateway`, `/cases`, `/synthetic`, `/ws`, `/health`, `/stats`), SPA fallback 404 handler, DB lifecycle (`init_db`/`close_db`). |
-| **UPI API Router** | `app/api/upi.py` | REST endpoints for `/upi/check`, `/upi/simulate`, `/upi/stats`, `/upi/stats/analytics`, `/upi/health/detailed`, `/upi/rings`, `/upi/federation/run`, `/upi/cases/{id}/feedback`. |
-| **WebSocket Hub** | `app/api/websocket.py` | Real-time event broadcasting (`new_case`, `stats_update`, `UPI_EVALUATED`, `UPI_CASE_OPENED`, `FEDERATION_ROUND`, `SIMULATION_COMPLETE`). |
-| **Case Management Service** | `app/services/upi_cases.py` | Singleton coordinator orchestrating `UpiHotState`, `AdaptiveBehaviorModel`, `UpiRiskScorer`, `FederatedCoordinator`, `DpipFeed`, and persistence to SQLAlchemy/PostgreSQL. |
-| **Federation Coordinator** | `app/federation/coordinator.py` | Multi-PSP federation engine maintaining pseudonymized node features, ring detection, and cross-PSP network scores. |
-| **PSP Node & Pseudonymization** | `app/federation/psp_node.py` | Windowed feature tracking per PSP and HMAC-SHA256 pseudonymization (`pseudonymize(vpa, salt)`). |
-| **Risk Scorer Engine** | `app/engine/upi_scorer.py` | 3-layer hybrid scorer: Layer 1 (Deterministic Rules: 0-100 pts), Layer 2 (Adaptive EWMA: 0-25 pts), Layer 3 (Federated Network Graph: 0-40 pts). Thresholds: `ALLOW_BELOW = 45`, `BLOCK_AT = 70`. |
-| **Deterministic Rules Engine** | `app/engine/upi_rules.py` | Individual rule functions (`rule_new_payee_vpa`, `rule_pass_through_conduit`, `rule_fan_in_burst`, `rule_fan_out_dispersal`, `rule_device_farm`, `rule_new_account_high_value`, `rule_limit_skirting`, `rule_known_fraud_entity`). |
-| **Hot State Cache** | `app/engine/upi_state.py` & `app/engine/redis_state.py` | In-memory sliding window state with Redis cache fallback support. |
-| **Data Models** | `app/models/upi_models.py` | Pydantic schemas for `UpiTransaction`, `UpiEvaluationResponse`, `RuleHit`, `MuleRingSummary`, `FeedbackRequest`, `SimulateRequest`, `AnalyticsResponse`, etc. |
-| **Persistence Models** | `app/models/upi_persistence.py` | SQLAlchemy declarative models: `UpiCaseModel`, `MuleRingModel`, `CaseFeedbackModel`, `AggregateStatsModel`. |
+**Target Component**: Early Warning Threat Intelligence Engine, Central Fraud Graph, Database Models & FastAPI API Layer  
+**Target Requirement**: Requirement 1 — Early Warning Intelligence Layer (Backend) per `ORIGINAL_REQUEST.md` (2026-09-03T09:32:24Z)  
+**Author**: Explorer 1 (`teamwork_preview_explorer_survey_1`)  
+**Date**: 2026-09-03  
+**Integrity Mode**: Benchmark  
+**Baseline Test Status**: 833 / 833 tests passing (100%), Ruff clean, ESLint clean, Vite build clean.
 
 ---
 
-## 2. Deep Dive: R2. Federation Signal Exchange API
+## 1. Executive Summary & Problem Scope
 
-### 2.1 Requirements Breakdown
-1. `POST /federation/signal`:
-   - Request schema accepts `{vpa_hash: str, risk_level: str|float, ring_hash: Optional[str]}`.
-   - Accepts both string labels (e.g. `"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, `"LOW"`) and numerical float scores (0.0 to 1.0).
-   - Ingests threat signals from peer bank PSP nodes into the hot state.
-   - Returns HTTP 200 JSON with status and signal echo.
-2. `GET /federation/query?vpa_hash=<hash>`:
-   - Returns `{federated_risk_score: float, ring_members: List[str], reported_by_nodes: List[str]}`.
-   - Guarantees sub-5ms response times via Redis hot key caching with thread-safe in-memory cache fallback.
-3. Integration with `/upi/check` & `UpiEvaluationResponse`:
-   - During transaction evaluation, `FederatedCoordinator.network_score_for_txn(txn)` checks the payee and payer VPAs against registered signals using:
-     - Direct raw VPA lookup (`vpa.lower()`)
-     - SHA-256 hash lookup (`hashlib.sha256(vpa.lower().encode()).hexdigest()`)
-     - HMAC-SHA256 salted pseudonym lookup (`pseudonymize(vpa, salt)`)
-   - If a signal matches, `network_score` is non-zero in `UpiEvaluationResponse` (e.g. 0.85).
-   - `network_score` contributes up to 40 points (`NETWORK_MAX_POINTS * network_score`) to composite `risk_score`.
-   - If `network_score >= 0.5`, `"FEDERATED_MULE_NETWORK"` is automatically appended to `reasons`.
+Requirement 1 mandates the construction of an **Early-Warning Intelligence Layer** to ingest pre-transaction threat signals before funds ever move across UPI rails:
+1. **Pre-Transaction Threat Signals**: Ingest standard fraud signal JSON payloads (from external mobile apps, mock PSPs, and SMS telemetry) containing identifiers (`Phone`, `UPI ID`, `URL`) and social engineering tags (e.g., `"Bank impersonation"`, `"Urgency"`, `"KYC Expiry"`, `"Lottery / Reward"`).
+2. **Entity Extraction & Parsing**: Support both structured identifier inputs and automatic regex entity extraction from raw unstructured message text (SMS / WhatsApp / phishing messages).
+3. **Campaign Clustering & Similarity**: Automatically match extracted signals against fraud syndicate campaign profiles (e.g., `CAMP-KYC-PHISH-01`, `CAMP-INVESTMENT-03`), calculating campaign similarity percentages (e.g., `94%`).
+4. **Central Fraud Graph Linkage (`app/services/graph_service.py`)**: Automatically link pre-transaction threat entities to existing UPI cases, mule rings, and transaction nodes in a centralized, queryable `networkx.DiGraph` fraud graph.
+5. **PostgreSQL Persistence & In-Memory Fallback**: Store signals in a new `ThreatSignalModel` (`threat_signals` table) in PostgreSQL via SQLAlchemy 2.0 with full JSONB support, while maintaining high-performance in-memory cache resilience when running without a database.
+6. **Real-Time Streaming & API Endpoints**: Expose `/intel/signals`, `/intel/graph`, `/intel/campaigns`, and `/intel/simulate` REST endpoints, and broadcast real-time `THREAT_SIGNAL_RECEIVED` events across the WebSocket push hub.
 
-### 2.2 Data Models & Schema Design (`app/models/upi_models.py`)
+---
+
+## 2. Codebase Audit & Architectural Baseline
+
+### 2.1 Existing Routers (`app/api/`)
+- **`app/api/upi.py`**:
+  - Contains inline gate `POST /upi/check`, case management `/upi/cases`, `/upi/simulate`, and `/upi/stats`.
+  - Uses `broadcast_event("UPI_EVALUATED", payload)` from `app.api.websocket`.
+  - Employs `Depends(get_db)` yielding `Optional[AsyncSession]`.
+- **`app/api/federation.py`**:
+  - Exposes `POST /federation/signal`, `GET /federation/query`, and `GET /federation/signals`.
+  - Manages inter-PSP hash-level signals via `FederatedCoordinator` (`app/federation/coordinator.py`).
+  - Broadcasts `FEDERATION_SIGNAL_RECEIVED` over WebSocket.
+- **`app/api/websocket.py`**:
+  - Provides `ConnectionManager` with routes `/ws`, `/ws/`, `/ws/feed`.
+  - Exposes `broadcast_event(event, payload)` (async) and `schedule_broadcast(payload)` (thread-safe synchronous helper).
+- **`app/main.py`**:
+  - Line 423-435 defines `api_prefixes` for the SPA 404 fallback handler:
+    ```python
+    api_prefixes = (
+        "/upi",
+        "/federation",
+        "/gateway",
+        "/cases",
+        "/synthetic",
+        "/ws",
+        "/health",
+        "/api",
+        "/stats",
+        "/static",
+    )
+    ```
+  - **CRITICAL**: The SPA fallback handler returns `index.html` for any 404 route not matching `api_prefixes`. Thus, `/intel` and `/threat-intel` MUST be added to `api_prefixes` in `app/main.py`!
+
+### 2.2 Existing Database Layer (`app/db/` & `app/models/upi_persistence.py`)
+- **`app/db/session.py`**:
+  - Initializes database in `init_db()` via `await conn.run_sync(UpiBase.metadata.create_all)`.
+  - Provides `get_db()` FastAPI dependency yielding `Optional[AsyncSession]`.
+  - Gracefully falls back to in-memory mode if `DATABASE_URL` is empty.
+- **`app/models/upi_persistence.py`**:
+  - Defines `UpiCaseModel` (`upi_cases`), `MuleRingModel` (`mule_rings`), `CaseFeedbackModel` (`case_feedback`), and `AggregateStatsModel` (`aggregate_stats`).
+  - Uses `JSON_TYPE = JSON().with_variant(JSONB, "postgresql")` for cross-database JSON/JSONB support.
+
+### 2.3 Central Fraud Graph Status
+- Currently, there is **no dedicated `graph_service.py`** in `app/services/`.
+- Graph data is fragmented:
+  - `UpiCaseService._cases[case_id]["topology"]` holds fan-in/fan-out/hops counters.
+  - `FederatedCoordinator._rings` holds member sets.
+  - `NetworkConstellation.jsx` synthesizes nodes and edges ad-hoc on the frontend canvas from case topologies.
+- `networkx 3.6.1` is already installed and verified in `./.venv/bin/python`.
+- Creating `app/services/graph_service.py` (`FraudGraphService`) establishes a single source of truth for the multi-entity fraud graph.
+
+### 2.4 Campaign Engine (`app/engine/campaign.py`)
+- Defines `CampaignSignature` and `CampaignSignatureStore` (`get_campaign_store()`).
+- Seeds 3 reference campaigns:
+  - `CAMP-KYC-PHISH-01`: "KYC Phishing Syndicate" (keywords: kyc, verify, pan, aadhar, unblock, otp, suspend)
+  - `CAMP-SMURF-BURST-02`: "Micro-Smurfing Dispersal Ring" (keywords: transfer, split, cashout, p2p, conduit)
+  - `CAMP-INVESTMENT-03`: "Task Scam / Investment Fraud Ring" (keywords: task, invest, bonus, telegram, crypto, profit, commission)
+- Computes cosine-like similarity `compute_similarity(txn)` and `match_campaign(txn, threshold=0.82)`.
+- Can be directly utilized/extended to match incoming pre-transaction threat tags and text against campaign clusters!
+
+---
+
+## 3. Data Schemas & Pydantic Validation Models (`app/models/threat_intel.py`)
+
+### 3.1 Ingestion Request & Enriched Response Schemas
 
 ```python
-class FederationSignalRequest(BaseModel):
-    """Payload to submit a privacy-preserving federated VPA risk signal."""
-    vpa_hash: str = Field(..., description="SHA-256 hash or pseudonymized hash of suspicious VPA")
-    risk_level: Union[str, float] = Field(..., description="Risk level string (CRITICAL, HIGH, MEDIUM, LOW) or numeric score in [0.0, 1.0]")
-    ring_hash: Optional[str] = Field(default=None, description="Optional associated mule ring identifier")
-    node_id: Optional[str] = Field(default="peer_node", description="Reporting PSP node identifier")
+from __future__ import annotations
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+import uuid
+import re
+from pydantic import BaseModel, Field, model_validator
 
-class FederationSignalResponse(BaseModel):
-    """Response returned upon successful signal ingestion."""
-    status: str = Field(default="accepted", description="Ingestion status")
-    vpa_hash: str = Field(..., description="Ingested VPA hash")
-    risk_level: Union[str, float] = Field(..., description="Recorded risk level")
-    federated_risk_score: float = Field(..., description="Normalized numerical risk score in [0.0, 1.0]")
-    ring_hash: Optional[str] = Field(default=None, description="Associated mule ring identifier")
-    recorded_at: str = Field(..., description="UTC ISO timestamp of ingestion")
+class ThreatSignalCreateRequest(BaseModel):
+    """Payload for ingesting pre-transaction threat signals."""
+    signal_id: Optional[str] = Field(default=None, description="Optional custom identifier (auto-generated if null)")
+    source: str = Field(default="mobile_app", description="Source of threat intel: 'mobile_app', 'mock_psp', 'sms_telemetry', 'community_report'")
+    phone: Optional[str] = Field(default=None, description="Reported or extracted sender telephone number")
+    upi_id: Optional[str] = Field(default=None, description="Reported or extracted suspect UPI VPA")
+    url: Optional[str] = Field(default=None, description="Reported or extracted phishing/malicious URL")
+    tags: List[str] = Field(default_factory=list, description="Social engineering tags, e.g. ['Bank impersonation', 'Urgency', 'KYC Expiry']")
+    raw_content: Optional[str] = Field(default=None, description="Raw message text (SMS, WhatsApp, email body) for entity extraction")
+    confidence: float = Field(default=0.85, ge=0.0, le=1.0, description="Confidence score [0.0, 1.0]")
+    severity: str = Field(default="HIGH", description="Severity level: 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'")
+    reporter_info: Optional[Dict[str, Any]] = Field(default=None, description="Reporting agent, bank, or device metadata")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional custom telemetry attributes")
 
-class FederationQueryResponse(BaseModel):
-    """Response returned by fast federated risk query."""
-    vpa_hash: str = Field(..., description="Queried VPA hash")
-    federated_risk_score: float = Field(0.0, description="Normalized federated risk score in [0.0, 1.0]")
-    ring_members: List[str] = Field(default_factory=list, description="Associated ring member VPA hashes")
-    reported_by_nodes: List[str] = Field(default_factory=list, description="List of reporting PSP nodes")
-    cached: bool = Field(default=True, description="Whether served from sub-5ms hot state cache")
-    last_updated: Optional[str] = Field(default=None, description="ISO timestamp of last signal")
+    @model_validator(mode="after")
+    def validate_has_identifier_or_content(self) -> ThreatSignalCreateRequest:
+        if not (self.phone or self.upi_id or self.url or (self.raw_content and self.raw_content.strip())):
+            raise ValueError("At least one identifier (phone, upi_id, url) or raw_content must be provided.")
+        return self
+
+class ExtractedEntities(BaseModel):
+    phones: List[str] = Field(default_factory=list)
+    upi_ids: List[str] = Field(default_factory=list)
+    urls: List[str] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+
+class MatchedCampaignSummary(BaseModel):
+    campaign_id: str
+    campaign_name: str
+    similarity: float = Field(description="Clustering similarity score in [0.0, 1.0]")
+    scenario: str
+
+class ThreatSignalResponse(BaseModel):
+    """Full enriched response returned on signal ingestion and retrieval."""
+    signal_id: str
+    created_at: str
+    source: str
+    phone: Optional[str] = None
+    upi_id: Optional[str] = None
+    url: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    raw_content: Optional[str] = None
+    confidence: float
+    severity: str
+    status: str = "ACTIVE"
+    entities_extracted: ExtractedEntities
+    matched_campaign: Optional[MatchedCampaignSummary] = None
+    linked_case_id: Optional[str] = None
+    linked_ring_hash: Optional[str] = None
+    graph_nodes_count: int = 0
+    graph_edges_count: int = 0
+    metadata: Optional[Dict[str, Any]] = None
+
+class ThreatSignalListResponse(BaseModel):
+    total: int
+    signals: List[ThreatSignalResponse]
+    active_campaigns_count: int
+    linked_cases_count: int
 ```
 
-### 2.3 Router Design (`app/api/federation.py`)
+### 3.2 Entity Extraction Engine
 
-Create a dedicated `APIRouter` mounted at `/federation` (with aliases at `/upi/federation`):
-- `POST /federation/signal`: validates request, calls `service.federation.record_signal(...)`, broadcasts `FEDERATION_SIGNAL_RECEIVED`, returns HTTP 200.
-- `GET /federation/query`: extracts `vpa_hash` query parameter, calls `service.federation.query_signal(vpa_hash)`, returns `FederationQueryResponse`.
-- `GET /federation/signals`: lists recent active signals for observability and inspection.
+Extracts entities from `raw_content` with robust Indian financial telecommunication regexes:
+- **Phone Numbers**: `r"(?:\+91[\-\s]?|0)?[6-9]\d{9}\b"`
+- **UPI VPAs**: `r"\b[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}\b"`
+- **URLs**: `r"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b[-a-zA-Z0-9()@:%_\+.~#?&//=]*"`
+- **Social Engineering Tags**:
+  - `Bank impersonation`: "bank", "sbi", "hdfc", "icici", "rbi", "customer care", "helpline", "officer", "manager"
+  - `Urgency`: "immediately", "urgent", "blocked", "suspended", "24 hours", "today", "expire", "action required"
+  - `KYC Expiry`: "kyc", "pan", "aadhaar", "document", "verification", "unblock"
+  - `Lottery / Prize`: "lottery", "prize", "won", "reward", "cashback", "crore", "lakh", "congratulations"
+  - `Part-time Job / Task Scam`: "task", "job", "telegram", "crypto", "daily income", "part time", "vip"
+  - `Digital Arrest`: "police", "arrest", "cbi", "customs", "cyber crime", "court", "warrant"
 
-### 2.4 Coordinator Engine Implementation (`app/federation/coordinator.py`)
+---
 
-Add thread-safe hot signal storage & Redis sync to `FederatedCoordinator`:
+## 4. PostgreSQL Persistence Model (`app/models/upi_persistence.py`)
+
+Add `ThreatSignalModel` to `app/models/upi_persistence.py`:
+
 ```python
-class FederatedCoordinator:
-    def __init__(self, federation_salt: str = "sampati-demo-salt"):
-        self.salt = federation_salt
-        self.nodes = {psp: PspNode(psp, federation_salt) for psp in SIMULATED_PSPS}
-        self._lock = threading.Lock()
-        self._scores: Dict[str, float] = {}
-        self._signals: Dict[str, Dict[str, Any]] = {}
-        self._ring_members: Dict[str, Set[str]] = defaultdict(set)
-        self._rings: Dict[str, Dict[str, Any]] = {}
-        self._merged_features: Dict[str, Dict[str, Any]] = {}
+class ThreatSignalModel(Base):
+    """Persistent storage for pre-transaction early warning threat signals."""
+    __tablename__ = "threat_signals"
 
-    def record_signal(self, vpa_hash: str, risk_level: Any, ring_hash: Optional[str] = None, node_id: Optional[str] = None) -> Dict[str, Any]:
-        """Record privacy-preserving federated signal with sub-5ms lookup readiness."""
-        norm_score = self._normalize_risk_level(risk_level)
-        clean_hash = str(vpa_hash).strip().lower()
-        now_iso = datetime.now(timezone.utc).isoformat()
-        reporting_node = str(node_id or "external_psp")
+    signal_id = Column(String(64), primary_key=True, index=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+    source = Column(String(64), default="mobile_app", nullable=False, index=True)
+    phone = Column(String(32), nullable=True, index=True)
+    upi_id = Column(String(128), nullable=True, index=True)
+    url = Column(Text, nullable=True)
+    tags = Column(JSON_TYPE, default=list, nullable=False)
+    raw_content = Column(Text, nullable=True)
+    confidence = Column(Float, default=0.85, nullable=False)
+    severity = Column(String(16), default="HIGH", nullable=False, index=True)
+    status = Column(String(32), default="ACTIVE", nullable=False, index=True)
+    campaign_id = Column(String(64), nullable=True, index=True)
+    campaign_similarity = Column(Float, default=0.0, nullable=True)
+    linked_case_id = Column(String(64), ForeignKey("upi_cases.case_id", ondelete="SET NULL"), nullable=True, index=True)
+    linked_ring_hash = Column(String(64), ForeignKey("mule_rings.ring_hash", ondelete="SET NULL"), nullable=True, index=True)
+    entities_extracted = Column(JSON_TYPE, default=dict, nullable=True)
+    signal_metadata = Column(JSON_TYPE, default=dict, nullable=True)
 
-        with self._lock:
-            if clean_hash not in self._signals:
-                self._signals[clean_hash] = {
-                    "vpa_hash": clean_hash,
-                    "risk_level": risk_level,
-                    "score": norm_score,
-                    "ring_hash": ring_hash,
-                    "reported_by_nodes": set(),
-                    "recorded_at": now_iso,
-                    "last_updated": now_iso,
-                }
-            sig = self._signals[clean_hash]
-            sig["score"] = max(sig["score"], norm_score)
-            sig["reported_by_nodes"].add(reporting_node)
-            sig["last_updated"] = now_iso
-            if ring_hash:
-                sig["ring_hash"] = ring_hash
-                self._ring_members[ring_hash].add(clean_hash)
+    # Relationships
+    linked_case = relationship("UpiCaseModel", foreign_keys=[linked_case_id])
+    linked_ring = relationship("MuleRingModel", foreign_keys=[linked_ring_hash])
 
-            # Update direct lookup score
-            self._scores[clean_hash] = max(self._scores.get(clean_hash, 0.0), norm_score)
-
+    def to_dict(self) -> Dict[str, Any]:
         return {
-            "status": "accepted",
-            "vpa_hash": clean_hash,
-            "risk_level": risk_level,
-            "federated_risk_score": norm_score,
-            "ring_hash": ring_hash,
-            "recorded_at": now_iso,
+            "signal_id": getattr(self, "signal_id", None),
+            "created_at": self.created_at.isoformat() if isinstance(getattr(self, "created_at", None), datetime) else str(getattr(self, "created_at", "")),
+            "source": getattr(self, "source", "mobile_app"),
+            "phone": getattr(self, "phone", None),
+            "upi_id": getattr(self, "upi_id", None),
+            "url": getattr(self, "url", None),
+            "tags": getattr(self, "tags", []) or [],
+            "raw_content": getattr(self, "raw_content", None),
+            "confidence": float(getattr(self, "confidence", 0.85) or 0.85),
+            "severity": getattr(self, "severity", "HIGH"),
+            "status": getattr(self, "status", "ACTIVE"),
+            "campaign_id": getattr(self, "campaign_id", None),
+            "campaign_similarity": float(getattr(self, "campaign_similarity", 0.0) or 0.0),
+            "linked_case_id": getattr(self, "linked_case_id", None),
+            "linked_ring_hash": getattr(self, "linked_ring_hash", None),
+            "entities_extracted": getattr(self, "entities_extracted", {}) or {},
+            "signal_metadata": getattr(self, "signal_metadata", {}) or {},
         }
-
-    def query_signal(self, vpa_hash: str) -> Dict[str, Any]:
-        """Sub-5ms hot cache query for federated threat signals."""
-        clean_hash = str(vpa_hash).strip().lower()
-        with self._lock:
-            sig = self._signals.get(clean_hash)
-            if sig:
-                ring_h = sig.get("ring_hash")
-                members = list(self._ring_members.get(ring_h, [clean_hash])) if ring_h else [clean_hash]
-                return {
-                    "vpa_hash": clean_hash,
-                    "federated_risk_score": sig["score"],
-                    "ring_members": members,
-                    "reported_by_nodes": sorted(list(sig["reported_by_nodes"])),
-                    "cached": True,
-                    "last_updated": sig.get("last_updated"),
-                }
-            # Fallback check on raw _scores map
-            if clean_hash in self._scores:
-                return {
-                    "vpa_hash": clean_hash,
-                    "federated_risk_score": self._scores[clean_hash],
-                    "ring_members": [clean_hash],
-                    "reported_by_nodes": ["federated_mesh"],
-                    "cached": True,
-                    "last_updated": None,
-                }
-        return {
-            "vpa_hash": clean_hash,
-            "federated_risk_score": 0.0,
-            "ring_members": [],
-            "reported_by_nodes": [],
-            "cached": True,
-            "last_updated": None,
-        }
-
-    def network_score(self, vpa: str) -> float:
-        """Lookup federated score across raw VPA, SHA-256 hash, and salted pseudonym."""
-        if not vpa:
-            return 0.0
-        clean_vpa = vpa.strip().lower()
-        sha256_hash = hashlib.sha256(clean_vpa.encode("utf-8")).hexdigest()
-        pseudo = pseudonymize(vpa, self.salt)
-
-        with self._lock:
-            s_raw = self._scores.get(clean_vpa, 0.0)
-            s_sha = self._scores.get(sha256_hash, 0.0)
-            s_pseudo = self._scores.get(pseudo, 0.0)
-            sig_raw = self._signals.get(clean_vpa, {}).get("score", 0.0)
-            sig_sha = self._signals.get(sha256_hash, {}).get("score", 0.0)
-            sig_pseudo = self._signals.get(pseudo, {}).get("score", 0.0)
-            return max(s_raw, s_sha, s_pseudo, sig_raw, sig_sha, sig_pseudo, 0.0)
 ```
 
 ---
 
-## 3. Deep Dive: R3. VPA Honeypot Network Backend
+## 5. Central Fraud Graph Service (`app/services/graph_service.py`)
 
-### 3.1 Requirements Breakdown
-1. Seeded Honeypot Registry:
-   - Maintain a curated registry of synthetic UPI honeypot VPAs that no legitimate user would transact with.
-   - Seed with initial high-profile synthetic traps (e.g. `honeypot_trap_01@okaxis`, `mule_decoy_99@ybl`, `trap_collect_007@paytm`, `phish_sink_alpha@ibl`, `honeypot_mule_88@okhdfcbank`, `decoy_phish_trap@oksbi`, `honeypot.sink@upi`, `trap_synthetic@upi`).
-2. Detection Rule `R_HONEYPOT_HIT`:
-   - If incoming transaction's `payee_vpa` matches a honeypot:
-     - Returns `RuleHit(code="R_HONEYPOT_HIT", points=100, detail="Payee VPA matches seeded synthetic honeypot trap")`.
-     - 100 points guarantees `risk_score = 100 >= 70` (`BLOCK_AT`), producing an immediate `BLOCK` verdict.
-     - `reasons` list includes `"R_HONEYPOT_HIT"`.
-3. Telemetry Tracking:
-   - Tracks total hit count, last-hit timestamp, and rolling 24-hour hit window per honeypot VPA.
-4. Real-Time Telemetry API & KPI:
-   - Exposes `"honeypot_hits_24h"` and `"honeypot_hits"` in `UpiCaseService.get_current_stats()`, `/upi/stats`, and WebSocket broadcasts (`new_case`, `stats_update`).
-   - Adds `GET /upi/honeypots` (or `GET /federation/honeypots`) returning the list of active honeypots and their hit counters.
+### 5.1 Graph Architecture & Topology
+Implements `FraudGraphService` using `networkx.DiGraph`:
 
-### 3.2 Registry Architecture (`app/engine/honeypot.py`)
+- **Node Types & Attributes**:
+  - `VPA`: `{id: "vpa:<vpa>", label: "<vpa>", type: "VPA", psp: "<psp>", risk_score: float, status: str}`
+  - `PHONE`: `{id: "phone:<phone>", label: "<phone>", type: "PHONE", tags: list, risk_score: float}`
+  - `URL`: `{id: "url:<url>", label: "<url>", type: "URL", domain: str, risk_score: float}`
+  - `CAMPAIGN`: `{id: "camp:<camp_id>", label: "<name>", type: "CAMPAIGN", similarity: float}`
+  - `CASE`: `{id: "case:<case_id>", label: "<case_id>", type: "CASE", verdict: str, amount: float}`
+  - `SIGNAL`: `{id: "sig:<signal_id>", label: "<signal_id>", type: "SIGNAL", source: str, severity: str}`
 
-```python
-class HoneypotRegistry:
-    """Thread-safe registry for synthetic honeypot VPAs and hit telemetry."""
-    
-    DEFAULT_HONEYPOTS = [
-        "honeypot_trap_01@okaxis",
-        "mule_decoy_99@ybl",
-        "trap_collect_007@paytm",
-        "phish_sink_alpha@ibl",
-        "honeypot_mule_88@okhdfcbank",
-        "decoy_phish_trap@oksbi",
-        "honeypot.sink@upi",
-        "trap_synthetic@upi",
-        "darkweb_mule_sink@okaxis",
-        "honeypot_phish_victim@ybl",
-    ]
+- **Edge Types & Relationships**:
+  - `(SIGNAL) -> [EXTRACTED] -> (PHONE | VPA | URL)`: Entity extraction from signal.
+  - `(PHONE) -> [ASSOCIATED_WITH] -> (VPA)`: Threat correlation.
+  - `(URL) -> [ASSOCIATED_WITH] -> (VPA)`: Payment destination linked to phishing site.
+  - `(VPA) -> [TRANSACTED_TO] -> (VPA)`: Financial transaction flow.
+  - `(VPA) -> [CLUSTERS_IN] -> (CAMPAIGN)`: Campaign syndication.
+  - `(VPA) -> [FLAGGED_IN] -> (CASE)`: Case linkage.
 
-    def __init__(self, seeds: Optional[List[str]] = None):
-        self._lock = threading.Lock()
-        self._honeypots: Set[str] = set(h.lower().strip() for h in (seeds or self.DEFAULT_HONEYPOTS))
-        self._hit_counts: Dict[str, int] = defaultdict(int)
-        self._last_hit_at: Dict[str, str] = {}
-        self._hit_log: List[Dict[str, Any]] = []
+### 5.2 Automatic Linking Protocol
+When a signal is ingested:
+1. **Case Linkage**:
+   - Query `UpiCaseService.get_case()` or search `_cases.values()` for any case where `payer_vpa == signal.upi_id` or `payee_vpa == signal.upi_id`.
+   - If found, link `signal.linked_case_id = case["case_id"]`, and if `case.get("ring_hash")`, set `signal.linked_ring_hash = case["ring_hash"]`.
+   - Add bidirectional graph edge `(VPA) <-> (CASE)`.
+2. **Federation Feed Linkage**:
+   - Call `FederatedCoordinator.record_signal(vpa_hash=signal.upi_id, risk_level="HIGH", ring_hash=signal.linked_ring_hash, node_id=signal.source)`.
+   - This ensures any upcoming transaction immediately registers an elevated Layer 3 federated score!
+3. **Campaign Clustering**:
+   - Query `CampaignSignatureStore.match_campaign(txn_dummy)` or text similarity against `FRAUD_KEYWORD_CLUSTERS`.
+   - Calculate similarity score (e.g. 0.94). If $\ge 0.70$, cluster signal under the campaign node and add VPA/phone to `CampaignSignature.member_vpas`.
 
-    def is_honeypot(self, vpa: str) -> bool:
-        if not vpa:
-            return False
-        clean = vpa.strip().lower()
-        with self._lock:
-            return clean in self._honeypots or any(clean.startswith(prefix) for prefix in ("honeypot_", "trap_sink_", "decoy_mule_"))
+---
 
-    def record_hit(self, vpa: str, txn_id: Optional[str] = None, amount: float = 0.0, payer_vpa: Optional[str] = None) -> None:
-        clean = vpa.strip().lower()
-        now = datetime.now(timezone.utc)
-        now_iso = now.isoformat()
-        with self._lock:
-            self._honeypots.add(clean)
-            self._hit_counts[clean] += 1
-            self._last_hit_at[clean] = now_iso
-            self._hit_log.append({
-                "vpa": clean,
-                "txn_id": txn_id,
-                "payer_vpa": payer_vpa,
-                "amount": float(amount),
-                "timestamp": now_iso,
-                "epoch": now.timestamp(),
-            })
-            if len(self._hit_log) > 5000:
-                self._hit_log = self._hit_log[-5000:]
+## 6. API Endpoints Specification (`app/api/intel.py`)
 
-    def get_hits_24h(self) -> int:
-        cutoff = datetime.now(timezone.utc).timestamp() - 86400.0
-        with self._lock:
-            return sum(1 for h in self._hit_log if h.get("epoch", 0.0) >= cutoff)
+Mounted at `/intel` (and mirrored at `/threat-intel`):
 
-    def total_hits(self) -> int:
-        with self._lock:
-            return sum(self._hit_counts.values())
+| Method | Path | Summary | Description |
+|---|---|---|---|
+| `POST` | `/intel/signals` | Ingest Pre-Transaction Signal | Ingests signal payload, performs entity extraction, clusters into campaigns, updates Fraud Graph, broadcasts WebSocket event, persists to DB/cache. Returns 201 Created. |
+| `GET` | `/intel/signals` | List Threat Signals | Returns paginated list of threat signals with filtering by `tag`, `severity`, `source`, `limit`, `offset`. |
+| `GET` | `/intel/signals/{signal_id}` | Get Signal Dossier | Returns detailed signal record with extracted entities, linked case, and local 1-hop graph neighbors. |
+| `GET` | `/intel/graph` | Central Fraud Graph | Returns entire graph or filtered subgraph nodes and edges in D3/Cytoscape format for the frontend visualizer. |
+| `GET` | `/intel/campaigns` | Campaign Clustering Metrics | Returns active fraud campaigns with similarity percentages, hit counts, and member counts. |
+| `POST` | `/intel/simulate` | Seed Pre-Transaction Demo Signals | Generates 3–5 realistic pre-transaction threat signals (KYC phishing, task scam, bank impersonation) with real entities. |
 
-    def get_stats(self) -> Dict[str, Any]:
-        with self._lock:
-            items = [
-                {
-                    "vpa": h,
-                    "hit_count": self._hit_counts.get(h, 0),
-                    "last_hit_at": self._last_hit_at.get(h),
-                }
-                for h in sorted(self._honeypots)
-            ]
-            return {
-                "total_registered": len(self._honeypots),
-                "total_hits": sum(self._hit_counts.values()),
-                "hits_24h": self.get_hits_24h(),
-                "honeypots": items,
-            }
-
-_registry: Optional[HoneypotRegistry] = None
-
-def get_honeypot_registry() -> HoneypotRegistry:
-    global _registry
-    if _registry is None:
-        _registry = HoneypotRegistry()
-    return _registry
-```
-
-### 3.3 Rule Integration in `app/engine/upi_rules.py` & `app/engine/upi_scorer.py`
-
-In `app/engine/upi_rules.py`:
-```python
-from app.engine.honeypot import get_honeypot_registry
-
-def rule_honeypot_hit(txn: UpiTransaction, state: Optional[UpiHotState] = None) -> Optional[RuleHit]:
-    """R_HONEYPOT_HIT: Payee VPA is a designated synthetic honeypot trap."""
-    reg = get_honeypot_registry()
-    if reg.is_honeypot(txn.payee_vpa):
-        reg.record_hit(txn.payee_vpa, txn_id=txn.txn_id, amount=txn.amount, payer_vpa=txn.payer_vpa)
-        return RuleHit(
-            code="R_HONEYPOT_HIT",
-            points=100,
-            detail=f"Payee VPA '{txn.payee_vpa}' matched synthetic honeypot trap registry",
-        )
-    return None
-```
-
-In `app/engine/upi_scorer.py`:
-```python
-hits = evaluate_rules(txn, self.state)
-rule_score = min(100, sum(h.points for h in hits))
-# When R_HONEYPOT_HIT triggers, rule_score is 100 >= 70, action is guaranteed BLOCK
-# reasons will contain "R_HONEYPOT_HIT"
+### 6.1 WebSocket Event Schema
+On every ingestion, broadcast:
+```json
+{
+  "event": "THREAT_SIGNAL_RECEIVED",
+  "data": {
+    "signal_id": "SIG-8F2B1C",
+    "source": "mobile_app",
+    "phone": "+919876543210",
+    "upi_id": "phish_trap@oksbi",
+    "url": "https://sbi-kyc-verify-alert.com/login",
+    "tags": ["Bank impersonation", "Urgency", "KYC Expiry"],
+    "severity": "CRITICAL",
+    "confidence": 0.95,
+    "matched_campaign": {
+      "campaign_id": "CAMP-KYC-PHISH-01",
+      "campaign_name": "KYC Phishing Syndicate",
+      "similarity": 0.94
+    },
+    "linked_case_id": "CASE-2026-0801",
+    "timestamp": "2026-09-03T09:35:00Z"
+  }
+}
 ```
 
 ---
 
-## 4. File Modification & Creation Matrix
+## 7. Quality Gates & Test Plan (`tests/test_threat_intel_r1.py`)
 
-| Action | File Path | Scope of Changes |
-|---|---|---|
-| **CREATE** | `app/api/federation.py` | FastAPI router for `POST /federation/signal`, `GET /federation/query`, `GET /federation/signals`, `GET /federation/honeypots`. |
-| **CREATE** | `app/engine/honeypot.py` | `HoneypotRegistry` singleton, seeded honeypot list, hit logging, 24h counters, thread-safe methods. |
-| **CREATE / OVERWRITE** | `app/federation/coordinator.py` | Source implementation of `FederatedCoordinator` with `record_signal`, `query_signal`, multi-key `network_score` lookup (raw/SHA-256/HMAC), and Redis cache sync. |
-| **CREATE / OVERWRITE** | `app/federation/psp_node.py` | Source implementation of `PspNode` and `pseudonymize`. |
-| **CREATE / OVERWRITE** | `app/engine/upi_scorer.py` | Source implementation of `UpiRiskScorer`, `RuleHit`, and 3-layer scoring math. |
-| **CREATE / OVERWRITE** | `app/engine/upi_rules.py` | Source implementation of deterministic rules, adding `rule_honeypot_hit` and `R_HONEYPOT_HIT` (100 pts). |
-| **CREATE / OVERWRITE** | `app/engine/upi_state.py` | Source implementation of `UpiHotState` sliding window. |
-| **CREATE / OVERWRITE** | `app/engine/adaptive.py` | Source implementation of `AdaptiveBehaviorModel`. |
-| **MODIFY** | `app/models/upi_models.py` | Add `FederationSignalRequest`, `FederationSignalResponse`, `FederationQueryResponse`, `HoneypotStatsResponse`, `HoneypotItem`. |
-| **MODIFY** | `app/main.py` | Include `federation.router` under `/federation`, update SPA 404 handler prefixes with `/federation`. |
-| **MODIFY** | `app/api/upi.py` | Expose `honeypot_hits_24h` in `/stats`, add `/honeypots` query endpoints, ensure `/check` and `/simulate` populate `network_score`. |
-| **MODIFY** | `app/services/upi_cases.py` | Add `R_HONEYPOT_HIT` to `RULE_METADATA`, include `honeypot_hits_24h` and `honeypot_hits` in `get_current_stats()`. |
+Create `tests/test_threat_intel_r1.py` with 12 comprehensive unit and integration tests:
+1. `test_01_ingest_structured_signal`: Validates `POST /intel/signals` with explicit Phone, UPI ID, URL, and tags -> 201 Created.
+2. `test_02_ingest_unstructured_sms_entity_extraction`: Validates that raw SMS text is automatically parsed into Phone, UPI ID, URL, and tags.
+3. `test_03_campaign_clustering_similarity_metric`: Verifies that signals matching KYC phishing keywords yield $\ge 90\%$ similarity to `CAMP-KYC-PHISH-01`.
+4. `test_04_fraud_graph_linkage`: Verifies that nodes and edges for Signal, Phone, UPI, URL, and Campaign are accurately created in `FraudGraphService`.
+5. `test_05_linkage_to_existing_upi_case`: Verifies that when a signal contains a UPI ID matching an existing case in `UpiCaseService`, `linked_case_id` is automatically populated.
+6. `test_06_federated_coordinator_sync`: Verifies that ingesting a threat signal automatically registers the VPA in `FederatedCoordinator`.
+7. `test_07_list_signals_pagination_and_filter`: Tests `GET /intel/signals` with filtering by `tag` and `severity`.
+8. `test_08_get_single_signal_detail`: Tests `GET /intel/signals/{signal_id}`.
+9. `test_09_get_threat_graph_payload`: Tests `GET /intel/graph` schema compliance (nodes and edges).
+10. `test_10_campaigns_endpoint`: Tests `GET /intel/campaigns` returning campaign similarity metrics.
+11. `test_11_validation_failure_empty_payload`: Tests that submitting an empty payload without identifiers or content returns 422.
+12. `test_12_simulation_seeding_endpoint`: Tests `POST /intel/simulate` creating demo threat signals.
 
----
-
-## 5. End-to-End Integration Flow
-
-```
-+-----------------------------------------------------------------------------------+
-|                            PEER PSPs / EXTERNAL NODES                            |
-+-----------------------------------------------------------------------------------+
-                                       |
-                     POST /federation/signal
-                     {vpa_hash, risk_level, ring_hash}
-                                       v
-+-----------------------------------------------------------------------------------+
-|                          FEDERATION COORDINATOR & HOT CACHE                       |
-|   - Stores normalized score in _signals[vpa_hash] and Redis fed:signal:<hash>     |
-|   - Sub-5ms query via GET /federation/query?vpa_hash=<hash>                       |
-+-----------------------------------------------------------------------------------+
-                                       |
-                Payee/Payer VPA SHA-256 matches registered signal
-                                       v
-+-----------------------------------------------------------------------------------+
-|                        UPI INLINE GATE (/upi/check)                               |
-|   1. Layer 1: Deterministic Rules (including R_HONEYPOT_HIT -> BLOCK)             |
-|   2. Layer 2: Adaptive EWMA Behavior Anomaly                                      |
-|   3. Layer 3: Federated Network Score (populated dynamically from Mesh Signals!)  |
-|                                                                                   |
-|   ==> Returns UpiEvaluationResponse:                                              |
-|       - risk_score: composite (0-100)                                             |
-|       - action: ALLOW | HOLD | BLOCK                                              |
-|       - reasons: ["FEDERATED_MULE_NETWORK", "R_HONEYPOT_HIT", ...]                |
-|       - network_score: 0.85                                                       |
-+-----------------------------------------------------------------------------------+
-                                       |
-                             WebSocket Broadcasts
-                       (new_case, stats_update, etc.)
-                                       v
-+-----------------------------------------------------------------------------------+
-|                         REACT DASHBOARD (Overview & KPIs)                         |
-|   - Displays real-time "Honeypot Hits (24h)" KPI Counter                          |
-|   - Displays live network constellation & case forensics                          |
-+-----------------------------------------------------------------------------------+
-```
-
----
-
-## 6. Verification Strategy
-
-1. **Unit & Boundary Tests**:
-   - `POST /federation/signal` accepts SHA-256 hashes, string risk levels (`"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, `"LOW"`), and numeric floats (`0.85`), returning HTTP 200.
-   - `GET /federation/query?vpa_hash=<hash>` returns in under 5ms with valid `federated_risk_score`, `ring_members`, and `reported_by_nodes`.
-   - `GET /federation/query` on unknown hash returns HTTP 200 with `0.0` score and empty arrays.
-2. **Integration Pipeline Tests**:
-   - Ingest a signal for `vpa_hash = sha256("mule_suspect@okaxis")`.
-   - Evaluate transaction to `"mule_suspect@okaxis"` via `/upi/check`.
-   - Assert `response["network_score"] > 0` and `"FEDERATED_MULE_NETWORK"` is present in reasons if score >= 0.5.
-3. **Honeypot Verification**:
-   - Evaluate transaction to `"honeypot_trap_01@okaxis"` via `/upi/check`.
-   - Assert response verdict is `BLOCK`, `risk_score` is 100, and `"R_HONEYPOT_HIT"` is in `reasons`.
-   - Assert `/upi/stats` and `get_current_stats()` reflect incremented `honeypot_hits_24h`.
-4. **Regression Safety**:
-   - Run `.venv/bin/pytest tests/ -v` to confirm all 492 existing tests continue to pass with 0 failures.
+All tests must execute against `./.venv/bin/pytest tests/test_threat_intel_r1.py -v` without breaking any of the existing 833 tests.

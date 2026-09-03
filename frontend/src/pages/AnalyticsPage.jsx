@@ -253,7 +253,7 @@ export default function AnalyticsPage() {
             </span>
           </div>
           <p className="text-xs text-muted">
-            Aggregated verdict velocity, 7×24 attack workload heatmap, Dead Money Velocity rankings, and banking rail telemetry.
+            Aggregated verdict velocity, 7×24 attack workload heatmap, Dormant-to-Active Velocity rankings, and banking rail telemetry.
           </p>
         </div>
 
@@ -326,7 +326,7 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      {/* Top VPAs by Dead Money Velocity (DMV) */}
+      {/* Top VPAs by Dormant-to-Active Velocity (DMV) */}
       <TopDmvAccountsTable
         accounts={analyticsData?.top_dmv_vpas || []}
         onSelectAccount={openCase}

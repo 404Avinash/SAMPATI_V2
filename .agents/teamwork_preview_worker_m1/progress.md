@@ -1,17 +1,24 @@
-# Progress — Worker M1 (Encyclopedia Knowledge Base)
+# Progress — teamwork_preview_worker_m1
 
-Last visited: 2026-09-02T17:56:30Z
-Status: Completed
+Last visited: 2026-09-03T10:22:30Z
+
+## Status
+- Initialized briefing and reviewed blueprints.
+- Planning and execution of implementation tasks underway.
 
 ## Steps
-- [x] Initialized DISPATCH.md and BRIEFING.md
-- [x] Read Explorer analyses (1, 2, 3), ORIGINAL_REQUEST.md, PROJECT.md, and ENCYCLOPEDIA.md
-- [x] Verified baseline pytest suite (737 passed)
-- [x] Implemented `app/engine/encyclopedia_kb.py`
-- [x] Updated `app/engine/__init__.py`
-- [x] Implemented `tests/test_encyclopedia_kb.py` with 36 comprehensive unit tests
-- [x] Ran pytest on new unit tests (`tests/test_encyclopedia_kb.py` - 36 passed in 0.55s)
-- [x] Ran full regression test suite (773 passed in 61.81s)
-- [x] Ran standalone E2E suite (`tests/test_e2e_suite.py` - 231 passed in 6.20s)
-- [x] Ran ruff linter (`ruff check app tests` - All checks passed)
-- [x] Wrote handoff report and notified parent agent
+- [x] Read DISPATCH, ORIGINAL_REQUEST, PROJECT, and all Explorer handoffs/analyses.
+- [x] Initialize BRIEFING.md and progress.md.
+- [x] Implement `app/models/threat_intel.py`.
+- [x] Implement `ThreatSignalModel` in `app/models/upi_persistence.py`.
+- [x] Implement `app/services/graph_service.py`.
+- [x] Implement `app/services/threat_intel_service.py`.
+- [x] Implement `app/api/intel.py`.
+- [x] Update router mounting and SPA fallback disambiguation in `app/main.py`.
+- [x] Implement comprehensive test suite in `tests/test_threat_intel_r1.py` (30/30 passed).
+- [x] Run linter (`./.venv/bin/ruff check app tests` passed with 0 violations).
+- [x] Verify full regression suite (`./.venv/bin/pytest tests/ -q` 880 passed, 0 failures).
+- [ ] Write hard handoff report to `handoff.md`.
+- [ ] Send message to parent.
+
+

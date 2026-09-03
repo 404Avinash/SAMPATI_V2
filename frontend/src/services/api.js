@@ -180,6 +180,56 @@ export const api = {
 
   getAiSarNarrative: (caseId) =>
     req(`/cases/${caseId}/ai-sar`).catch(() => req(`/upi/cases/${caseId}/ai-sar`)),
+
+  // Threat Intelligence & Pre-Transaction Early Warning (R1 / R2)
+  getThreatSignals: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.limit) query.set("limit", params.limit);
+    if (params.offset) query.set("offset", params.offset);
+    if (params.severity) query.set("severity", params.severity);
+    if (params.source) query.set("source", params.source);
+    if (params.campaign_id) query.set("campaign_id", params.campaign_id);
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return req(`/intel/signals${qs}`).catch(() =>
+      req(`/threat-intel/signals${qs}`).catch(() => req(`/upi/intel/signals${qs}`))
+    );
+  },
+
+  getThreatSignal: (signalId) =>
+    req(`/intel/signals/${signalId}`).catch(() =>
+      req(`/threat-intel/signals/${signalId}`).catch(() => req(`/upi/intel/signals/${signalId}`))
+    ),
+
+  ingestThreatSignal: (signalData) =>
+    req("/intel/signals", {
+      method: "POST",
+      body: JSON.stringify(signalData),
+    }).catch(() =>
+      req("/threat-intel/signals", {
+        method: "POST",
+        body: JSON.stringify(signalData),
+      })
+    ),
+
+  getThreatGraph: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.subgraph_node) query.set("subgraph_node", params.subgraph_node);
+    if (params.depth) query.set("depth", params.depth);
+    const qs = query.toString() ? `?${query.toString()}` : "";
+    return req(`/intel/graph${qs}`).catch(() =>
+      req(`/threat-intel/graph${qs}`).catch(() => req(`/upi/intel/graph${qs}`))
+    );
+  },
+
+  getThreatCampaigns: () =>
+    req("/intel/campaigns").catch(() =>
+      req("/threat-intel/campaigns").catch(() => req(`/upi/intel/campaigns`))
+    ),
+
+  simulateThreatSignals: (count = 3) =>
+    req(`/intel/simulate?count=${count}`, { method: "POST" }).catch(() =>
+      req(`/threat-intel/simulate?count=${count}`, { method: "POST" })
+    ),
 };
 
 export function formatINR(amount) {

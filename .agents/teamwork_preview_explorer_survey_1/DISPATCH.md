@@ -1,23 +1,18 @@
-## 2026-08-31T15:34:18Z
+# Dispatch for teamwork_preview_explorer_survey_1
 
-You are Explorer 1 for SAMPATI V2 Sprint 3.
-Your task: Survey the backend codebase for Requirements R1 (Static Mount, Forensic Image Persistence, requirements.txt) and R2 (Demo Seed Data on Load).
+- Role: Backend & Threat Intel Explorer
+- Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1
+- Parent orchestrator: teamwork_preview_orchestrator_10
+- Objective: Survey R1 (Early Warning Intelligence Layer backend infrastructure, FastAPI routes, PostgreSQL models, fraud signal ingestion, fraud graph linkage) and relevant existing backend architecture.
 
-Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1
-Workspace root: /home/avi/Downloads/Sampati_v2
-Read:
-- /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md (Sprint 3 section)
-- /home/avi/Downloads/Sampati_v2/app/main.py
-- /home/avi/Downloads/Sampati_v2/app/services/upi_cases.py
-- /home/avi/Downloads/Sampati_v2/app/api/upi_routes.py (and any other relevant routes)
-- /home/avi/Downloads/Sampati_v2/requirements.txt
-- Existing backend tests in tests/
+## 2026-09-03T09:35:00Z
+Investigate the backend architecture, PRD documents, database models, and existing API routes for Requirement 1: "Early Warning Intelligence Layer (Backend)".
+Specifically:
+1. Search for any PRD, architecture docs, or specs in the repository (e.g., PRD.md, README.md, ENCYCLOPEDIA.md, docs/, etc.) regarding the "Intelligence Mesh" pivot, pre-transaction threat signals, social engineering tags, and entity extraction.
+2. Investigate existing FastAPI routers (app/api/), database connections/models (app/models/, SQLAlchemy/SQL/PostgreSQL or in-memory repositories), and the central Fraud Graph (app/services/graph_service.py, app/engine/, etc.).
+3. Determine how standard fraud signal JSON payloads (Phone, UPI ID, URL, tags like "Bank impersonation", "Urgency") should be structured, validated (Pydantic models), stored, and ingested via new FastAPI endpoints (e.g. /intel/signals, /threat-intel/, etc.).
+4. Determine how these incoming threat signals will automatically link to the central Fraud Graph and how they can be retrieved or streamed to the frontend.
+5. Check existing tests in tests/ to see what test patterns are used, and what new endpoints or fixtures will be needed.
 
-Investigate:
-1. Exact static mount in `app/main.py` and where it needs to be placed relative to SPA fallback mount.
-2. In `app/services/upi_cases.py` (`UpiCaseService.__init__`), how `artifact_dir` is initialized, where ring PNG images are saved (`static/upi_cases/`), and ensuring `os.makedirs` handles directory creation.
-3. In `requirements.txt`, verify reportlab and all packages used by the backend are listed.
-4. For R2 Demo Seed Data: investigate how `UpiCaseService` handles transactions/cases, how a background non-blocking simulation (~150 txns, fraud_ratio=0.25) can be triggered on startup or on the first request to `/upi/stats` if `evaluated_txns == 0` without blocking response. Check how stats/simulation work.
-
-Write your findings to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md`.
-Use `send_message` to report back to parent when complete with path to handoff.md.
+Write your findings and recommendations into /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md.
+Use send_message to notify parent when complete with the path to your handoff file.

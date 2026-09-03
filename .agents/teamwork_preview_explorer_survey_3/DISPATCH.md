@@ -1,34 +1,29 @@
-## 2026-08-31T15:34:18Z
+# Dispatch for teamwork_preview_explorer_survey_3
 
-You are Explorer 3 for SAMPATI V2 Sprint 3.
-Your task: Survey Analytics Page (R5), Overview Page & Live Feed (R6), and Testing & Linting setup (R7).
+- Role: ML & Terminology Spec Miner
+- Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3
+- Parent orchestrator: teamwork_preview_orchestrator_10
+- Objective: Survey R3 (Unsupervised Isolation Forest model in app/engine/upi_scorer.py, ml_anomaly_score in /upi/check, global terminology overhaul removing "Dead Money Velocity" and "Criminal Network", stripping 100% confidence, adding tagline "Everyone sees a piece. SAMPATI connects the dots.").
 
-Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3
-Workspace root: /home/avi/Downloads/Sampati_v2
-Read:
-- /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md (Sprint 3 section)
-- /home/avi/Downloads/Sampati_v2/frontend/src/pages/AnalyticsPage.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/pages/OverviewPage.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/components/KpiStrip.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/components/LiveFeed.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/src/components/ControlBar.jsx
-- /home/avi/Downloads/Sampati_v2/frontend/package.json
-- /home/avi/Downloads/Sampati_v2/AGENTS.md
+## 2026-09-03T09:35:33Z
+You are teamwork_preview_explorer_survey_3 (teamwork_preview_spec_miner).
+Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3`.
+You MUST read the authoritative user request at `/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md` (especially the latest section timestamp 2026-09-03T09:32:24Z) and your dispatch at `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/DISPATCH.md`.
 
-Investigate:
-1. `AnalyticsPage.jsx`:
-   - Verify Recharts animations (`animationDuration={800}` & `isAnimationActive={true}`).
-   - 7x24 Workload Heatmap CSS grid with hover tooltips + skeleton loading state when empty.
-   - Top VPAs by DMV score table with inline mini progress bars and sortable column headers.
-   - "Active Campaigns" metric card (counting distinct fingerprinted fraud campaigns).
-2. `OverviewPage.jsx`, `KpiStrip.jsx`, `LiveFeed.jsx`, `ControlBar.jsx`:
-   - Count-up KPI animations on load and smooth updates.
-   - LiveFeed CSS transition (smooth slide-in top, fade-out older than 30).
-   - ControlBar Auto-Feed toggle with pulsing green dot and live TPS counter, button text changing to "Stop Live Feed".
-   - Red toast notification for `honeypot_hit` WebSocket event (persisting 5s).
-3. Test & Lint verification:
-   - Check pytest test structure and current test count.
-   - Check frontend ESLint configuration (`--max-warnings 0`), React hooks rules (ESLint in React Hooks guidelines in AGENTS.md), and Vite build setup.
+Your mission:
+Investigate the exact specifications and code locations for Requirement 3 (ML Layer & Terminology Overhaul):
+1. Investigate `app/engine/upi_scorer.py`, `app/engine/`, and any existing Isolation Forest files (such as `app/engine/isolation_forest.py` or similar if drafted). Determine:
+   - How `scikit-learn` IsolationForest or custom iForest is configured and instantiated.
+   - How feature vectors are extracted from transaction and state (e.g. amount, time-of-day, velocity, etc.).
+   - How `ml_anomaly_score` in [0.0, 1.0] is computed and incorporated into the `/upi/check` response JSON schema (`UpiEvaluationResponse` in `app/models/upi_models.py` or similar).
+   - How it factors into the final verdict (e.g., points or floor).
+2. Investigate all occurrences of "Dead Money Velocity" across frontend and backend:
+   - Find all files containing "Dead Money Velocity" or "DMV" and identify where it must be renamed to "Dormant-to-Active Velocity" without breaking internal abbreviations where required or keeping contract compatibility.
+3. Investigate all occurrences of "Criminal Network" or "Criminal Hierarchy" across frontend and backend:
+   - Identify every frontend file to ensure 0 occurrences remain for "Dead Money Velocity" and "Criminal Network".
+4. Investigate all "100% confidence" / "100% traceable" claims and find where they need to be replaced with defensible signal-correlation phrasing.
+5. Identify where the tagline "Everyone sees a piece. SAMPATI connects the dots." must be added (e.g., Overview header banner, navigation, masthead).
+6. Check existing pytest suite (`.venv/bin/pytest tests/ -v`, currently 833+ tests) and see what tests currently touch these areas.
 
-Write your findings to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md`.
-Use `send_message` to report back to parent when complete with path to handoff.md.
+Write your findings and recommendations into `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md`.
+Use send_message to notify parent when complete with the path to your handoff file.

@@ -17,6 +17,7 @@ import PayeeBreakdownTable from "./investigations/PayeeBreakdownTable";
 import StatusTransitionActions from "./investigations/StatusTransitionActions";
 import NetworkConstellation from "./NetworkConstellation";
 import CaseAiCopilotView from "./investigations/CaseAiCopilotView";
+import { useToast } from "../context/ToastContext";
 
 export function DmvArcGauge({ score }) {
   const numScore = typeof score === "number" ? score : parseFloat(score) || 0;
@@ -131,7 +132,7 @@ export function RuleBreakdownChart({ ruleHits = [], reasons = [], riskScore = 0 
     }));
   } else {
     data = [
-      { name: "Dead Money Outflow Velocity", points: 40, code: "DMV_VELOCITY" },
+      { name: "Dormant-to-Active Outflow Velocity", points: 40, code: "DMV_VELOCITY" },
       { name: "Rapid Fan-In Aggregation", points: 30, code: "FAN_IN_BURST" },
       { name: "New Account High Value Transfer", points: 20, code: "NEW_ACC_HV" },
     ];
@@ -237,6 +238,7 @@ const copyToClipboard = async (text) => {
 };
 
 export default function CaseDrawer({ caseData, onClose, onFeedback }) {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("forensics");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [sarError, setSarError] = useState(null);
@@ -269,9 +271,11 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
     setSarError(null);
     try {
       await api.downloadSarPdf(caseData.case_id);
+      toast.success("SAR PDF downloaded successfully");
     } catch (err) {
       console.error("SAR PDF export failed", err);
       setSarError(err.message || "Failed to generate SAR PDF. Server returned an invalid response.");
+      toast.error(err.message || "Failed to generate SAR PDF.");
       setTimeout(() => setSarError(null), 6000);
     } finally {
       setDownloadingPdf(false);
@@ -437,7 +441,7 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
                 </div>
               )}
 
-              {/* Dead Money Velocity (DMV) Score Arc Dial Gauge Card */}
+              {/* Dormant-to-Active Velocity (DMV) Score Arc Dial Gauge Card */}
               <div className="panel p-4 bg-white border border-hairline rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -445,7 +449,7 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
                       Mule Signature Metric · Dormancy vs Outflow
                     </div>
                     <div className="font-serif font-bold text-sm text-ink-900">
-                      Dead Money Velocity (DMV) Dial Gauge
+                      Dormant-to-Active Velocity (DMV) Dial Gauge
                     </div>
                   </div>
                   <span

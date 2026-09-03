@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import CaseDrawer from "../components/CaseDrawer";
+import ToastContainer from "../components/common/ToastContainer";
 import { useAppState } from "../context/AppStateContext";
 
 export default function MainLayout() {
@@ -59,6 +60,9 @@ export default function MainLayout() {
         onClose={closeCase}
         onFeedback={handleFeedback}
       />
+
+      {/* Global Toast Notification Container */}
+      <ToastContainer />
     </div>
   );
 }
