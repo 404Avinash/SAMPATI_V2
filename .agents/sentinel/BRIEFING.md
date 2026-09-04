@@ -1,7 +1,7 @@
-# BRIEFING — 2026-09-04T16:22:00Z
+# BRIEFING — 2026-09-04T17:51:41Z
 
 ## Mission
-Orchestrate SWE Light fix for SAMPATI V2: Replace custom SVG map in `GeoMuleMap.jsx` with `react-simple-maps` and embedded high-fidelity offline TopoJSON/GeoJSON of India, plotting financial hubs and fraud corridors with accurate geographic coordinates.
+Orchestrate SWE Light fix for SAMPATI V2: Update frontend/package-lock.json to resolve new map dependencies (react-simple-maps, d3-geo, topojson-client) so npm ci succeeds in CI/CD pipeline and static assets build cleanly without Leaflet issues.
 
 ## 🔒 My Identity
 - Archetype: sentinel
@@ -12,6 +12,7 @@ Orchestrate SWE Light fix for SAMPATI V2: Replace custom SVG map in `GeoMuleMap.
 - Active Victory Auditor: c943e3c0-c665-4c20-ab60-a7384e4848fb (.agents/teamwork_preview_victory_auditor_sentinel_9)
 - Orchestrator (active assigned): 7f8b92d3-b4aa-4f57-8eed-0a730f162d25 (.agents/teamwork_preview_orchestrator_15)
 - SWE Orchestrator: cdc65fba-8fa3-4f10-bc4b-2fb2d5cf22cf (.agents/teamwork_preview_swe_2)
+- Active SWE Orchestrator: 761b2d7f-8efd-4f85-9435-13b53669dfb5 (.agents/teamwork_preview_swe_3)
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
@@ -32,19 +33,22 @@ Orchestrate SWE Light fix for SAMPATI V2: Replace custom SVG map in `GeoMuleMap.
 - R1: Replace GeoMuleMap.jsx with react-simple-maps + embedded TopoJSON/GeoJSON (100% offline)
 - R2: Accurate coordinate plotting for fraud hubs and corridors using real lat/lng
 - Acceptance: cd frontend && npm run build succeeds; .venv/bin/pytest tests/ passes; 0 external network requests
+- Route: SWE Light (teamwork_preview_swe) - single self-contained fix for frontend/package-lock.json to resolve new map dependencies (react-simple-maps, d3-geo, topojson-client) for clean npm ci and build in CI environment
+- R1: Update frontend/package-lock.json to resolve map dependencies cleanly
+- R2: Verify deployment build without Leaflet errors
 
 ## User Context
-- **Last user request**: Single self-contained fix: replace GeoMuleMap.jsx with react-simple-maps + offline India TopoJSON, accurate coordinate plotting. Small focused team requested.
+- **Last user request**: Update frontend/package-lock.json to correctly resolve new map dependencies (react-simple-maps, d3-geo, topojson-client) so npm ci passes in GitHub Actions CI/CD and deployment succeeds.
 - **Pending clarifications**: none
 - **Delivered results**:
-  - Previous sprint UI redesign and bug fixes completed and verified.
+  - Offline react-simple-maps implementation completed and pushed.
 
 ## Project Status
 - **Phase**: in progress
-- **Active Orchestrator**: cdc65fba-8fa3-4f10-bc4b-2fb2d5cf22cf (.agents/teamwork_preview_swe_2)
+- **Active Orchestrator**: 761b2d7f-8efd-4f85-9435-13b53669dfb5 (.agents/teamwork_preview_swe_3)
 - **Active Victory Auditor**: none
-- **Cron 1 (Progress)**: task-41 (active)
-- **Cron 2 (Liveness)**: task-43 (active)
+- **Cron 1 (Progress)**: task-45 (active)
+- **Cron 2 (Liveness)**: task-47 (active)
 
 ## Victory Audit Status
 - **Triggered**: no
@@ -55,4 +59,4 @@ Orchestrate SWE Light fix for SAMPATI V2: Replace custom SVG map in `GeoMuleMap.
 - /home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md — Root User Request record
 - /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md — Agent User Request record
 - /home/avi/Downloads/Sampati_v2/.agents/sentinel/BRIEFING.md — Sentinel Briefing
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_swe_2/DISPATCH.md — SWE Light Orchestrator dispatch instructions
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_swe_3/DISPATCH.md — SWE Light Orchestrator dispatch instructions

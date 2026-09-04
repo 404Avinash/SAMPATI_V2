@@ -589,3 +589,33 @@ Plot the existing financial hubs and fraud corridors using their actual latitude
 - [ ] The existing test suite passes without regressions (`.venv/bin/pytest tests/`).
 - [ ] `GeoMuleMap.jsx` does not make any external network requests for map tiles or assets.
 </USER_REQUEST>
+
+## 2026-09-04T17:51:41Z
+
+<USER_REQUEST>
+# Teamwork Project Prompt — Draft
+
+> Status: Step 2 — Ready for launch — awaiting user approval
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Small focused team
+
+This is a single self-contained fix; keep it small and focused. The offline `react-simple-maps` codebase was successfully written and pushed, but it is not deploying to EC2. The GitHub Action CI/CD pipeline is failing at the `npm ci` step because `frontend/package-lock.json` was not updated to include the new dependencies (`react-simple-maps`, `d3-geo`, `topojson-client`), causing the EC2 server to continue serving the old "API KEY REQUIRED" Leaflet map.
+
+Working directory: ~/teamwork_projects/sampati_map_fix
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. Fix Frontend Dependencies
+Update `frontend/package-lock.json` to correctly resolve the new map dependencies so that `npm ci` passes strictly in the CI environment. 
+
+### R2. Verify Deployment
+Ensure the frontend builds successfully and the correct static assets (without Leaflet) are bundled.
+
+## Acceptance Criteria
+
+### Implementation Quality
+- [ ] `cd frontend && npm ci` succeeds without throwing lockfile sync errors.
+- [ ] `cd frontend && npm run build` succeeds.
+- [ ] The old Leaflet dependencies are no longer causing the GitHub Action to fail.
+</USER_REQUEST>
