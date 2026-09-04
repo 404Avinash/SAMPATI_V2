@@ -574,13 +574,8 @@ export default function NetworkConstellation({
       // 1. Continuous Physics Simulation (Spring force + Center gravity + Pairwise repulsion + Harmonic micro-drift)
       for (const n of visibleNodeList) {
         // Center gravity pulls gently toward viewport center
-        n.vx += (width / 2 - n.x) * 0.0005;
-        n.vy += (height / 2 - n.y) * 0.0005;
-
-        // Harmonic ambient micro-forces: ensures organic floating motion even when settled/paused
-        const ambientAngle = t * 1.2 + n.x * 0.01 + n.y * 0.01;
-        n.vx += Math.cos(ambientAngle) * 0.035;
-        n.vy += Math.sin(ambientAngle) * 0.035;
+        n.vx += (width / 2 - n.x) * 0.001;
+        n.vy += (height / 2 - n.y) * 0.001;
       }
 
       // Pairwise repulsion between nodes
@@ -622,8 +617,8 @@ export default function NetworkConstellation({
 
       // Apply damping & update node positions
       for (const n of visibleNodeList) {
-        n.vx *= 0.91;
-        n.vy *= 0.91;
+        n.vx *= 0.85;
+        n.vy *= 0.85;
         n.x += n.vx;
         n.y += n.vy;
         n.x = Math.min(width - 24, Math.max(24, n.x));
