@@ -1,189 +1,152 @@
-# Handoff Report: Survey R3 (ML Layer & Terminology Overhaul)
+# Handoff Report: Requirement R3 — Fix Dead Buttons and Broken Interactions
 
-**Author**: teamwork_preview_explorer_survey_3 (teamwork_preview_spec_miner)  
-**Recipient**: Parent Orchestrator (`1d0e3cfc-1bcd-4db9-88c0-55fb7981a628`)  
-**Target Platform**: SAMPATI V2 UPI Mule-Network Interception & Collaborative Fraud-Intelligence Mesh  
+**Agent**: survey_explorer_3  
 **Working Directory**: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3`  
-**Date**: 2026-09-03  
-**Status**: Complete (Hard Handoff)  
-**Authoritative Request**: `/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md` (2026-09-03T09:32:24Z)  
+**Parent**: `633a9079-d863-4bd1-9c75-d637844689ae`  
+**Task**: R3 Comprehensive Survey (Dead Buttons, Threat Intel Simulate Flow, Tab Navigation, Forms, Toasts)  
+**Report Artifact**: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/survey_r3_report.md`  
 
 ---
 
-## Features Discovered
+## 1. Observation
 
-| # | Category | Feature | Description | Inputs | Outputs | Error Behavior | Discovered Via |
-|---|----------|---------|-------------|--------|---------|----------------|----------------|
-| 1 | ML Layer | Pure NumPy Isolation Forest | Pure-Python / NumPy implementation of Liu, Ting, Zhou (2008) Isolation Forest algorithm with random orthogonal partitioning | Subsample matrix $X \in \mathbb{R}^{m \times d}$ ($m \le 128$), $n_{\text{trees}}=50$ | Fitted ensemble of iTrees with average path length $h(x)$ and $c(n)$ BST factor | Fallback to default score 0.50 on empty tree or degenerate subsample | `app/engine/isolation_forest.py:133-175` |
-| 2 | ML Layer | Scikit-Learn IsolationForest Adapter | Wrapper around `sklearn.ensemble.IsolationForest` with dynamic import checking (`SKLEARN_AVAILABLE`) | Feature vector $x \in \mathbb{R}^{13}$ | Inverted and clipped normalized anomaly score in $[0.0, 1.0]$ | Degrades gracefully to Pure NumPy implementation when `sklearn` is uninstalled | `app/engine/isolation_forest.py:176-208` |
-| 3 | ML Layer | Synthetic Legitimate Retail Baseline | Deterministic 700-sample generator modeling legitimate UPI retail transactions (96.5% normal retail log-normal, 3.5% mule bursts) | Seed=42, sample count, contamination ratio | NumPy training matrix $X \in \mathbb{R}^{700 \times 13}$ | Constant synthetic baseline prevents drift and non-determinism | `app/engine/isolation_forest.py:210-284` |
-| 4 | ML Layer | 13-D Feature Extraction | Extracts 13 numerical dimensions from `UpiTransaction` and hot state (amount, log-amount, time-of-day cyclical sin/cos, night flag, entity ages, velocity, device count, DMV score) | `UpiTransaction`, optional `UpiHotState`, `dmv_score` | 13-dimensional `np.float64` array | Graceful fallback to default values (e.g. 14.0 hr, 365d age, 0 velocity) if attributes missing | `app/engine/isolation_forest.py:363-437` |
-| 5 | ML Layer | Non-linear Anomaly Score Normalization | Maps raw anomaly score to $[0.0, 1.0]$: clean retail transactions ($raw \le 0.50$) map to $\le 0.48$ (0 points); anomalies ($raw > 0.50$) scale into $[0.50, 1.0]$ | Raw anomaly score float | Normalized anomaly score in $[0.0, 1.0]$ | Clamped strictly to $[0.0, 1.0]$ via `min(1.0, max(0.0, scaled))` | `app/engine/isolation_forest.py:442-455` |
-| 6 | Scoring Engine | Layer 4 ML Points Escalation | Converts `ml_anomaly_score > 0.50` into 0–25 risk points: $pts = \text{round}((score - 0.50) / 0.50 \times 25)$ | `ml_score \in [0.0, 1.0]` | Integer points in $[0, 25]$ added to `risk_score` | Clamped to $[0, 25]$ | `app/engine/upi_scorer.py:69-75` |
-| 7 | Scoring Engine | ML HOLD Floor Enforcement | If `ml_anomaly_score >= 0.85` (`ML_HOLD_FLOOR`), verdict is escalated to at least `HOLD` and `risk_score \ge 45` | `ml_score \ge 0.85` | `action = "HOLD"`, `risk_score = max(risk_score, 45)` | BLOCK verdicts ($\ge 70$) are preserved and not downgraded | `app/engine/upi_scorer.py:86-88` |
-| 8 | Scoring Engine | Explainable ML Reason Attribution | If `ml_anomaly_score >= 0.70` (`ML_ANOMALY_THRESHOLD`), appends `"ML_MULTIVARIATE_ANOMALY"` to response reasons | `ml_score \ge 0.70` | Reason code `"ML_MULTIVARIATE_ANOMALY"` in `resp.reasons` | Only appended once; deterministic | `app/engine/upi_scorer.py:97-98` |
-| 9 | API & Model | `/upi/check` Contract Schema | Pydantic model field `ml_anomaly_score` on `UpiEvaluationResponse` returned by `/upi/check` and broadcast via WebSocket | `POST /upi/check` payload | JSON response containing `"ml_anomaly_score": float` | Field defaults to `0.0` if uncomputed | `app/models/upi_models.py:69-72`, `app/api/upi.py:115-154` |
-| 10 | Terminology | DMV to Dormant-to-Active Velocity Rename | Global rename of user-facing strings from "Dead Money Velocity" to "Dormant-to-Active Velocity" across frontend and backend | User interface components, table headers, briefing texts | Updated UI strings with 0 grep occurrences of "Dead Money Velocity" in frontend | Internal JSON key `dmv_score` and rule `DMV_RAPID_DRAIN` preserved for contract compatibility | `frontend/src/`, `app/engine/dmv.py`, `app/services/gemini_service.py` |
-| 11 | Terminology | Criminal Network to Suspected Mule Cluster Rename | Global narrative pivot replacing "Criminal Network" and "Criminal Hierarchy" with "Suspected Mule Cluster" | UI copy, encyclopedia definitions, markdown narratives | Zero grep matches for "Criminal Network" in frontend source | Backend aliases preserved | `frontend/src/`, `app/engine/encyclopedia_kb.py:342`, `ENCYCLOPEDIA.md:436` |
-| 12 | Defensible Copy | Overclaiming Phrasing Removal | Replaces unprovable "100% confidence" and "100% traceable" claims with defensible signal-correlation phrasing | AI copilot briefing views, UI confidence chips | Cap confidence at 98%, render "Signal Correlation: XX%" | No absolute 100% certainty claims | `frontend/src/components/investigations/CaseAiCopilotView.jsx`, `app/services/gemini_service.py:1065` |
-| 13 | Narrative | Collaborative Mesh Tagline Placement | Integrates the PRD tagline: *"Everyone sees a piece. SAMPATI connects the dots."* prominently in Overview header banner, navigation, and masthead | Overview dashboard, masthead subtitle | Prominent hero banner and subtitle text | Responsive fallback on mobile viewports | `frontend/src/pages/OverviewPage.jsx`, `frontend/src/components/Masthead.jsx`, `frontend/src/components/common/Navbar.jsx` |
+### Obs 1: Total Button Count and Syntactic Audit
+AST parsing across all 45 `.jsx` / `.js` files in `frontend/src/` revealed exactly 71 `<button>` elements across 18 files:
+- `components/CaseDrawer.jsx` (9 buttons: L309, L322, L334, L346, L358, L389, L656, L662, L668)
+- `components/ControlBar.jsx` (3 buttons: L99, L152, L159)
+- `components/NetworkConstellation.jsx` (7 buttons: L1025, L1033, L1041, L1138, L1148, L1161, L1194)
+- `components/analytics/TimeSeriesVerdictChart.jsx` (2 buttons: L62, L72)
+- `components/common/Modal.jsx` (1 button: L52)
+- `components/common/Navbar.jsx` (1 button: L142)
+- `components/common/ToastContainer.jsx` (1 button: L106)
+- `components/investigations/CaseAiCopilotView.jsx` (9 buttons: L251, L505, L528, L578, L760, L796, L827, L838, L845)
+- `components/investigations/CaseDetailModal.jsx` (1 button: L30)
+- `components/investigations/CaseFilterBar.jsx` (4 buttons: L77, L104, L120, L144)
+- `components/investigations/ForensicImageViewer.jsx` (2 buttons: L364, L430)
+- `components/investigations/StatusTransitionActions.jsx` (4 buttons: L74, L84, L94, L104)
+- `pages/AnalyticsPage.jsx` (2 buttons: L267, L288)
+- `pages/InvestigationsPage.jsx` (4 buttons: L120, L238, L290, L297)
+- `pages/OverviewPage.jsx` (1 button: L44)
+- `pages/SettingsPage.jsx` (10 buttons: L209, L220, L231, L242, L268, L307, L357, L365, L394, L460)
+- `pages/SystemHealthPage.jsx` (2 buttons: L130, L150)
+- `pages/ThreatIntelPage.jsx` (8 buttons: L399, L405, L483, L739, L753, L845, L883, L932)
 
----
+Exactly 0 buttons have empty `onClick={() => {}}`. Exactly 1 button (`CaseAiCopilotView.jsx:796`) lacks `onClick` because it is an explicit `type="submit"` button inside `<form onSubmit={...}>`.
 
-## Edge Cases
-
-| # | Feature | Input | Observed Behavior |
-|---|---------|-------|-------------------|
-| 1 | `c_factor` (BST path) | $n = 0, 1, 2$ | Returns $0.0$ for $n \le 1$, $1.0$ for $n = 2$, avoids division-by-zero or $\ln(0)$ crashes. |
-| 2 | Pure NumPy Isolation Tree | Constant identical feature values in $X$ | All split values identical ($min\_v == max\_v$); tree terminates as leaf node safely without infinite recursion. |
-| 3 | Feature Vector Extraction | Transaction with null timestamp, string timestamp, or invalid timezone | String parsed via `datetime.fromisoformat`; non-parseable defaults safely to afternoon hour 14.0. |
-| 4 | Feature Vector Extraction | Extreme payer/payee account ages ($< 0$ or $> 10000$ days) | Clamped strictly to $[0.0, 365.0]$ avoiding outliers dominating tree splits. |
-| 5 | Score Normalization | Clean legitimate retail payment (e.g. Rs 650 at 3 PM) | Raw anomaly score $\le 0.50$ maps to $\le 0.48 < 0.50$; 0 ML points contributed; zero false positives. |
-| 6 | Score Normalization | High-value burst anomaly at 3:30 AM with fresh account | Raw anomaly score $> 0.60$ maps to $\ge 0.70$; appends `ML_MULTIVARIATE_ANOMALY`; points contributed. |
-| 7 | Verdict Floor Conflict | Transaction with hard Honeypot hit (`risk_score = 100`, `action = "BLOCK"`) and `ml_score = 0.88` | ML floor condition checks if action is not already BLOCK; preserves `action = "BLOCK"` and `risk_score = 100`. |
-| 8 | Contract Compatibility | Client calls `/upi/check` or `/upi/stats/analytics` expecting `dmv_score` | JSON payload contains exact key `"dmv_score"`, maintaining 100% backward compatibility for API consumers. |
-| 9 | Contract Tests Conflict | Test asserts `self.assertIn("Dead Money Velocity", content)` in `tests/frontend_contracts_test.py` | If frontend is cleansed to 0 occurrences of "Dead Money Velocity", test will fail unless test assertion is updated to accept `"Dormant-to-Active Velocity"`. |
-| 10 | Gemini Assistant Chat | User asks: "Explain why DMV score spiked" or "What is Dead Money Velocity?" | Prompt and fallback briefing retain alias understanding: "Dormant-to-Active Velocity (formerly Dead Money Velocity / DMV)", satisfying both historical queries and new terminology. |
-
----
-
-### 1. Observation
-
-Direct observations of source code files, line numbers, verbatim code snippets, test execution outputs, and grep audits:
-
-### 1.1 Machine Learning Layer (`app/engine/isolation_forest.py` & `app/engine/upi_scorer.py`)
-- **Isolation Forest Implementation (`app/engine/isolation_forest.py`)**:
-  - Contains full mathematical foundation (Liu, Ting, Zhou 2008) in pure NumPy (`PureNumpyIsolationForest`) and optional `scikit-learn` adapter (`SklearnIsolationForestAdapter` lines 176–208).
-  - Checks `SKLEARN_AVAILABLE` (lines 25–30). Verified via `./.venv/bin/python -c "import sklearn"` that `sklearn` is not installed; the system automatically runs `PureNumpyIsolationForest` with `numpy 2.5.2` seamlessly.
-  - Generates a deterministic legitimate UPI retail baseline (`generate_synthetic_baseline()`, lines 213–284) of 700 samples (96.5% normal retail log-normal, 3.5% mule burst contamination) with `seed=42`.
-  - Feature extraction (`extract_features`, lines 363–437) builds a 13-dimensional vector (`np.float64`):
-    `[amount, log_amount, hour_fraction, hour_sin, hour_cos, is_night, payer_account_age_days, payee_vpa_age_days, payee_is_new_for_payer, payer_velocity_count_30m, payer_velocity_amount_30m, device_vpa_count, dmv_score]`
-  - Score normalization (`normalize_score`, lines 442–455): clean retail transactions ($raw \le 0.50$) map to $\le 0.48 < 0.50$ (0 false positive points); anomalies ($raw > 0.50$) scale into $[0.50, 1.0]$.
-  - Thread-safe singleton getter `get_isolation_forest()` (lines 480–488).
-- **Scoring Pipeline Integration (`app/engine/upi_scorer.py`)**:
-  - `ml_score = self.isolation_forest.score_txn(txn, self.state, dmv_score)` (line 69).
-  - Layer 4 points: `ml_pts = int(round((ml_score - 0.50) / 0.50 * ML_MAX_POINTS))` (lines 70–74, $ML\_MAX\_POINTS = 25$).
-  - HOLD floor: `elif ml_score >= ML_HOLD_FLOOR: action = "HOLD"; risk_score = max(risk_score, ALLOW_BELOW)` (lines 86–88, $ML\_HOLD\_FLOOR = 0.85$, $ALLOW\_BELOW = 45$).
-  - Reason code: `if ml_score >= ML_ANOMALY_THRESHOLD: reasons.append("ML_MULTIVARIATE_ANOMALY")` (lines 97–98, $ML\_ANOMALY\_THRESHOLD = 0.70$).
-  - Evaluation response: `ml_anomaly_score=round(ml_score, 4)` returned on `UpiEvaluationResponse` (line 141).
-- **API Model & Endpoint**:
-  - `app/models/upi_models.py`: Line 69 defines `ml_anomaly_score: float = Field(default=0.0, description="...")`.
-  - `app/api/upi.py`: Lines 115–154 (`@router.post("/check")`) return `resp.model_dump()` which explicitly includes `"ml_anomaly_score"`.
-  - `app/services/upi_cases.py`: Lines 1042 (`txn_entry` logs `"ml_anomaly_score"`).
-
-### 1.2 "Dead Money Velocity" Occurrences Audit
-- **Frontend (`frontend/src/`)**: Exactly 6 occurrences across 3 files:
-  1. `frontend/src/components/CaseDrawer.jsx:134`: `{ name: "Dead Money Outflow Velocity", points: 40, code: "DMV_VELOCITY" },`
-  2. `frontend/src/components/CaseDrawer.jsx:440`: `{/* Dead Money Velocity (DMV) Score Arc Dial Gauge Card */}`
-  3. `frontend/src/components/CaseDrawer.jsx:448`: `Dead Money Velocity (DMV) Dial Gauge`
-  4. `frontend/src/components/analytics/TopDmvAccountsTable.jsx:146`: `Top VPAs by Dead Money Velocity (DMV)`
-  5. `frontend/src/pages/AnalyticsPage.jsx:256`: `Aggregated verdict velocity, 7×24 attack workload heatmap, Dead Money Velocity rankings, and banking rail telemetry.`
-  6. `frontend/src/pages/AnalyticsPage.jsx:329`: `{/* Top VPAs by Dead Money Velocity (DMV) */}`
-- **Backend (`app/`)**:
-  1. `app/engine/dmv.py`: Lines 1, 21, 146 (module and function docstrings).
-  2. `app/engine/encyclopedia_kb.py`: Line 21 (`"name": "Dead Money Velocity (DMV) Burst"`), line 944, line 947 (`#### {rule_idx}. DMV_RAPID_DRAIN — Dead Money Velocity (DMV) Analysis`).
-  3. `app/engine/upi_scorer.py`: Line 7 (module docstring).
-  4. `app/models/upi_models.py`: Line 76 (`dmv_score: float = Field(default=0.0, description="Dead Money Velocity score (0-100)")`).
-  5. `app/services/gemini_service.py`: Lines 295, 985, 1113, 1314, 1346, 1367, 1407.
-
-### 1.3 "Criminal Network" and "Criminal Hierarchy" Audit
-- **Frontend (`frontend/src/`)**: **0 occurrences found** for `"Criminal Network"`, `"Criminal Hierarchy"`, or `"Criminal"`. The frontend is already 100% clean.
-- **Backend & Documentation**:
-  1. `app/engine/encyclopedia_kb.py:342`: `"used by criminals to evade automatic currency transaction reporting."`
-  2. `ENCYCLOPEDIA.md:36`: `"A 'mule ring' is a structured criminal relay..."`
-  3. `ENCYCLOPEDIA.md:436`: `"...giving analysts an instant 'map' of the ring's criminal hierarchy."`
-
-### 1.4 Overclaiming Language Audit ("100% Confidence" / "100% Traceable")
-- **Frontend**:
-  1. `frontend/src/components/investigations/CaseAiCopilotView.jsx:459`: `Threat Level: ${briefing.threat_level} (Confidence: ${Math.round((briefing.confidence_score || 0.85) * 100)}%)\n\n`
-  2. `frontend/src/components/investigations/CaseAiCopilotView.jsx:576`: `{Math.round((briefing.confidence_score || 0.85) * 100)}% Confidence`
-- **Backend**:
-  1. `app/services/gemini_service.py:1065`: `_normalize_confidence` caps at 1.0 (`return max(0.0, min(1.0, round(val, 2)))`).
-  2. `ENCYCLOPEDIA.md:1179`: `"SAMPATI guarantees that every single risk point is traceable."`
-
-### 1.5 Tagline Placement
-- Narrative requirement: `"Everyone sees a piece. SAMPATI connects the dots."`
-- Locations identified:
-  1. `frontend/src/pages/OverviewPage.jsx`: Hero banner above `KpiStrip` (line 82).
-  2. `frontend/src/components/Masthead.jsx`: Subtitle line (lines 24–26).
-  3. `frontend/src/components/common/Navbar.jsx`: Brand subtitle.
-
-### 1.6 Current Test Execution
-- Full pytest suite: `./.venv/bin/pytest tests/ -q` executed with result:
-  `850 passed, 6 warnings in 162.17s (0:02:42)` (all 850 tests passed).
-- Isolation Forest suite: `./.venv/bin/pytest tests/test_isolation_forest.py -v` executed with result:
-  `17 passed, 1 warning in 2.10s` (all 17 tests passed).
-- Frontend ESLint: `cd frontend && npm run lint` executed with result:
-  `0 warnings, 0 errors` (`--max-warnings 0`).
-- Frontend Build: `cd frontend && npm run build` executed with result:
-  `1382 modules transformed, built in 15.14s`.
-
----
-
-### 2. Logic Chain
-
-1. **ML Layer Correctness and Performance**:
-   - Observations in `app/engine/isolation_forest.py` show Liu et al. (2008) mathematical bounds ($c(n)$, recursive iTree building, depth bounds $\le \lceil\log_2(128)\rceil = 7$, sub-0.15ms latency).
-   - In `tests/test_isolation_forest.py`, all 17 tests pass validating mathematical invariants, 13-D feature extraction, zero-regression on legitimate retail transactions, and HOLD floor escalation at $\ge 0.85$.
-   - The `/upi/check` endpoint already returns `ml_anomaly_score` in its JSON payload, fulfilling Requirement 1 and Acceptance Criteria without breaking any of the 850 tests.
-
-2. **Terminology Overhaul Discipline**:
-   - The user requires 0 grep occurrences of "Dead Money Velocity" in frontend source code (`frontend/src/`).
-   - We observed exactly 6 instances in 3 files (`CaseDrawer.jsx:134,440,448`, `TopDmvAccountsTable.jsx:146`, `AnalyticsPage.jsx:256,329`). Changing those 6 lines completely cleans the frontend.
-   - Crucially, `dmv_score` as a JSON field in API models must remain unchanged because `tests/test_sprint2_e2e_suite.py` (which must pass without modification) explicitly validates `assert "dmv_score" in data`.
-   - In `tests/frontend_contracts_test.py:346,374`, the contract test asserts `self.assertIn("Dead Money Velocity", content)`. When the frontend is renamed to "Dormant-to-Active Velocity", this test must be updated to assert `"Dormant-to-Active Velocity"`, otherwise the test suite will break.
-   - For `tests/test_e2e_gemini_assistant.py` and `tests/test_gemini_assistant_agentic.py`: By using `"Dormant-to-Active Velocity (DMV, formerly Dead Money Velocity)"` in the prompt/dossier context, tests asserting `"Dead Money Velocity"` and tests asserting `"Dormant-to-Active Velocity"` will both pass cleanly.
-
-3. **"Criminal Network" and "Criminal Hierarchy" Discipline**:
-   - Observation confirms 0 hits for "Criminal Network" in `frontend/`.
-   - In `app/engine/encyclopedia_kb.py:342` and `ENCYCLOPEDIA.md:36,436`, "criminal hierarchy" and "criminal relay" can be replaced with "suspected mule cluster" and "structured mule relay".
-   - This maintains 0 occurrences across frontend and aligns backend narratives with the collaborative mesh PRD.
-
-4. **Defensible Phrasing Discipline**:
-   - In `CaseAiCopilotView.jsx:459,576` and `gemini_service.py:1065`, capping confidence scores at 0.98 (98%) and displaying "Signal Correlation: XX%" eliminates absolute 100% certainty claims, satisfying regulatory defensibility.
-
----
-
-### 3. Caveats
-
-1. **Scikit-Learn Dependency**: `scikit-learn` is not installed in the current virtualenv (`.venv`). However, `app/engine/isolation_forest.py` has a complete canonical Pure NumPy implementation that executes with zero dependencies and sub-millisecond latency. No pip install is needed, preserving repository immutability.
-2. **Backward-Compatible DMV Queries**: Certain unit tests in `test_e2e_gemini_assistant.py` query the assistant with `"Explain why the Dead Money Velocity (DMV) score spiked"`. The assistant's deterministic intent router and Encyclopedia KB must retain aliases (`"DEAD_MONEY_VELOCITY"`, `"DMV"`, `"DORMANT_TO_ACTIVE_VELOCITY"`) to respond accurately to both phrasings.
-
----
-
-### 4. Conclusion
-
-- **Requirement 3 (ML Layer)** is completely verified, functional, and tested via `tests/test_isolation_forest.py` (17/17 passing) and integrated into `UpiRiskScorer` and `/upi/check`.
-- **Requirement 3 (Terminology Overhaul)** has a clear 6-line replacement roadmap in `frontend/src/` to achieve the required 0 grep hits for "Dead Money Velocity" and maintain 0 hits for "Criminal Network".
-- **Contract Safeguard**: Updating `tests/frontend_contracts_test.py:346,374` to accept `"Dormant-to-Active Velocity"` is required when changing frontend copy to ensure the full 850-test suite remains 100% green.
-- **Narrative Tagline**: Ready for immediate insertion into `OverviewPage.jsx` hero banner and `Masthead.jsx`.
-
----
-
-### 5. Verification Method
-
-1. **Verify Backend Tests**:
-   ```bash
-   ./.venv/bin/pytest tests/test_isolation_forest.py -v
-   ./.venv/bin/pytest tests/ -q
+### Obs 2: Purely Inert / Fake Buttons
+Two buttons in the platform exhibit purely decorative or mock behavior without executing real platform logic:
+1. `pages/SettingsPage.jsx:460`:
+   ```javascript
+   const handleSimulateDeploy = () => {
+     setDeployTriggered(true);
+     setTimeout(() => {
+       setDeployTriggered(false);
+       refreshDeployStatus();
+     }, 2500);
+   };
    ```
-   *Expected*: 17/17 isolation forest tests pass; 850/850 full test suite passes.
-
-2. **Verify Frontend Grep Invariant**:
-   ```bash
-   grep -ri "Dead Money Velocity" frontend/src/
-   grep -ri "Criminal Network" frontend/src/
+   This button ("Simulate Deploy Verification") sets a 2.5-second timer with a CSS ping animation and calls `refreshDeployStatus()`, but calls no backend deployment endpoint.
+2. `pages/ThreatIntelPage.jsx:483-489`:
+   ```javascript
+   const handleSimulateExtraction = useCallback((targetIndex = null) => {
+     const idx = targetIndex !== null ? targetIndex : (simIndex + 1) % SAMPLE_SIMULATION_PAYLOADS.length;
+     setSimIndex(idx);
+     setIsSimulatingExtract(true);
+     setExtractStep(1);
+     setTimeout(() => setExtractStep(2), 700);
+     setTimeout(() => {
+       setExtractStep(3);
+       setIsSimulatingExtract(false);
+       toast.info(`Entity tokens extracted & linked to ${SAMPLE_SIMULATION_PAYLOADS[idx].campaign}`);
+     }, 1500);
+   }, [simIndex, toast]);
    ```
-   *Expected*: Exactly 0 results for both queries after implementation.
+   This button ("Simulate Flow") advances a local React state machine (`extractStep` 1 -> 2 -> 3) through a hardcoded array `SAMPLE_SIMULATION_PAYLOADS`. It does NOT invoke `POST /intel/signals` or `POST /intel/simulate`, does not persist tokens to the central Fraud Graph, and does not prepend the simulated signal into the `signals` state table displayed below.
 
-3. **Verify Frontend Lint & Build**:
-   ```bash
-   cd frontend && npm run lint
-   npm run build
-   ```
-   *Expected*: 0 warnings, 0 errors (`--max-warnings 0`), clean Vite production bundle.
+### Obs 3: Toast System Coverage Deficit
+Grep search for `useToast` and `toast.` across all 18 button files revealed:
+- `ToastContext.jsx` and `ToastContainer.jsx` are fully implemented and exposed.
+- Only **2 files** call `toast.*`: `CaseDrawer.jsx` (lines 274, 278) and `ThreatIntelPage.jsx` (lines 278, 323, 338, 363, 365).
+- **16 files** have zero toast calls.
+- `components/investigations/StatusTransitionActions.jsx:37` and `components/investigations/CaseDetailModal.jsx:19` invoke blocking native browser `alert()` instead of toast notifications:
+  - `alert("Error updating case: " + err.message);`
+  - `alert("Copied Case ID: " + caseData.case_id);`
 
-4. **Invalidation Condition**:
-   - If `POST /upi/check` response omits `ml_anomaly_score`.
-   - If `dmv_score` JSON key is renamed (violates contract with `tests/test_sprint2_e2e_suite.py`).
-   - If `frontend/src/` retains any instances of "Dead Money Velocity" or "Criminal Network".
+### Obs 4: Tab Navigation Scroll Loss & Flash
+- In `frontend/src/App.jsx:17-37`, React Router `<BrowserRouter>` mounts `<MainLayout />` with `<Outlet />`.
+- When switching routes via `<NavLink to={...}>` in `Navbar.jsx`, `<Outlet />` unmounts the current page component and mounts the target page.
+- There is no `<ScrollRestoration>` or `window.scrollTo` call anywhere in the application.
+- When navigating from a scrolled view (e.g. `/investigations` at scrollY = 800px) to another tab (e.g. `/threat-intel` or `/analytics`), `window.scrollY` remains at 800px. Because `/threat-intel` and `/analytics` fetch data asynchronously on mount, their initial container height is small, causing an abrupt layout jump or blank screen flash until data arrives.
+
+### Obs 5: Form Validation and Inputs
+Audit of all form controls:
+- 1 `<form>`: `CaseAiCopilotView.jsx:773` (properly validates input trimming and enter key).
+- 10 `<input>`s: `ControlBar.jsx:127` has `min={10} max={2000}` but lacks programmatic clamping in `onChange`.
+- 1 `<textarea>`: `StatusTransitionActions.jsx:62` (analyst resolution notes).
+- 3 `<select>`s: `CaseFilterBar.jsx:90`, `InvestigationsPage.jsx:269`, `ThreatIntelPage.jsx:472`.
+- `CaseDetailModal.jsx` is an orphaned component not imported by any route or view.
+
+---
+
+## 2. Logic Chain
+
+1. **Premise**: Requirement R3 mandates:
+   - Every `<button>` element must either have an `onClick` wired to a real action or be removed.
+   - All buttons on the Settings page must be audited and wired to real actions with Toast feedback or removed.
+   - The "Simulate Flow" button on Threat Intelligence must actually run a simulation and display a clear result.
+   - Tab navigation must preserve scroll position and prevent blank screen flashes.
+   - Form inputs and modals must validate and submit properly.
+   - Operational buttons must display reactive Toast notifications.
+2. **Settings Page Assessment**:
+   - `SettingsPage.jsx` has 10 button elements. Buttons 1–5 (preset & save sensitivity), 7 (federation sync), 8 (run simulation), and 9 (refresh deploy) perform real state/API mutations, but only use local inline state text (`sensitivitySavedMsg` and `simResultMsg`), providing no modern toast feedback.
+   - Button 10 (`Simulate Deploy Verification` at L460) is purely decorative mock code (`setTimeout(2500)`). Wiring it to `api.getDeployStatus()` / health probe with `toast.success` or removing it eliminates dead UI.
+3. **Simulate Flow Remediation**:
+   - `api.js` already provides `api.ingestThreatSignal()` and `api.simulateThreatSignals(count)`.
+   - By updating `handleSimulateExtraction()` in `ThreatIntelPage.jsx` to call `api.ingestThreatSignal(SAMPLE_SIMULATION_PAYLOADS[idx])` concurrently with the 3-stage visual animation, the simulated threat signal will be saved to the database, linked to the central fraud graph, prepended to the live `signals` table, and confirmed with `toast.success()`.
+4. **Scroll Preservation Mechanism**:
+   - Because React Router unmounts `<Outlet />` pages, retaining window scroll without an explicit scroll-to-top handler leaves the user scrolled down into empty space on tab change.
+   - Adding a `<ScrollToTop />` route listener inside `<BrowserRouter>` resets `window.scrollTo(0, 0)` on every route change, preventing blank screen flashes.
+   - Setting `min-h-[calc(100vh-10rem)]` on `<main>` in `MainLayout.jsx` guarantees the page never collapses to 0 height during asynchronous fetches.
+5. **Toast System Deployment**:
+   - `ToastProvider` is already mounted at the application root in `App.jsx`.
+   - Wiring `useToast()` into `ControlBar.jsx`, `SettingsPage.jsx`, `StatusTransitionActions.jsx`, `CaseDrawer.jsx`, `AnalyticsPage.jsx`, `InvestigationsPage.jsx`, and `SystemHealthPage.jsx` will close the entire coverage gap and eliminate native `alert()` calls.
+
+---
+
+## 3. Caveats
+
+1. **Read-Only Constraint**: As an explorer agent, no source files were modified during this investigation. All findings and proposed code changes are detailed in `survey_r3_report.md` for the implementer agent.
+2. **Backend Endpoints for Deploy Simulation**: The backend currently exposes `/health` and `/deploy/status` (or mock fallback). There is no dedicated CI/CD "trigger deploy" endpoint because GitHub Actions manages deployments automatically on git push to main. Wiring `Simulate Deploy Verification` to probe the existing `/health` endpoint is the cleanest, most realistic solution.
+3. **Orphaned Component**: `frontend/src/components/investigations/CaseDetailModal.jsx` was replaced by `CaseDrawer.jsx` in Sprint 2. It can be safely deleted or ignored without affecting runtime behavior.
+
+---
+
+## 4. Conclusion
+
+Requirement R3 has been completely audited and decomposed into concrete, verifiable tasks.
+- **Button Inventory**: All 71 `<button>` tags are cataloged with line numbers and remediation targets.
+- **Settings Page**: Identified 1 fake mock button (`Simulate Deploy Verification`), 4 presets, 1 save, 1 batch simulation, 1 federation sync, and 1 refresh button needing toast wiring.
+- **Threat Intelligence Simulate Flow**: Identified exact gap (visual state only, no API call). Provided exact implementation to call `api.ingestThreatSignal()` and update the signal table.
+- **Tab Navigation**: Pinpointed unmanaged `window.scrollY` and unmounting layout shifts as the cause of blank flashes. Prescribed `<ScrollToTop />` and container `min-height`.
+- **Toast Notifications**: Identified 16 files lacking toasts and 2 files using native `alert()`. Provided complete mapping of toast messages for every operational action.
+
+---
+
+## 5. Verification Method
+
+To independently verify all findings:
+1. **Button Enumeration**:
+   Run the AST extraction script:
+   `python3 -c "import os, re; ..."` -> Verify exactly 71 `<button>` elements across 18 files.
+2. **Check Dead / Decorative Buttons**:
+   Inspect `frontend/src/pages/SettingsPage.jsx:460` and `frontend/src/pages/ThreatIntelPage.jsx:483`.
+3. **Check Native `alert()` Calls**:
+   Run `grep -rn "alert(" frontend/src/` -> Confirm occurrences at `StatusTransitionActions.jsx:37` and `CaseDetailModal.jsx:19`.
+4. **Check Toast Invocations**:
+   Run `grep -rn "toast\." frontend/src/` -> Confirm exactly 7 invocations across only 2 files (`CaseDrawer.jsx` and `ThreatIntelPage.jsx`).
+5. **Lint and Build Baseline**:
+   - Pytest suite: `./.venv/bin/pytest tests/ -q` (969 passed).
+   - Frontend lint: `cd frontend && npm run lint` (0 errors, 0 warnings).
+   - Frontend build: `cd frontend && npm run build` (clean build).
+
+---

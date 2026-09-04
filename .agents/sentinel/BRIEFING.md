@@ -1,27 +1,26 @@
-# BRIEFING — 2026-09-03T22:24:20Z
+# BRIEFING — 2026-09-04T10:21:00Z
 
 ## Mission
-Upgrade SAMPATI V2 to production-grade fraud intelligence: (1) Supervised ML model on public fraud dataset with reduced false negatives and dual-score output, (2) Simulated institutional signal adapters (mock NPCI, DPIP, PSP) integrated into dashboard, (3) Firebase Cloud Messaging (FCM) push notifications with sub-500ms benchmarked latency.
+Execute anti-slop audit and polish pass on the SAMPATI V2 React/FastAPI dashboard: eliminate overclaims/buzzwords, make all KPIs real and dynamically fetched, and fix dead buttons and broken interactions.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/sentinel
-- Orchestrator: dcfa3ce2-0d8a-4c92-b530-f081ee91ac86 (.agents/teamwork_preview_orchestrator_12)
-- Victory Auditor: 0b294180-be71-428d-b2ab-6d4c918825f4 (.agents/teamwork_preview_victory_auditor_sentinel_6)
+- Orchestrator: 633a9079-d863-4bd1-9c75-d637844689ae (.agents/teamwork_preview_orchestrator_13)
+- Victory Auditor: 88f31fe7-0a06-4daa-8ee7-09925a4ca391 (.agents/teamwork_preview_victory_auditor_sentinel_7)
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
 - Victory Audit is MANDATORY before reporting completion
 - Route: General (teamwork_preview_orchestrator) - multi-part SWE project with full team requested
-- Dual scoring in /upi/check: ml_anomaly_score and supervised_fraud_score
-- Deterministic institutional adapters displayed in dashboard
-- FCM push notification benchmarked under 500ms
-- Pytest suite (969+ tests) must pass with 0 failures, ruff 0 errors, clean frontend build
+- All visible buttons must have onClick or be removed
+- Frontend grep must yield 0 matches for overclaims/placeholders
+- Pytest (969 tests) must pass with 0 failures, ESLint with 0 warnings, Vite build clean
 
 ## User Context
-- **Last user request**: Milestone 1 confirmed DONE. Continue with Milestone 2 (Institutional Adapters) and Milestone 3 (FCM Push Notifications & sub-500ms benchmark).
+- **Last user request**: Anti-slop audit and polish pass across UI copy (R1), dynamic KPIs (R2), and dead button/interaction fixes (R3).
 - **Pending clarifications**: none
-- **Delivered results**: Complete upgrade across R1, R2, and R3 verified and independently confirmed by Victory Auditor.
+- **Delivered results**: Orchestrator completed execution; independent Victory Audit underway.
 
 ## Project Status
 - **Phase**: complete
@@ -38,5 +37,5 @@ Upgrade SAMPATI V2 to production-grade fraud intelligence: (1) Supervised ML mod
 ## Artifact Index
 - /home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md — Root User Request record
 - /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md — Agent User Request record
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_orchestrator_12/handoff.md — Orchestrator Final Handoff
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_victory_auditor_sentinel_6/handoff.md — Victory Audit Report (VICTORY CONFIRMED)
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_orchestrator_13/handoff.md — Orchestrator Final Handoff
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_victory_auditor_sentinel_7/handoff.md — Victory Audit Report (VICTORY CONFIRMED)

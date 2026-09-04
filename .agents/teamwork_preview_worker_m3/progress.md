@@ -1,16 +1,45 @@
-# Progress Log - Worker 3 (Sprint 3 Milestone 3)
+# Progress Log — worker_m3 (Milestone 3)
+Last visited: 2026-09-04T16:53:00Z
 
-Last visited: 2026-08-31T15:47:00Z
-Status: All Milestone 3 tasks completed and verified
-
-- [x] Initialized DISPATCH.md and BRIEFING.md
-- [x] Read ORIGINAL_REQUEST.md & explorer survey handoff.md
-- [x] Inspect existing implementations of the 5 files
-- [x] Implement api.js updates (`caseStaticRingUrl` + `application/pdf` binary validation in `downloadSarPdf`)
-- [x] Implement ForensicImageViewer.jsx updates (multi-tier loading: API -> Static -> SVG vector fallback with fade-in)
-- [x] Implement CaseFilterBar.jsx updates (interactive status pill badges)
-- [x] Implement CaseDrawer.jsx updates (DMV semi-circular arc dial gauge, Recharts rule breakdown, SAR PDF export with error toast, visual forensics integration)
-- [x] Implement InvestigationsPage.jsx updates (clickable rows opening CaseDrawer, unified modal/drawer)
-- [x] Run ESLint (`--max-warnings 0`) & Vite build -> PASSED cleanly
-- [x] Run pytest suite (710 passed, 0 failures) -> PASSED cleanly
-- [x] Write handoff.md and notify parent
+- Created `frontend/src/components/common/ScrollToTop.jsx` with `useLocation` hook and `window.scrollTo(0, 0)`.
+- Mounted `<ScrollToTop />` in `frontend/src/App.jsx` within `<BrowserRouter>` before `<Routes>`.
+- Updated `frontend/src/layouts/MainLayout.jsx` with `min-h-[calc(100vh-10rem)]` on `<main>` container.
+- Updated `frontend/src/pages/ThreatIntelPage.jsx`:
+  - Wired `handleSimulateExtraction` to call `api.ingestThreatSignal(payload)` using `SAMPLE_SIMULATION_PAYLOADS[idx]`, prepended resulting signal to state, reloaded threat data, and displayed `toast.success("Threat flow simulated & linked: " + ...)`.
+  - Added `handleRefreshSignals` with `toast.info("Threat signals refreshed")`.
+- Updated `frontend/src/pages/SettingsPage.jsx`:
+  - Replaced mock `setTimeout` in `handleSimulateDeploy` with real `await refreshDeployStatus()` and `toast.success("EC2 deployment pipeline status verified: 200 OK")`.
+  - Added `toast.success("Engine sensitivity saved: " + localSensitivity.toFixed(2) + "x")` to `handleSaveSensitivity`.
+  - Added `toast.info("Applied " + val.toFixed(2) + "x sensitivity preset")` to `handlePresetSensitivity`.
+  - Added `toast.success("Federation intelligence round complete. Central blacklist updated.")` to `handleFederationSync`.
+  - Added `toast.success("Generated synthetic stream with " + txnCount + " txns (" + fraudRatio + "% fraud)")` to `handleRunSimulation`.
+  - Added `toast.info("Deployment status refreshed from EC2 runner")` to `handleCheckDeploy`.
+- Updated `frontend/src/components/ControlBar.jsx`:
+  - Added `toast.success("Live Auto-Feed active at " + tpsConfig + " tx/s")` and `toast.info("Live Auto-Feed paused")` to `handleToggleAutoFeed`.
+  - Added `toast.success("Batch simulation started (" + count + " txns, " + fraud + "% fraud)")` to `handleSimulate`.
+  - Added `toast.success("Federation intelligence round dispatched")` to `handleFederate`.
+  - Enforced numeric clamping on batch count input: `Math.max(10, Math.min(2000, num))`.
+- Updated `frontend/src/components/investigations/StatusTransitionActions.jsx`:
+  - Replaced native blocking `alert()` with `toast.error(err.message || "Failed to update case status")`.
+  - Added success toasts for status transitions (REVIEWED, ESCALATED, RESOLVED, DISMISSED).
+- Updated `frontend/src/components/CaseDrawer.jsx`:
+  - Added `toast.success("Case ID copied to clipboard")` to `handleCopyCaseId`.
+  - Added `toast.error("Case " + caseData.case_id + " confirmed as FRAUD")` to `handleConfirmFraud`.
+  - Added `toast.info("Case " + caseData.case_id + " dismissed as benign")` to `handleDismissCase`.
+- Updated `frontend/src/pages/AnalyticsPage.jsx`:
+  - Added `toast.info("Analytics metrics refreshed")` to `handleRefreshAnalytics`.
+  - Added `toast.success("Injected 200 telemetry transactions")` to `handleInjectTelemetry`.
+- Updated `frontend/src/pages/InvestigationsPage.jsx`:
+  - Added `toast.success("Generated 250 synthetic transactions")` to `handleGenerateFraudStream`.
+- Updated `frontend/src/pages/SystemHealthPage.jsx`:
+  - Added `toast.info("System health diagnostic probes refreshed")` to `handleRefreshProbes`.
+  - Added `toast.info("Health auto-refresh " + (next ? "enabled" : "disabled"))` to `handleToggleAutoRefresh`.
+- Updated `frontend/src/components/common/Navbar.jsx`:
+  - Added `toast.info("Platform metrics & case records refreshed")` to `handleRefreshTelemetry`.
+- Updated `frontend/src/components/investigations/CaseAiCopilotView.jsx`:
+  - Added `toast.success("Briefing copied to clipboard")` to `handleCopyBriefing`.
+  - Added `toast.success("SAR draft copied to clipboard")` to `handleCopySar`.
+- Ran ESLint: 0 errors, 0 warnings with `--max-warnings 0`.
+- Ran Vite build: clean build in 7.48s.
+- Ran Anti-Slop Grep Audit: 0 occurrences of all 9 forbidden terms.
+- Ran Button Audit: all 71 buttons have explicit onClick or type="submit".

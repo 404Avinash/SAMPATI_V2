@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAppState } from "../../context/AppStateContext";
+import { useToast } from "../../context/ToastContext";
 
 const NAV_ITEMS = [
   {
@@ -64,15 +65,24 @@ const NAV_ITEMS = [
 ];
 
 export default function Navbar() {
-  const { cases, live, busy, refreshCases, refreshStats, sensitivity } = useAppState();
+  const { toast } = useToast();
+  const { cases, stats, live, busy, refreshCases, refreshStats, sensitivity } = useAppState();
 
-  const flaggedCount = cases.filter(
-    (c) =>
-      (c.verdict === "HOLD" || c.verdict === "BLOCK" || (c.risk_score && c.risk_score >= 50)) &&
-      c.status !== "REVIEWED" &&
-      c.status !== "RESOLVED" &&
-      c.status !== "DISMISSED"
-  ).length;
+  const handleRefreshTelemetry = () => {
+    refreshStats();
+    refreshCases();
+    toast.info("Platform metrics & case records refreshed");
+  };
+
+  const openCasesCount =
+    stats?.open_cases ??
+    stats?.cases?.open ??
+    cases.filter(
+      (c) =>
+        (c.status || "OPEN") === "OPEN" &&
+        c.status !== "RESOLVED" &&
+        c.status !== "DISMISSED"
+    ).length;
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-hairline shadow-sm">
@@ -119,11 +129,11 @@ export default function Navbar() {
                       )}
                     </div>
                     <span>{item.label}</span>
-                    {item.badgeKey === "investigations" && flaggedCount > 0 && (
+                    {item.badgeKey === "investigations" && openCasesCount > 0 && (
                       <span className={`ml-1 px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-full ${
                         isActive ? "bg-rose-500 text-white" : "bg-rose-100 text-rose-700"
                       }`}>
-                        {flaggedCount}
+                        {openCasesCount}
                       </span>
                     )}
                   </>
@@ -140,7 +150,7 @@ export default function Navbar() {
             </div>
 
             <button
-              onClick={() => { refreshStats(); refreshCases(); }}
+              onClick={handleRefreshTelemetry}
               disabled={busy}
               className="p-2 rounded-md hover:bg-surface-muted text-muted hover:text-ink-900 border border-hairline transition-colors disabled:opacity-50"
               title="Refresh Data"
@@ -176,9 +186,9 @@ export default function Navbar() {
               >
                  {item.icon}
                  {item.label}
-                 {item.badgeKey === "investigations" && flaggedCount > 0 && (
+                 {item.badgeKey === "investigations" && openCasesCount > 0 && (
                     <span className="ml-1 px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-full bg-rose-500 text-white">
-                      {flaggedCount}
+                      {openCasesCount}
                     </span>
                   )}
               </NavLink>

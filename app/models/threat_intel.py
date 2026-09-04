@@ -370,6 +370,8 @@ class ThreatSignalListResponse(BaseModel):
     signals: List[ThreatSignalResponse] = Field(default_factory=list, description="List of threat signal records")
     limit: int = Field(default=50, description="Pagination query limit")
     offset: int = Field(default=0, description="Pagination query offset")
+    total_nodes: Optional[int] = Field(default=None, description="Total nodes in fraud graph")
+    active_campaigns_count: Optional[int] = Field(default=None, description="Total active threat campaigns")
 
 
 class GraphNode(BaseModel):

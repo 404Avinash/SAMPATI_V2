@@ -1,65 +1,43 @@
-# BRIEFING — 2026-09-03T10:36:08Z
+# BRIEFING — 2026-09-04T10:43:00Z
 
 ## Mission
-Adversarially stress-test Early Warning Intelligence Layer (FastAPI endpoints under concurrent burst load, large 50KB payload handling, pagination edge cases, and SPA fallback disambiguation).
+Adversarially verify frontend source and build integrity for Milestone 1 (overclaim/buzzword audit, lint/build check, full test suite pass).
 
 ## 🔒 My Identity
-- Archetype: Empirical Challenger
+- Archetype: challenger
 - Roles: critic, specialist
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_challenger_m1_2
-- Original parent: 708f3126-0948-4197-8593-5296c58527f6
-- Milestone: M1 (Encyclopedia Knowledge Base)
-- Instance: 2 of 2
-- Current Parent: 7db76162-5ffa-4602-861a-acf225296fb6
-- Current Milestone: M1 (True Machine Learning Layer — Isolation Forest)
-- New Parent: teamwork_preview_orchestrator_11 (93ffe563-3fed-400b-b381-966248be98c4)
-- Current Milestone: M1 (Early Warning Intelligence Layer — API & Load Stress Testing)
+- Original parent: 633a9079-d863-4bd1-9c75-d637844689ae
+- Milestone: Milestone 1
+- Instance: challenger_m1_2
 
 ## 🔒 Key Constraints
 - Review-only — do NOT modify implementation code
-- Run verification code empirically using Python harnesses/oracles
-- Document all observations, reasoning, and test results in handoff report
-- Do NOT place source code or test files inside .agents/ metadata directories
+- Empirical verification required: run tests, harnesses, linters, builds directly
+- Do not trust worker claims without empirical evidence
 
 ## Current Parent
-- Conversation ID: 93ffe563-3fed-400b-b381-966248be98c4
-- Updated: 2026-09-03T10:36:08Z
+- Conversation ID: 633a9079-d863-4bd1-9c75-d637844689ae
+- Updated: not yet
 
 ## Review Scope
-- **Files to review**: `app/api/intel.py`, `app/main.py`, `app/services/threat_intel_service.py`, `app/models/threat_intel.py`, `app/services/graph_service.py`, `tests/test_threat_intel_r1.py`
-- **Interface contracts**: `/intel/signals`, `/intel/graph`, `/intel/campaigns`, `/intel/simulate`, `/threat-intel`
-- **Review criteria**:
-  1. Concurrent burst load (50+ signals in rapid succession)
-  2. Large payload handling (50KB message with dozens of extracted entities)
-  3. Pagination edge cases (limit=10000, offset=-5, limit=0)
-  4. SPA fallback disambiguation (/intel/invalid -> JSON 404, /threat-intel -> HTML 200)
-  5. Idempotent graph node deduplication (same phone/UPI)
-
-## Attack Surface
-- **Hypotheses tested**:
-  - High-concurrency burst load on `POST /intel/signals` (50 threads): PASSED (62 req/s, 100% success, 0 deadlocks/race conditions).
-  - Large payload handling (50KB unstructured text): PASSED (183ms processing, 0 ReDoS, ~94% KYC similarity match).
-  - Extreme pagination parameters (`limit=10000`, `offset=-5`, `limit=0`): PASSED (422 validation on invalids, clean 200 on boundaries).
-  - SPA fallback route disambiguation: PASSED (`/intel/invalid` -> JSON 404, `/threat-intel` -> HTML 200).
-  - Idempotent graph node deduplication: PASSED (0 node explosion in NetworkX DiGraph).
-- **Vulnerabilities found**:
-  - Multi-Entity Array Truncation: `[phone] if phone else extracted.phones` in `ThreatIntelService.ingest_signal` discards secondary entities in unstructured messages containing multiple phones/UPIs because `phone` is auto-populated with `primary_phone`. Logged as Polish Advisory for M2/future work.
-- **Untested angles**:
-  - Long-term PostgreSQL storage migrations with millions of threat signals.
-
-## Loaded Skills
-- None required for review-only challenger (safe-push noted).
+- **Files to review**: frontend/src/**/*, worker_m1 changes, tests
+- **Interface contracts**: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_orchestrator_13/PROJECT.md, /home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md
+- **Review criteria**: AI buzzword / overclaim hygiene, build & lint cleanliness, pytest suite health
 
 ## Key Decisions Made
-- Executed empirical verification via `fastapi.testclient.TestClient` and `concurrent.futures.ThreadPoolExecutor` in `tests/test_adversarial_m1_empirical.py`.
-- Verified 100% pass rate across 5 adversarial stress test suites.
-- Verified Ruff check zero warnings.
-- Issued verdict: **APPROVE** (Production Ready with Polish Advisory).
-- Documented all empirical evidence, logic chains, and reproduction commands in `handoff.md`.
+- Initiated adversarial verification of frontend code and build integrity
 
 ## Artifact Index
-- `.agents/teamwork_preview_challenger_m1_2/DISPATCH.md` — Inbound prompt log
-- `.agents/teamwork_preview_challenger_m1_2/BRIEFING.md` — Situational awareness
-- `.agents/teamwork_preview_challenger_m1_2/progress.md` — Execution heartbeat
-- `.agents/teamwork_preview_challenger_m1_2/handoff.md` — Final handoff report
+- DISPATCH.md — Dispatch logs
+- BRIEFING.md — Situational awareness
+- progress.md — Liveness heartbeat and step progress
+- handoff.md — Verification findings and verdict
 
+## Attack Surface
+- **Hypotheses tested**: TBD
+- **Vulnerabilities found**: TBD
+- **Untested angles**: TBD
+
+## Loaded Skills
+- safe-push: /home/avi/Downloads/Sampati_v2/.agents/skills/safe-push/SKILL.md

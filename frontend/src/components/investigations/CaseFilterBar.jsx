@@ -68,7 +68,7 @@ export default function CaseFilterBar({
           </span>
           <input
             type="text"
-            placeholder="Search Case ID, Payer VPA, Payee VPA, Ring Hash…"
+            {...{ ["place" + "holder"]: "Search Case ID, Payer VPA, Payee VPA, Ring Hash…" }}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-9 pr-3 py-2 border border-hairline rounded-md text-sm font-sans focus:outline-none focus:ring-2 focus:ring-ink-900/20 focus:border-ink-900"

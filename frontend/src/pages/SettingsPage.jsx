@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useAppState } from "../context/AppStateContext";
+import { useToast } from "../context/ToastContext";
 import { api, formatDateTime } from "../services/api";
 
 export default function SettingsPage() {
+  const { toast } = useToast();
   const {
     sensitivity,
     updateSensitivity,
@@ -42,9 +44,11 @@ export default function SettingsPage() {
       const val = parseFloat(localSensitivity);
       await updateSensitivity(val);
       setSensitivitySavedMsg(true);
+      toast.success("Engine sensitivity saved: " + localSensitivity.toFixed(2) + "x");
       setTimeout(() => setSensitivitySavedMsg(false), 3000);
     } catch (err) {
       console.error("Failed to update sensitivity", err);
+      toast.error("Failed to update engine sensitivity");
     } finally {
       setSavingSensitivity(false);
     }
@@ -56,9 +60,11 @@ export default function SettingsPage() {
     try {
       await updateSensitivity(val);
       setSensitivitySavedMsg(true);
+      toast.info("Applied " + val.toFixed(2) + "x sensitivity preset");
       setTimeout(() => setSensitivitySavedMsg(false), 3000);
     } catch (err) {
       console.error("Failed to update sensitivity", err);
+      toast.error("Failed to apply sensitivity preset");
     } finally {
       setSavingSensitivity(false);
     }
@@ -69,10 +75,12 @@ export default function SettingsPage() {
     try {
       await runSimulation(Number(txnCount), Number(fraudRatio) / 100);
       setSimResultMsg(`Successfully generated stream with ${txnCount} transactions (${fraudRatio}% fraud ratio)`);
+      toast.success("Generated synthetic stream with " + txnCount + " txns (" + fraudRatio + "% fraud)");
       setTimeout(() => setSimResultMsg(null), 4000);
     } catch (err) {
       console.error("Simulation failed", err);
       setSimResultMsg("Simulation encountered an error. Check backend logs.");
+      toast.error("Simulation encountered an error");
     }
   };
 
@@ -80,9 +88,11 @@ export default function SettingsPage() {
     try {
       await runFederation();
       setSimResultMsg("Federated ring sync complete. Blacklist updated.");
+      toast.success("Federation intelligence round complete. Central blacklist updated.");
       setTimeout(() => setSimResultMsg(null), 4000);
     } catch (err) {
       console.error("Federation failed", err);
+      toast.error("Federation intelligence round failed");
     }
   };
 
@@ -90,17 +100,24 @@ export default function SettingsPage() {
     setCheckingDeploy(true);
     try {
       await refreshDeployStatus();
+      toast.info("Deployment status refreshed from EC2 runner");
+    } catch (err) {
+      toast.error("Failed to refresh deployment status");
     } finally {
       setCheckingDeploy(false);
     }
   };
 
-  const handleSimulateDeploy = () => {
+  const handleSimulateDeploy = async () => {
     setDeployTriggered(true);
-    setTimeout(() => {
+    try {
+      await refreshDeployStatus();
+      toast.success("EC2 deployment pipeline status verified: 200 OK");
+    } catch (err) {
+      toast.error("EC2 deployment verification failed");
+    } finally {
       setDeployTriggered(false);
-      refreshDeployStatus();
-    }, 2500);
+    }
   };
 
   const deploy = deployStatus || {

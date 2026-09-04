@@ -1,15 +1,13 @@
-# Progress: Survey R2 (Threat Intelligence Dashboard) & R3 (UI Interactivity)
+# Progress — survey_explorer_2
 
-- Status: Completed
-- Last visited: 2026-09-03T09:40:00Z
+Last visited: 2026-09-04T10:28:00Z
 
-## Tasks
-- [x] Initialized DISPATCH.md and updated BRIEFING.md
-- [x] 1. Inspect `frontend/src/` navigation bar/tabs (`Navbar.jsx`, `App.jsx`, router) to see how page tabs are defined and navigated
-- [x] 2. Investigate dedicated "Threat Intelligence" tab/page integration
-- [x] 3. Determine real-time pre-transaction signal stream, campaign similarity metrics, and entity extraction visual workflow
-- [x] 4. Investigate R3 UI wiring: "Start Live Feed", "Run batch simulation", WebSocket chart updates, and reactive toast system
-- [x] 5. Check ESLint setup, build requirements, and React hooks gotchas
-- [x] 6. Synthesize findings into handoff.md and notify orchestrator
-
-
+- [x] Initialized DISPATCH.md, BRIEFING.md, and progress.md
+- [x] Investigate Threat Intelligence page KPI counters ("21 signals", "3 campaigns", "42 nodes")
+- [x] Investigate Overview page KPI strip and 15s auto-refresh mechanism
+- [x] Investigate Investigations tab badge (case count)
+- [x] Investigate Analytics page KPI cards and metrics
+- [x] Investigate backend endpoints (`/intel/signals`, `/intel/campaigns`, `/cases`, `/upi/cases`, `/upi/stats`, `/stats/analytics`)
+- [x] Synthesize findings into `survey_r2_report.md`
+- [x] Write `handoff.md` and update `BRIEFING.md`
+- [x] Send handoff message to parent agent

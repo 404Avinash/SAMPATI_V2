@@ -32,12 +32,12 @@ export default function SarNarrativeView({ markdown, tokenEconomy }) {
         </div>
       )}
 
-      {/* AI SAR Narrative Content */}
+      {/* SAR Narrative Content */}
       {markdown ? (
         <div className="panel p-5 bg-white">
           <div className="text-[11px] uppercase tracking-wide text-muted font-mono mb-3 flex items-center justify-between pb-2 border-b border-hairline">
             <span className="flex items-center gap-1.5 text-ink-900 font-bold font-serif">
-              <span>✦</span> AI Suspicious Activity Report (SAR) Narrative
+              <span>✦</span> Suspicious Activity Report (SAR) Narrative
             </span>
             <span className="text-[10px] text-muted">Gemini 2.5 Vision + Heuristic Attribution</span>
           </div>
@@ -47,7 +47,7 @@ export default function SarNarrativeView({ markdown, tokenEconomy }) {
         </div>
       ) : (
         <div className="panel p-6 text-center text-xs font-mono text-muted">
-          AI narrative generation pending for this case.
+          Automated SAR narrative synthesis pending for this case.
         </div>
       )}
     </div>

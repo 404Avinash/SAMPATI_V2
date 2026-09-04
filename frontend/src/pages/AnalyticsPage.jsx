@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAppState } from "../context/AppStateContext";
+import { useToast } from "../context/ToastContext";
 import { api } from "../services/api";
 import AnalyticsSummaryKpis from "../components/analytics/AnalyticsSummaryKpis";
 import TimeSeriesVerdictChart from "../components/analytics/TimeSeriesVerdictChart";
@@ -10,6 +11,7 @@ import AnalystWorkloadHeatmap from "../components/analytics/AnalystWorkloadHeatm
 import TopDmvAccountsTable from "../components/analytics/TopDmvAccountsTable";
 
 export default function AnalyticsPage() {
+  const { toast } = useToast();
   const { stats, cases, busy, runSimulation, openCase } = useAppState();
   const [interval, setInterval] = useState("hourly");
   const [loading, setLoading] = useState(false);
@@ -149,7 +151,7 @@ export default function AnalyticsPage() {
         amount: 980000,
       },
       {
-        vpa: "rapid.drain.syndicate@okaxis",
+        vpa: "rapid.drain.mule@okaxis",
         bank: "Axis Bank",
         dmv_score: 76.4,
         dormancy_days: 43,
@@ -207,7 +209,7 @@ export default function AnalyticsPage() {
         limit_accounts: 10,
       });
 
-      if (data && (data.summary || data.time_series?.length > 0 || data.top_accounts?.length > 0 || data.workload_heatmap?.length > 0)) {
+      if (data && (data.summary || data.time_series?.length > 0 || data.top_flagged_accounts?.length > 0 || data.top_accounts?.length > 0 || data.workload_heatmap?.length > 0)) {
         setAnalyticsData(data);
       } else {
         setAnalyticsData(getFallbackAnalytics(activeInterval));
@@ -224,6 +226,10 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     loadAnalytics(interval);
+    const timer = setInterval(() => {
+      loadAnalytics(interval);
+    }, 15000);
+    return () => clearInterval(timer);
   }, [interval, loadAnalytics]);
 
   const handleIntervalChange = (newInterval) => {
@@ -237,6 +243,18 @@ export default function AnalyticsPage() {
     fraud_rate_pct: stats.evaluated > 0 ? Number((((stats.held + stats.blocked) / stats.evaluated) * 100).toFixed(1)) : 0.0,
     avg_risk_score: 76.0,
     total_amount_protected: ((stats.held || 0) + (stats.blocked || 0)) * 62000,
+    active_campaigns: stats.rings || 3,
+    active_campaigns_count: stats.rings || 3,
+  };
+
+  const handleRefreshAnalytics = async () => {
+    await loadAnalytics(interval);
+    toast.info("Analytics metrics refreshed");
+  };
+
+  const handleInjectTelemetry = async () => {
+    toast.success("Injected 200 telemetry transactions");
+    await runSimulation(200, 0.18);
   };
 
   return (
@@ -266,7 +284,7 @@ export default function AnalyticsPage() {
 
           <button
             disabled={loading || busy}
-            onClick={() => loadAnalytics(interval)}
+            onClick={handleRefreshAnalytics}
             className="p-2 rounded-md border border-hairline bg-white hover:bg-surface-muted text-muted hover:text-ink-900 transition-colors disabled:opacity-50"
             title="Refresh analytics data"
           >
@@ -287,7 +305,7 @@ export default function AnalyticsPage() {
 
           <button
             disabled={busy}
-            onClick={() => runSimulation(200, 0.18)}
+            onClick={handleInjectTelemetry}
             className="btn-primary flex items-center gap-2"
           >
             <span>▶</span>
@@ -336,7 +354,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <TopFlaggedAccountsTable
-            accounts={analyticsData?.top_accounts || []}
+            accounts={analyticsData?.top_flagged_accounts || analyticsData?.top_accounts || []}
           />
         </div>
 

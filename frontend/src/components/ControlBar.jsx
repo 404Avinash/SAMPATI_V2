@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useAppState } from "../context/AppStateContext";
+import { useToast } from "../context/ToastContext";
 
 export default function ControlBar({ onSimulate, onFederate, busy }) {
+  const { toast } = useToast();
   const {
     autoFeedActive,
     autoFeedTps,
@@ -20,6 +22,48 @@ export default function ControlBar({ onSimulate, onFederate, busy }) {
     if (setAutoFeedTps) setAutoFeedTps(num);
   };
 
+  const handleCountChange = (val) => {
+    const num = Number(val);
+    const clamped = isNaN(num) ? 10 : Math.max(10, Math.min(2000, num));
+    setCount(clamped);
+  };
+
+  const handleToggleAutoFeed = async () => {
+    const nextState = !autoFeedActive;
+    try {
+      await toggleAutoFeed();
+      if (nextState) {
+        toast.success("Live Auto-Feed active at " + tpsConfig + " tx/s");
+      } else {
+        toast.info("Live Auto-Feed paused");
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to toggle Auto-Feed");
+    }
+  };
+
+  const handleSimulate = async () => {
+    if (onSimulate) {
+      toast.success("Batch simulation started (" + count + " txns, " + fraud + "% fraud)");
+      try {
+        await onSimulate(count, fraud / 100);
+      } catch (err) {
+        toast.error(err.message || "Batch simulation failed");
+      }
+    }
+  };
+
+  const handleFederate = async () => {
+    if (onFederate) {
+      toast.success("Federation intelligence round dispatched");
+      try {
+        await onFederate();
+      } catch (err) {
+        toast.error(err.message || "Federation round failed");
+      }
+    }
+  };
+
   return (
     <div className="panel overflow-hidden">
       {/* Header */}
@@ -29,7 +73,7 @@ export default function ControlBar({ onSimulate, onFederate, busy }) {
             Console &amp; Traffic Generator
           </div>
           <div className="font-serif font-semibold text-ink-900">
-            Traffic &amp; Autonomous Intelligence Controls
+            Traffic Generation &amp; Pipeline Controls
           </div>
         </div>
 
@@ -55,12 +99,12 @@ export default function ControlBar({ onSimulate, onFederate, busy }) {
       </div>
 
       <div className="px-4 py-4 space-y-4">
-        {/* Top Control Strip: Autonomous Live Feed vs Manual Simulation */}
+        {/* Top Control Strip: Live Feed vs Manual Simulation */}
         <div className="p-3 bg-surface-muted/60 rounded-lg border border-hairline flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
             <div>
               <div className="text-[10px] uppercase font-mono font-semibold text-muted">
-                Autonomous Stream
+                Continuous Stream
               </div>
               <div className="text-xs font-semibold text-ink-900">
                 Continuous UPI Transaction Rail
@@ -97,7 +141,7 @@ export default function ControlBar({ onSimulate, onFederate, busy }) {
             </div>
 
             <button
-              onClick={toggleAutoFeed}
+              onClick={handleToggleAutoFeed}
               className={`flex items-center gap-2 px-4 py-2 rounded-md font-mono text-xs font-bold transition-all shadow-sm ${
                 autoFeedActive
                   ? "bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-300"
@@ -129,7 +173,7 @@ export default function ControlBar({ onSimulate, onFederate, busy }) {
               value={count}
               min={10}
               max={2000}
-              onChange={(e) => setCount(Number(e.target.value))}
+              onChange={(e) => handleCountChange(e.target.value)}
               className="w-28 border border-hairline rounded px-2 py-1.5 text-sm font-mono bg-white"
             />
           </div>
@@ -151,14 +195,14 @@ export default function ControlBar({ onSimulate, onFederate, busy }) {
           <div className="flex gap-2 ml-auto">
             <button
               disabled={busy}
-              onClick={() => onSimulate && onSimulate(count, fraud / 100)}
+              onClick={handleSimulate}
               className="btn-primary disabled:opacity-50 text-xs font-semibold"
             >
               {busy ? "Running…" : "▶ Run batch simulation"}
             </button>
             <button
               disabled={busy}
-              onClick={onFederate}
+              onClick={handleFederate}
               className="btn-secondary disabled:opacity-50 text-xs font-semibold"
             >
               ⟲ Federation round

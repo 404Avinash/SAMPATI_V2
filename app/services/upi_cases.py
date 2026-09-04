@@ -359,6 +359,10 @@ class UpiCaseService:
             if c.get("verdict") in ("HOLD", "BLOCK")
         )
 
+        from app.engine.campaign import get_campaign_store
+        active_campaigns_list = get_campaign_store().list_campaigns()
+        open_cases_count = sum(1 for c in cases_dict.values() if c.get("status") == "OPEN")
+
         summary = {
             "total_evaluated": total_eval,
             "total_flagged": total_flagged,
@@ -368,6 +372,9 @@ class UpiCaseService:
             "fraud_rate_pct": fraud_rate_pct,
             "avg_risk_score": avg_risk_score,
             "total_amount_protected": round(total_amount_protected, 2),
+            "active_campaigns": len(active_campaigns_list),
+            "active_campaigns_count": len(active_campaigns_list),
+            "open_cases_count": open_cases_count,
         }
 
         # Time series grouping
@@ -610,7 +617,6 @@ class UpiCaseService:
 
         workload_heatmap = [heatmap_grid[(d, h)] for d in range(7) for h in range(24)]
 
-        from app.engine.campaign import get_campaign_store
         from app.engine.dmv import get_dmv_tracker
 
         top_dmv = get_dmv_tracker().get_top_vpas(limit=limit_accounts)
@@ -622,11 +628,12 @@ class UpiCaseService:
             "time_series": time_series_list,
             "rule_frequencies": rule_frequencies,
             "top_flagged_accounts": top_accounts,
+            "top_accounts": top_accounts,
             "bank_distribution": bank_distribution,
             "top_dmv_vpas": top_dmv,
             "top_vpas_by_dmv": top_dmv,
             "workload_heatmap": workload_heatmap,
-            "active_campaigns": get_campaign_store().list_campaigns(),
+            "active_campaigns": active_campaigns_list,
         }
 
     get_analytics_stats = get_analytics

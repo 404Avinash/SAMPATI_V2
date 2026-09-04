@@ -30,7 +30,7 @@ const DEFAULT_TOP_DMV = [
     case_id: "CASE_DMV_810_03",
   },
   {
-    vpa: "rapid.drain.syndicate@okaxis",
+    vpa: "rapid.drain.mule@okaxis",
     bank: "Axis Bank",
     dmv_score: 76.4,
     dormancy_days: 43,
@@ -67,11 +67,11 @@ const DEFAULT_TOP_DMV = [
   },
 ];
 
-export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) {
+export default function TopDmvAccountsTable({ accounts, onSelectAccount }) {
   const [sortField, setSortField] = useState("dmv_score");
   const [sortAsc, setSortAsc] = useState(false);
 
-  const rawList = Array.isArray(accounts) && accounts.length > 0 ? accounts : DEFAULT_TOP_DMV;
+  const rawList = accounts !== undefined && accounts !== null ? accounts : DEFAULT_TOP_DMV;
 
   const sortedList = useMemo(() => {
     const arr = [...rawList];
@@ -217,7 +217,14 @@ export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) 
             </tr>
           </thead>
           <tbody className="divide-y divide-hairline">
-            {sortedList.map((item, idx) => {
+            {sortedList.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-muted font-mono text-xs">
+                  No accounts currently exhibit high post-dormancy velocity spikes (&gt;40 DMV).
+                </td>
+              </tr>
+            ) : (
+              sortedList.map((item, idx) => {
               const score = Number(item.dmv_score ?? item.score ?? 75);
               const tone = getDmvTone(score);
 
@@ -292,7 +299,8 @@ export default function TopDmvAccountsTable({ accounts = [], onSelectAccount }) 
                   </td>
                 </tr>
               );
-            })}
+            })
+          )}
           </tbody>
         </table>
       </div>

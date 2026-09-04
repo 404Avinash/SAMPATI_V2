@@ -260,8 +260,23 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
       const ok = await copyToClipboard(caseData.case_id);
       if (ok) {
         setCopied(true);
+        toast.success("Case ID copied to clipboard");
         setTimeout(() => setCopied(false), 2000);
       }
+    }
+  };
+
+  const handleConfirmFraud = async () => {
+    if (onFeedback && caseData?.case_id) {
+      await onFeedback(caseData.case_id, true);
+      toast.error("Case " + caseData.case_id + " confirmed as FRAUD");
+    }
+  };
+
+  const handleDismissCase = async () => {
+    if (onFeedback && caseData?.case_id) {
+      await onFeedback(caseData.case_id, false);
+      toast.info("Case " + caseData.case_id + " dismissed as benign");
     }
   };
 
@@ -371,7 +386,7 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
                     activeTab === "copilot" ? "bg-white/20 text-white" : "bg-indigo-200 text-indigo-900"
                   }`}
                 >
-                  Autonomous
+                  Assistant
                 </span>
               </button>
             </div>
@@ -632,11 +647,11 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
               {/* Payee & Account Breakdown Table */}
               <PayeeBreakdownTable caseData={caseData} />
 
-              {/* AI SAR Narrative */}
+              {/* Suspicious Activity Report (SAR) Narrative */}
               {caseData.sar_markdown && (
                 <div className="panel p-4 bg-white border border-hairline rounded-xl space-y-2">
                   <div className="text-[10px] uppercase tracking-wide text-muted font-mono font-semibold">
-                    AI Suspicious Activity Report (SAR) Narrative
+                    Suspicious Activity Report (SAR) Narrative
                   </div>
                   <div className="prose prose-sm max-w-none sar pt-1 font-sans text-xs">
                     <ReactMarkdown>{caseData.sar_markdown}</ReactMarkdown>
@@ -654,13 +669,13 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
             <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-hairline p-4 space-y-2">
               <div className="flex gap-2">
                 <button
-                  onClick={() => onFeedback && onFeedback(caseData.case_id, true)}
+                  onClick={handleConfirmFraud}
                   className="btn-primary flex-1 py-2 text-xs font-semibold"
                 >
                   Confirm Fraud
                 </button>
                 <button
-                  onClick={() => onFeedback && onFeedback(caseData.case_id, false)}
+                  onClick={handleDismissCase}
                   className="btn-secondary flex-1 py-2 text-xs font-semibold"
                 >
                   Dismiss

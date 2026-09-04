@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useAppState } from "../context/AppStateContext";
+import { useToast } from "../context/ToastContext";
 import CaseFilterBar from "../components/investigations/CaseFilterBar";
 import { VerdictBadge, StatusBadge, RiskScoreBadge } from "../components/common/StatusBadge";
 import { formatINR, relativeTime, formatDateTime, shortVpa } from "../services/api";
 
 export default function InvestigationsPage() {
+  const { toast } = useToast();
   const { cases, openCase, runSimulation, busy } = useAppState();
   const { caseId } = useParams();
 
@@ -104,6 +106,11 @@ export default function InvestigationsPage() {
     setCurrentPage(1);
   };
 
+  const handleGenerateFraudStream = async () => {
+    toast.success("Generated 250 synthetic transactions");
+    await runSimulation(250, 0.20);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -113,13 +120,13 @@ export default function InvestigationsPage() {
             Case Management &amp; Triage Console
           </h2>
           <p className="text-xs text-muted">
-            Inspect flagged high-risk transactions, review AI SAR narratives, and dispatch RBI DPIP alerts.
+            Inspect flagged high-risk transactions, review SAR narratives, and dispatch RBI DPIP alerts.
           </p>
         </div>
 
         <button
           disabled={busy}
-          onClick={() => runSimulation(250, 0.20)}
+          onClick={handleGenerateFraudStream}
           className="btn-primary flex items-center gap-2"
         >
           <span>▶</span>

@@ -27,3 +27,41 @@ Investigate the exact specifications and code locations for Requirement 3 (ML La
 
 Write your findings and recommendations into `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md`.
 Use send_message to notify parent when complete with the path to your handoff file.
+
+
+## 2026-09-04T10:21:18Z
+You are survey_explorer_3.
+Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3
+Your parent conversation ID is: 633a9079-d863-4bd1-9c75-d637844689ae
+
+MANDATORY INPUT:
+Read the authoritative user request at:
+/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md
+Specifically section ## 2026-09-04T10:20:00Z.
+
+MISSION:
+Conduct a comprehensive Survey on Requirement R3 (Fix Dead Buttons and Broken Interactions):
+1. Button Audit:
+   - Enumerate EVERY <button> element across all .jsx / .js files in frontend/src/.
+   - Identify buttons missing onClick, buttons with empty onClick={() => {}}, or buttons whose action is purely decorative/inert.
+   - Pay special attention to the Settings page (SettingsPage.jsx or equivalent): list all buttons, what they do, which are dead, and determine whether they should be wired to real actions (with Toast feedback) or removed.
+2. Threat Intelligence "Simulate Flow" Button:
+   - Trace the "Simulate Flow" button on the Threat Intelligence tab.
+   - What does it currently trigger? Does it call an API endpoint? Does it show any visual result or toast? What is required to make it actually run a simulation and display a clear result?
+3. Tab Navigation & Scroll Preservation:
+   - Inspect the top-level tab navigation mechanism (App.jsx / layout components).
+   - Check why switching tabs causes scroll loss or blank screen flashes, and recommend how to preserve scroll or prevent layout shifts.
+4. Form Validation & Submission:
+   - Audit all form inputs and modals across the frontend (e.g., in Settings, Threat Intel, Investigations, Case Drawer).
+   - Verify whether each form validates and submits properly, or needs fixes.
+5. Toast Notifications:
+   - Inspect the existing toast notification system (how it is imported, configured, and used).
+   - Verify which actionable buttons are currently missing toast feedback.
+
+CONSTRAINTS:
+- You are a READ-ONLY explorer. Do NOT modify any source code files.
+- Deliver your detailed findings in:
+  /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/survey_r3_report.md
+  and write your handoff in:
+  /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md
+- When finished, send a message to your parent using send_message with a summary of findings and the path to your report.

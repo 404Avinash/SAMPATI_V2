@@ -14,6 +14,8 @@ export function AppStateProvider({ children }) {
     honeypot_hits_24h: 0,
     rings: 0,
     dpip: 0,
+    open_cases: 0,
+    total_cases: 0,
   });
   const [cases, setCases] = useState([]);
   const [selectedCase, setSelectedCase] = useState(null);
@@ -125,16 +127,26 @@ export function AppStateProvider({ children }) {
           s.honeypots?.total_hits ??
           s.honeypots?.hits_24h ??
           0;
-        setStats((prev) => ({
-          evaluated: s.total_evaluations ?? s.evaluated ?? prev.evaluated,
-          allowed: s.verdicts?.ALLOW ?? s.allowed ?? prev.allowed,
-          held: s.verdicts?.HOLD ?? s.held ?? prev.held,
-          blocked: s.verdicts?.BLOCK ?? s.blocked ?? prev.blocked,
-          honeypot_hits: hpVal !== undefined && hpVal !== null ? hpVal : prev.honeypot_hits,
-          honeypot_hits_24h: hpVal !== undefined && hpVal !== null ? hpVal : prev.honeypot_hits_24h,
-          rings: s.rings_known ?? s.rings ?? prev.rings,
-          dpip: s.dpip?.rings_published ?? s.dpip ?? prev.dpip,
-        }));
+        const newStats = {
+          evaluated: s.total_evaluations ?? s.evaluated ?? 0,
+          allowed: s.verdicts?.ALLOW ?? s.allowed ?? 0,
+          held: s.verdicts?.HOLD ?? s.held ?? 0,
+          blocked: s.verdicts?.BLOCK ?? s.blocked ?? 0,
+          honeypot_hits: hpVal,
+          honeypot_hits_24h: hpVal,
+          rings: s.rings_known ?? s.rings ?? 0,
+          dpip: s.dpip?.rings_published ?? s.dpip ?? 0,
+          open_cases: s.cases?.open ?? 0,
+          total_cases: s.cases?.total ?? 0,
+        };
+
+        // Shallow comparison prevents jarring re-renders when numbers haven't changed
+        setStats((prev) => {
+          const keys = Object.keys(newStats);
+          const changed = keys.some((k) => prev[k] !== newStats[k]);
+          return changed ? { ...prev, ...newStats } : prev;
+        });
+
         if (s.adaptive_sensitivity != null) {
           setSensitivity(s.adaptive_sensitivity);
         }
@@ -232,6 +244,8 @@ export function AppStateProvider({ children }) {
           honeypot_hits_24h: hpVal !== null ? hpVal : prev.honeypot_hits_24h,
           rings: incomingStats.rings ?? prev.rings,
           dpip: incomingStats.dpip ?? prev.dpip,
+          open_cases: incomingStats.cases?.open ?? incomingStats.open_cases ?? prev.open_cases,
+          total_cases: incomingStats.cases?.total ?? incomingStats.total_cases ?? prev.total_cases,
         }));
         appendVerdictHistory(incomingStats);
       }
@@ -256,6 +270,8 @@ export function AppStateProvider({ children }) {
         honeypot_hits_24h: hpVal !== null ? hpVal : prev.honeypot_hits_24h,
         rings: incomingStats.rings ?? prev.rings,
         dpip: incomingStats.dpip ?? prev.dpip,
+        open_cases: incomingStats.cases?.open ?? incomingStats.open_cases ?? prev.open_cases,
+        total_cases: incomingStats.cases?.total ?? incomingStats.total_cases ?? prev.total_cases,
       }));
       appendVerdictHistory(incomingStats);
     },
@@ -408,6 +424,15 @@ export function AppStateProvider({ children }) {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Polling interval: refresh stats & cases every 15s
+  useEffect(() => {
+    const timer = setInterval(() => {
+      refreshStats();
+      refreshCases();
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [refreshStats, refreshCases]);
 
   // Poll auto-feed status while active
   useEffect(() => {

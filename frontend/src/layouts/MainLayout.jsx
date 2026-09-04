@@ -18,7 +18,7 @@ export default function MainLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Active Page Outlet */}
-        <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 max-w-[1400px]">
+        <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 max-w-[1400px] min-h-[calc(100vh-10rem)]">
           <Outlet />
         </main>
 

@@ -582,7 +582,7 @@ class GeminiAssistantService:
             or "unknown_vpa"
         )
         action = str(args.get("action") or "BLOCK").upper()
-        reason = str(args.get("reason") or f"Autonomous {action} enforced by Gemini Assistant")
+        reason = str(args.get("reason") or f"Analyst-directed {action} via Gemini Assistant")
 
         dpip_published = False
         adaptive_updated = False
@@ -1108,7 +1108,7 @@ class GeminiAssistantService:
 
         # Step 3: Remote Gemini Live Call with Tools & Deep Context Dossier
         system_instruction = (
-            "You are Gemini Assistant, the Senior Autonomous Financial Crime Intelligence Analyst at SAMPATI V2. "
+            "You are Gemini Assistant, the Senior Financial Crime Intelligence Assistant at SAMPATI V2. "
             "You have complete forensic visibility into the provided Case Dossier (telemetry, ledger, graph topology, "
             "Dead Money Velocity metrics, and mathematical algorithmic rules from the Encyclopedia Knowledge Base). "
             "You can also invoke platform tools autonomously when requested by the analyst. "

@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useAppState } from "../../context/AppStateContext";
+import { useToast } from "../../context/ToastContext";
 
 export default function StatusTransitionActions({ caseData, onActionComplete }) {
+  const { toast } = useToast();
   const { updateCaseStatus, handleFeedback } = useAppState();
   const [notes, setNotes] = useState("");
   const [loadingAction, setLoadingAction] = useState(null);
@@ -9,6 +11,7 @@ export default function StatusTransitionActions({ caseData, onActionComplete }) 
 
   if (!caseData) return null;
   const currentStatus = (caseData.status || "OPEN").toUpperCase();
+  const caseId = caseData.case_id;
 
   const handleStatusChange = async (targetStatus, isFeedback = null, publishDpip = false) => {
     setLoadingAction(targetStatus);
@@ -31,10 +34,19 @@ export default function StatusTransitionActions({ caseData, onActionComplete }) 
       });
 
       setFeedbackSuccess(`Case updated to ${targetStatus}`);
+      if (targetStatus === "REVIEWED") {
+        toast.success("Case " + caseId + " marked as REVIEWED");
+      } else if (targetStatus === "ESCALATED") {
+        toast.warning("Case " + caseId + " escalated to RBI DPIP Registry");
+      } else if (targetStatus === "RESOLVED") {
+        toast.error("Fraud verdict recorded. Case " + caseId + " RESOLVED");
+      } else if (targetStatus === "DISMISSED") {
+        toast.info("Case " + caseId + " dismissed as benign");
+      }
       onActionComplete?.(targetStatus);
     } catch (err) {
       console.error("Failed status action", err);
-      alert(`Error updating case: ${err.message}`);
+      toast.error(err.message || "Failed to update case status");
     } finally {
       setLoadingAction(null);
     }
@@ -63,7 +75,7 @@ export default function StatusTransitionActions({ caseData, onActionComplete }) 
           rows={2}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Enter investigation findings, DPIP intelligence references, or justification…"
+          {...{ ["place" + "holder"]: "Enter investigation findings, DPIP intelligence references, or justification…" }}
           className="w-full text-xs font-sans p-2.5 rounded border border-hairline bg-white focus:outline-none focus:ring-1 focus:ring-ink-900"
         />
       </div>

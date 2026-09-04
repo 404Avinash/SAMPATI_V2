@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAppState } from "../context/AppStateContext";
+import { useToast } from "../context/ToastContext";
 import { api, formatDateTime } from "../services/api";
 
 export default function SystemHealthPage() {
+  const { toast } = useToast();
   const { connected, live } = useAppState();
   const [healthData, setHealthData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -104,6 +106,19 @@ export default function SystemHealthPage() {
   const isRedisHealthy = redis.status === "connected" || redis.status === "ok";
   const isWsHealthy = (ws.active_connections > 0 || connected || live) && ws.status !== "error";
 
+  const handleToggleAutoRefresh = () => {
+    setAutoRefresh((v) => {
+      const next = !v;
+      toast.info("Health auto-refresh " + (next ? "enabled" : "disabled"));
+      return next;
+    });
+  };
+
+  const handleRefreshProbes = async () => {
+    await fetchHealth(true);
+    toast.info("System health diagnostic probes refreshed");
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -128,7 +143,7 @@ export default function SystemHealthPage() {
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-hairline text-xs font-mono">
             <span className="text-muted">Auto-refresh (3.5s):</span>
             <button
-              onClick={() => setAutoRefresh((v) => !v)}
+              onClick={handleToggleAutoRefresh}
               className={`w-8 h-4 rounded-full transition-colors relative p-0.5 ${
                 autoRefresh ? "bg-emerald-500" : "bg-slate-300"
               }`}
@@ -149,7 +164,7 @@ export default function SystemHealthPage() {
 
           <button
             disabled={loading}
-            onClick={() => fetchHealth(true)}
+            onClick={handleRefreshProbes}
             className="p-2 rounded-md border border-hairline bg-white hover:bg-surface-muted text-muted hover:text-ink-900 transition-colors disabled:opacity-50"
             title="Manual refresh"
           >

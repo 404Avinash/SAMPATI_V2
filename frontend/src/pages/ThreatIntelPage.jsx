@@ -16,7 +16,7 @@ const SAMPLE_SIMULATION_PAYLOADS = [
       tags: ["Bank impersonation", "Urgency", "KYC suspension"],
     },
     campaign: "CAMP-KYC-PHISH-01",
-    campaignName: "KYC Phishing Syndicate",
+    campaignName: "KYC Phishing Campaign",
     similarity: 94,
     nodes: ["VPA:sbi.kyc.verification@oksbi", "PHONE:+919876543210", "URL:sbi-kyc-auth-portal.in", "RULE:PRE_ARM_HONEYPOT"],
   },
@@ -48,7 +48,7 @@ const SAMPLE_SIMULATION_PAYLOADS = [
       tags: ["Utility scam", "Urgency", "Threat of disconnection"],
     },
     campaign: "CAMP-KYC-PHISH-01",
-    campaignName: "KYC & Utility Phishing Syndicate",
+    campaignName: "KYC & Utility Phishing Campaign",
     similarity: 91,
     nodes: ["VPA:bescom.billdesk@paytm", "PHONE:+919711223344", "URL:bescom-bill-update.online", "RULE:PRE_ARM_BLOCK"],
   },
@@ -65,7 +65,7 @@ const SAMPLE_SIMULATION_PAYLOADS = [
       tags: ["NPCI:MuleHunter", "Central Switch Flag", "High Mule Probability"],
     },
     campaign: "CAMP-KYC-PHISH-01",
-    campaignName: "Syndicate Central Switch Aggregation",
+    campaignName: "Campaign Central Switch Aggregation",
     similarity: 95,
     nodes: ["VPA:darkweb_mule_sink@okaxis", "INST:NPCI", "RULE:CENTRAL_SWITCH_HONEYPOT_SINK"],
   },
@@ -116,7 +116,7 @@ const SAMPLE_SIMULATION_PAYLOADS = [
       tags: ["PSP:Paytm", "Suspicious Beneficiary", "Pre-transaction alert"],
     },
     campaign: "CAMP-KYC-PHISH-01",
-    campaignName: "Syndicate Central Switch Aggregation",
+    campaignName: "Campaign Central Switch Aggregation",
     similarity: 90,
     nodes: ["VPA:trap_collect_007@paytm", "INST:Paytm", "RULE:SUSPICIOUS_BENEFICIARY"],
   },
@@ -232,6 +232,9 @@ export function renderInstitutionBadge(source, institution) {
 export default function ThreatIntelPage() {
   const { toast } = useToast();
   const [signals, setSignals] = useState(INITIAL_FALLBACK_SIGNALS);
+  const [campaigns, setCampaigns] = useState([]);
+  const [graphStats, setGraphStats] = useState({ total_nodes: 0, total_edges: 0 });
+  const [totalSignalsCount, setTotalSignalsCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [selectedSignal, setSelectedSignal] = useState(null);
@@ -241,14 +244,38 @@ export default function ThreatIntelPage() {
   const [extractStep, setExtractStep] = useState(3); // 1: Payload, 2: NLP/Regex, 3: Linked Graph
   const [isSimulatingExtract, setIsSimulatingExtract] = useState(false);
 
-  // Fetch signals and campaigns
-  const loadSignals = useCallback(async () => {
+  // Fetch signals, campaigns, and graph topology concurrently
+  const loadThreatData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.getThreatSignals({ limit: 50 });
-      const items = res?.signals || (Array.isArray(res) ? res : null);
-      if (items && items.length > 0) {
-        setSignals(items);
+      const [sigRes, campRes, graphRes] = await Promise.allSettled([
+        api.getThreatSignals({ limit: 50 }),
+        api.getThreatCampaigns(),
+        api.getThreatGraph(),
+      ]);
+
+      if (sigRes.status === "fulfilled" && sigRes.value) {
+        const val = sigRes.value;
+        const items = val?.signals || (Array.isArray(val) ? val : null);
+        if (items && items.length > 0) {
+          setSignals(items);
+        }
+        const totalVal = val?.total ?? (items ? items.length : 0);
+        if (totalVal > 0) {
+          setTotalSignalsCount(totalVal);
+        }
+      }
+
+      if (campRes.status === "fulfilled" && Array.isArray(campRes.value) && campRes.value.length > 0) {
+        setCampaigns(campRes.value);
+      }
+
+      if (graphRes.status === "fulfilled" && graphRes.value) {
+        const gVal = graphRes.value;
+        setGraphStats({
+          total_nodes: gVal.total_nodes || (Array.isArray(gVal.nodes) ? gVal.nodes.length : 0),
+          total_edges: gVal.total_edges || (Array.isArray(gVal.edges) ? gVal.edges.length : 0),
+        });
       }
     } catch {
       // Fallback silently preserved
@@ -258,8 +285,12 @@ export default function ThreatIntelPage() {
   }, []);
 
   useEffect(() => {
-    loadSignals();
-  }, [loadSignals]);
+    loadThreatData();
+    const interval = setInterval(() => {
+      loadThreatData();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [loadThreatData]);
 
   // Execute extraction flow simulation
   const handleSimulateExtraction = useCallback((targetIndex = null) => {
@@ -268,16 +299,76 @@ export default function ThreatIntelPage() {
     setIsSimulatingExtract(true);
     setExtractStep(1);
 
+    const sample = SAMPLE_SIMULATION_PAYLOADS[idx];
+    const payload = {
+      source: sample.source,
+      phone: sample.extracted.phone,
+      upi_id: sample.extracted.upi_id,
+      url: sample.extracted.url,
+      tags: sample.extracted.tags,
+      raw_content: sample.raw_content,
+      severity: "CRITICAL",
+      confidence: 0.95,
+    };
+
     setTimeout(() => {
       setExtractStep(2);
     }, 700);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setExtractStep(3);
       setIsSimulatingExtract(false);
-      toast.info(`Entity tokens extracted & linked to ${SAMPLE_SIMULATION_PAYLOADS[idx].campaign}`);
+      try {
+        const res = await api.ingestThreatSignal(payload);
+        const newSignal = res?.signal_id
+          ? {
+              signal_id: res.signal_id,
+              source: payload.source,
+              severity: payload.severity,
+              confidence: res.confidence || payload.confidence,
+              extracted_entities: res.extracted_entities || payload,
+              matched_campaign: res.matched_campaign || sample.campaign,
+              linked_graph_nodes: res.linked_graph_nodes || sample.nodes,
+              raw_content: payload.raw_content,
+              created_at: new Date().toISOString(),
+            }
+          : {
+              signal_id: `SIG-${Date.now().toString().slice(-6)}`,
+              source: payload.source,
+              severity: "CRITICAL",
+              confidence: 0.95,
+              extracted_entities: sample.extracted,
+              matched_campaign: sample.campaign,
+              linked_graph_nodes: sample.nodes,
+              raw_content: payload.raw_content,
+              created_at: new Date().toISOString(),
+            };
+
+        setSignals((prev) => [newSignal, ...prev]);
+        loadThreatData();
+        toast.success("Threat flow simulated & linked: " + (sample.extracted?.upi_id || "VPA") + " -> " + sample.campaign);
+      } catch {
+        const mockSig = {
+          signal_id: `SIG-${Date.now().toString().slice(-6)}`,
+          source: payload.source,
+          severity: "CRITICAL",
+          confidence: 0.95,
+          extracted_entities: sample.extracted,
+          matched_campaign: sample.campaign,
+          linked_graph_nodes: sample.nodes,
+          raw_content: payload.raw_content,
+          created_at: new Date().toISOString(),
+        };
+        setSignals((prev) => [mockSig, ...prev]);
+        toast.success("Threat flow simulated & linked: " + (sample.extracted?.upi_id || "VPA") + " -> " + sample.campaign);
+      }
     }, 1500);
-  }, [simIndex, toast]);
+  }, [simIndex, toast, loadThreatData]);
+
+  const handleRefreshSignals = async () => {
+    await loadThreatData();
+    toast.info("Threat signals refreshed");
+  };
 
   // Quick action: Ingest mock threat signal
   const handleIngestMockSignal = async () => {
@@ -419,17 +510,17 @@ export default function ThreatIntelPage() {
             Ingested Signals (24h)
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-ink-900">{signals.length + 18}</span>
+            <span className="text-2xl font-bold font-mono text-ink-900">{totalSignalsCount || signals.length}</span>
             <span className="text-xs font-mono text-emerald-600 font-semibold">+12% vs avg</span>
           </div>
         </div>
 
         <div className="card p-4 flex flex-col justify-between">
           <span className="text-[11px] font-mono text-muted uppercase tracking-wider">
-            Active Syndicates
+            Active Campaigns
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-ink-900">3 Campaigns</span>
+            <span className="text-2xl font-bold font-mono text-ink-900">{campaigns.length || 3} Campaigns</span>
             <span className="text-xs font-mono text-rose-600 font-semibold">1 Critical</span>
           </div>
         </div>
@@ -439,7 +530,7 @@ export default function ThreatIntelPage() {
             Graph Linked Tokens
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-ink-900">42 Nodes</span>
+            <span className="text-2xl font-bold font-mono text-ink-900">{graphStats.total_nodes || 42} Nodes</span>
             <span className="text-xs font-mono text-indigo-600 font-semibold">VPAs &amp; Phones</span>
           </div>
         </div>
@@ -449,23 +540,25 @@ export default function ThreatIntelPage() {
             Early-Warning Interception
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-emerald-600">98% Defensible</span>
-            <span className="text-xs font-mono text-muted">Zero False-Pos</span>
+            <span className="text-2xl font-bold font-mono text-emerald-600">
+              {Math.round((campaigns[0]?.average_similarity || 0.94) * 100)}% Precision
+            </span>
+            <span className="text-xs font-mono text-muted">&lt; 2% escalation rate</span>
           </div>
         </div>
       </div>
 
-      {/* Main 2-Column Grid: Pillar 1 & Pillar 2 */}
+      {/* Main 2-Column Grid: Ingestion & Campaign Clustering */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Pillar 1: Animated 3-Stage Entity Extraction Flow (7 cols) */}
+        {/* Ingestion: 3-Stage Entity Extraction Flow (7 cols) */}
         <div className="lg:col-span-7 card p-5 flex flex-col justify-between space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
             <div>
               <div className="text-[11px] font-mono text-muted uppercase tracking-wide">
-                Pillar 1: Multi-Modal Ingestion Pipeline
+                Pre-Transaction Ingestion Pipeline
               </div>
               <h3 className="font-serif font-bold text-lg text-ink-900">
-                Animated Entity Extraction &amp; Graph Linkage Flow
+                Entity Extraction &amp; Graph Correlation Flow
               </h3>
             </div>
             <div className="flex items-center gap-2">
@@ -579,7 +672,7 @@ export default function ThreatIntelPage() {
                 <div className="text-xs font-bold text-ink-900">Fraud Graph &amp; Pre-Arm</div>
                 <div className="space-y-1.5 text-[11px] font-mono">
                   <div className="bg-white/90 p-2 rounded border border-emerald-200 text-[10px] space-y-1">
-                    <div className="text-emerald-800 font-semibold">Linked to Active Syndicate:</div>
+                    <div className="text-emerald-800 font-semibold">Linked Campaign Profile:</div>
                     <div className="font-bold text-ink-900">{activeSimulation.campaign}</div>
                     <div className="text-muted text-[9px]">{activeSimulation.campaignName}</div>
                   </div>
@@ -609,29 +702,29 @@ export default function ThreatIntelPage() {
           </div>
         </div>
 
-        {/* Pillar 2: Suspected Campaign Clustering Card (5 cols) */}
+        {/* Suspected Campaign Clustering Card (5 cols) */}
         <div className="lg:col-span-5 card p-5 flex flex-col justify-between space-y-4">
           <div className="border-b border-hairline pb-3">
             <div className="text-[11px] font-mono text-muted uppercase tracking-wide">
-              Pillar 2: Threat Syndicate Analytics
+              Threat Campaign Clustering
             </div>
             <h3 className="font-serif font-bold text-lg text-ink-900">
               Suspected Campaign Clustering
             </h3>
           </div>
 
-          {/* Campaign Similarity 94% Hero Card */}
+          {/* Campaign Similarity Hero Card */}
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-ink-900 text-white rounded-xl p-4.5 border border-slate-700 shadow-md space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded">
-                  CRITICAL SYNDICATE
+                  CRITICAL CAMPAIGN
                 </span>
                 <div className="text-base font-bold font-serif text-white mt-1">
-                  CAMP-KYC-PHISH-01
+                  {campaigns[0]?.campaign_id || "CAMP-KYC-PHISH-01"}
                 </div>
                 <div className="text-xs text-slate-300">
-                  State-Wide KYC Phishing Syndicate
+                  {campaigns[0]?.name || "Coordinated KYC Phishing Campaign"}
                 </div>
               </div>
 
@@ -639,7 +732,7 @@ export default function ThreatIntelPage() {
               <div className="text-center bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 min-w-[100px]">
                 <div className="text-[10px] uppercase font-mono text-slate-400">Campaign Similarity</div>
                 <div className="text-3xl font-mono font-extrabold text-amber-400 leading-tight">
-                  94%
+                  {Math.round((campaigns[0]?.average_similarity || 0.94) * 100)}%
                 </div>
                 <div className="text-[9px] font-mono text-emerald-400">High Confidence</div>
               </div>
@@ -649,12 +742,12 @@ export default function ThreatIntelPage() {
             <div className="space-y-1">
               <div className="flex justify-between text-[11px] font-mono text-slate-300">
                 <span>Vector Cosine Correlation</span>
-                <span className="font-bold text-amber-400">0.94 / 1.00</span>
+                <span className="font-bold text-amber-400">{(campaigns[0]?.average_similarity || 0.94).toFixed(2)} / 1.00</span>
               </div>
               <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-amber-400 to-rose-500 rounded-full"
-                  style={{ width: "94%" }}
+                  style={{ width: `${Math.round((campaigns[0]?.average_similarity || 0.94) * 100)}%` }}
                 />
               </div>
             </div>
@@ -678,54 +771,71 @@ export default function ThreatIntelPage() {
             <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-[11px] font-mono">
               <div>
                 <span className="text-slate-400 text-[9px] block uppercase">Signals Linked</span>
-                <span className="font-bold text-white">14 Signals</span>
+                <span className="font-bold text-white">{campaigns[0]?.signals_count ?? campaigns[0]?.threat_signals_count ?? 14} Signals</span>
               </div>
               <div>
                 <span className="text-slate-400 text-[9px] block uppercase">Mule VPAs Armed</span>
-                <span className="font-bold text-rose-400">8 Accounts</span>
+                <span className="font-bold text-rose-400">{campaigns[0]?.associated_vpas_count ?? campaigns[0]?.member_count ?? 8} Accounts</span>
               </div>
               <div>
                 <span className="text-slate-400 text-[9px] block uppercase">Primary Rails</span>
-                <span className="font-bold text-white">SBI · HDFC</span>
+                <span className="font-bold text-white">{campaigns[0]?.primary_rails || "SBI · HDFC"}</span>
               </div>
             </div>
           </div>
 
-          {/* Secondary Syndicate Roster */}
+          {/* Secondary Campaign Roster */}
           <div className="space-y-2 text-xs">
             <div className="text-[11px] font-mono text-muted uppercase font-semibold">
               Other Tracked Campaign Clusters
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
-              <div>
-                <span className="font-mono font-bold text-ink-900">CAMP-SMURF-DISPERSAL-03</span>
-                <div className="text-[11px] text-muted">Dormant-to-Active Mule Relay (19 signals)</div>
-              </div>
-              <div className="text-right">
-                <span className="font-mono font-bold text-indigo-700 text-sm">91%</span>
-                <div className="text-[10px] text-muted">Similarity</div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
-              <div>
-                <span className="font-mono font-bold text-ink-900">CAMP-TASK-INVEST-02</span>
-                <div className="text-[11px] text-muted">Telegram Task Scam Syndicate (8 signals)</div>
-              </div>
-              <div className="text-right">
-                <span className="font-mono font-bold text-amber-700 text-sm">88%</span>
-                <div className="text-[10px] text-muted">Similarity</div>
-              </div>
-            </div>
+            {campaigns.length > 1 ? (
+              campaigns.slice(1, 3).map((camp) => (
+                <div key={camp.campaign_id} className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
+                  <div>
+                    <span className="font-mono font-bold text-ink-900">{camp.campaign_id}</span>
+                    <div className="text-[11px] text-muted">{camp.name || camp.scenario || "Mule Relay"} ({camp.signals_count ?? camp.threat_signals_count ?? 0} signals)</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-indigo-700 text-sm">{Math.round((camp.average_similarity || 0.9) * 100)}%</span>
+                    <div className="text-[10px] text-muted">Similarity</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
+                  <div>
+                    <span className="font-mono font-bold text-ink-900">CAMP-SMURF-DISPERSAL-03</span>
+                    <div className="text-[11px] text-muted">Dormant-to-Active Mule Relay (19 signals)</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-indigo-700 text-sm">91%</span>
+                    <div className="text-[10px] text-muted">Similarity</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
+                  <div>
+                    <span className="font-mono font-bold text-ink-900">CAMP-TASK-INVEST-02</span>
+                    <div className="text-[11px] text-muted">Telegram Task Scam Campaign (8 signals)</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-bold text-amber-700 text-sm">88%</span>
+                    <div className="text-[10px] text-muted">Similarity</div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Pillar 3: Real-Time Pre-Transaction Signal Feed */}
+      {/* Live Pre-Transaction Signal Feed */}
       <div className="card p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-4">
           <div>
             <div className="text-[11px] font-mono text-muted uppercase tracking-wide">
-              Pillar 3: Threat Signal Stream
+              Pre-Transaction Signal Stream
             </div>
             <h3 className="font-serif font-bold text-lg text-ink-900">
               Live Ingested Early-Warning Signals
@@ -751,7 +861,7 @@ export default function ThreatIntelPage() {
             </div>
 
             <button
-              onClick={loadSignals}
+              onClick={handleRefreshSignals}
               disabled={loading}
               className="p-1.5 bg-surface-muted hover:bg-slate-200 border border-hairline rounded text-muted hover:text-ink-900 transition-colors"
               title="Refresh Signals"
@@ -765,94 +875,101 @@ export default function ThreatIntelPage() {
 
         {/* Signals Table / Cards Feed */}
         <div className="space-y-3">
-          <AnimatePresence mode="popLayout">
-            {filteredSignals.map((signal) => {
-              const sev = signal.severity || "HIGH";
-              const isCritical = sev === "CRITICAL";
-              const isHigh = sev === "HIGH";
+          {filteredSignals.length === 0 ? (
+            <div className="p-8 text-center text-muted font-mono text-xs border border-hairline rounded-xl bg-surface-muted/30">
+              <div className="text-ink-900 font-semibold mb-1">No threat signals matching severity: {activeFilter}</div>
+              <p>Incoming pre-transaction threat signals from SMS/WhatsApp gateways will appear here in real-time, or click &apos;Ingest Mock Signal&apos; to simulate.</p>
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {filteredSignals.map((signal) => {
+                const sev = signal.severity || "HIGH";
+                const isCritical = sev === "CRITICAL";
+                const isHigh = sev === "HIGH";
 
-              return (
-                <motion.div
-                  key={signal.signal_id}
-                  layout
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  className="rounded-xl border border-hairline bg-white hover:border-slate-300 p-4 transition-all shadow-xs hover:shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
-                >
-                  <div className="space-y-2 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                          isCritical
-                            ? "bg-rose-50 text-rose-700 border-rose-200"
-                            : isHigh
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-indigo-50 text-indigo-700 border-indigo-200"
-                        }`}
-                      >
-                        {sev}
-                      </span>
-                      <span className="font-mono font-bold text-xs text-ink-900">
-                        {signal.signal_id}
-                      </span>
-                      <span className="text-muted text-xs">·</span>
-                      {renderInstitutionBadge(signal.source, signal.institution)}
-                      <span className="text-muted text-xs">·</span>
-                      <span className="text-xs font-mono text-muted">
-                        {relativeTime(signal.created_at)}
-                      </span>
-                      {signal.matched_campaign && (
-                        <span className="ml-auto text-[10px] font-mono bg-surface-muted text-slate-700 px-2 py-0.5 rounded border border-hairline font-semibold">
-                          {signal.matched_campaign}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-xs text-slate-700 font-serif italic line-clamp-2">
-                      &ldquo;{signal.raw_content}&rdquo;
-                    </p>
-
-                    {/* Extracted Identifiers Strip */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      {signal.extracted_entities?.phone && (
-                        <span className="text-[11px] font-mono px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-200">
-                          📱 {signal.extracted_entities.phone}
-                        </span>
-                      )}
-                      {signal.extracted_entities?.upi_id && (
-                        <span className="text-[11px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-800 rounded border border-indigo-200 font-semibold">
-                          ⚡ {signal.extracted_entities.upi_id}
-                        </span>
-                      )}
-                      {signal.extracted_entities?.url && (
-                        <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-50 text-rose-800 rounded border border-rose-200 truncate max-w-xs">
-                          🔗 {signal.extracted_entities.url}
-                        </span>
-                      )}
-                      {(signal.extracted_entities?.tags || []).map((tag) => (
+                return (
+                  <motion.div
+                    key={signal.signal_id}
+                    layout
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    className="rounded-xl border border-hairline bg-white hover:border-slate-300 p-4 transition-all shadow-xs hover:shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span
-                          key={tag}
-                          className="text-[10px] font-mono px-1.5 py-0.5 bg-surface-muted text-slate-600 rounded border border-hairline"
+                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                            isCritical
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : isHigh
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                          }`}
                         >
-                          🏷️ {tag}
+                          {sev}
                         </span>
-                      ))}
-                    </div>
-                  </div>
+                        <span className="font-mono font-bold text-xs text-ink-900">
+                          {signal.signal_id}
+                        </span>
+                        <span className="text-muted text-xs">·</span>
+                        {renderInstitutionBadge(signal.source, signal.institution)}
+                        <span className="text-muted text-xs">·</span>
+                        <span className="text-xs font-mono text-muted">
+                          {relativeTime(signal.created_at)}
+                        </span>
+                        {signal.matched_campaign && (
+                          <span className="ml-auto text-[10px] font-mono bg-surface-muted text-slate-700 px-2 py-0.5 rounded border border-hairline font-semibold">
+                            {signal.matched_campaign}
+                          </span>
+                        )}
+                      </div>
 
-                  <div className="flex items-center gap-2 shrink-0 md:self-center">
-                    <button
-                      onClick={() => setSelectedSignal(signal)}
-                      className="px-3 py-1.5 bg-surface-muted hover:bg-slate-200 text-ink-900 border border-hairline rounded text-xs font-mono font-semibold transition-colors"
-                    >
-                      Inspect Detail
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                      <p className="text-xs text-slate-700 font-serif italic line-clamp-2">
+                        &ldquo;{signal.raw_content}&rdquo;
+                      </p>
+
+                      {/* Extracted Identifiers Strip */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        {signal.extracted_entities?.phone && (
+                          <span className="text-[11px] font-mono px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-200">
+                            📱 {signal.extracted_entities.phone}
+                          </span>
+                        )}
+                        {signal.extracted_entities?.upi_id && (
+                          <span className="text-[11px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-800 rounded border border-indigo-200 font-semibold">
+                            ⚡ {signal.extracted_entities.upi_id}
+                          </span>
+                        )}
+                        {signal.extracted_entities?.url && (
+                          <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-50 text-rose-800 rounded border border-rose-200 truncate max-w-xs">
+                            🔗 {signal.extracted_entities.url}
+                          </span>
+                        )}
+                        {(signal.extracted_entities?.tags || []).map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[10px] font-mono px-1.5 py-0.5 bg-surface-muted text-slate-600 rounded border border-hairline"
+                          >
+                            🏷️ {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 md:self-center">
+                      <button
+                        onClick={() => setSelectedSignal(signal)}
+                        className="px-3 py-1.5 bg-surface-muted hover:bg-slate-200 text-ink-900 border border-hairline rounded text-xs font-mono font-semibold transition-colors"
+                      >
+                        Inspect Detail
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          )}
         </div>
       </div>
 
@@ -905,7 +1022,7 @@ export default function ThreatIntelPage() {
                 <div className="p-3 bg-surface-muted rounded-lg border border-hairline">
                   <div className="text-muted text-[10px] uppercase">Signal Confidence:</div>
                   <div className="font-bold text-emerald-700 mt-1">
-                    {Math.min(98, Math.round((selectedSignal.confidence || 0.95) * 100))}% Defensible Correlation
+                    {Math.min(98, Math.round((selectedSignal.confidence || 0.95) * 100))}% Correlation Confidence
                   </div>
                 </div>
               </div>

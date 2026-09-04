@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppStateProvider } from "./context/AppStateContext";
 import { ToastProvider } from "./context/ToastContext";
 import MainLayout from "./layouts/MainLayout";
+import ScrollToTop from "./components/common/ScrollToTop";
 import OverviewPage from "./pages/OverviewPage";
 import ThreatIntelPage from "./pages/ThreatIntelPage";
 import InvestigationsPage from "./pages/InvestigationsPage";
@@ -15,6 +16,7 @@ export default function App() {
     <AppStateProvider>
       <ToastProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             <Route element={<MainLayout />}>
               {/* Redirect root to /overview */}

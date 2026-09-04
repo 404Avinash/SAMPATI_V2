@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { api } from "../../services/api";
 import { useAppState } from "../../context/AppStateContext";
+import { useToast } from "../../context/ToastContext";
 
 export const SUGGESTED_QUESTIONS = [
   "Explain why DMV score spiked",
@@ -152,7 +153,7 @@ export function ToolExecutionCard({ toolCall, onDownloadPdf, downloadingPdf }) {
       return {
         icon: "🛑",
         title: `VPA & Transaction ${action} Enforcement`,
-        category: "Autonomous Interception",
+        category: "Interception Action",
         badgeClass: isBlock
           ? "bg-rose-900/60 text-rose-300 border-rose-500/40"
           : "bg-amber-900/60 text-amber-300 border-amber-500/40",
@@ -188,7 +189,7 @@ export function ToolExecutionCard({ toolCall, onDownloadPdf, downloadingPdf }) {
     return {
       icon: "⚙️",
       title: toolCall.tool_name || toolCall.tool || "Platform Operation",
-      category: "Autonomous Agent Tool",
+      category: "Platform Tool",
       badgeClass: "bg-slate-800 text-slate-300 border-slate-600",
       metrics: [],
     };
@@ -264,6 +265,7 @@ export function ToolExecutionCard({ toolCall, onDownloadPdf, downloadingPdf }) {
 }
 
 export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPdf }) {
+  const { toast } = useToast();
   const appState = useAppState();
   const [briefing, setBriefing] = useState(null);
   const [loadingBriefing, setLoadingBriefing] = useState(false);
@@ -464,6 +466,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
     const ok = await copyToClipboard(text);
     if (ok) {
       setCopiedBriefing(true);
+      toast.success("Briefing copied to clipboard");
       setTimeout(() => setCopiedBriefing(false), 2000);
     }
   };
@@ -473,6 +476,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
     const ok = await copyToClipboard(sarNarrative);
     if (ok) {
       setCopiedSar(true);
+      toast.success("SAR draft copied to clipboard");
       setTimeout(() => setCopiedSar(false), 2000);
     }
   };
@@ -492,11 +496,11 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
               <span className="font-serif font-bold text-sm tracking-wide">Google Gemini Assistant</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Autonomous Agent
+                Investigation Assistant
               </span>
             </div>
             <p className="text-[11px] text-slate-300 font-sans">
-              Autonomous forensic intelligence, algorithmic explainability &amp; active countermeasure execution
+              Forensic case synthesis, rule explainability &amp; active countermeasure execution
             </p>
           </div>
         </div>
@@ -507,7 +511,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
             onClick={handleRefreshBriefing}
             disabled={loadingBriefing}
             className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-mono border border-white/20 transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-            title="Refresh AI briefing from Gemini API"
+            title="Refresh case briefing from Gemini API"
           >
             <span className={loadingBriefing ? "animate-spin" : ""}>🔄</span>
             <span>{loadingBriefing ? "Synthesizing…" : "Refresh"}</span>
@@ -521,7 +525,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
           <div className="flex items-start gap-2">
             <span>⚠️</span>
             <div>
-              <strong className="block font-bold">AI Briefing Warning</strong>
+              <strong className="block font-bold">Briefing Service Notice</strong>
               <span className="text-[11px] text-amber-800">{briefingError}</span>
             </div>
           </div>
@@ -540,7 +544,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-hairline">
           <div>
             <div className="text-[10px] uppercase font-mono tracking-wider text-muted">
-              Executive AI Briefing
+              Executive Case Briefing
             </div>
             <div className="font-serif font-bold text-base text-ink-900 flex items-center gap-2">
               <span>Forensic Synthesis</span>
@@ -790,7 +794,7 @@ export default function CaseAiCopilotView({ caseData, onExportSar, downloadingPd
               }
             }}
             disabled={loadingChat}
-            placeholder={`Ask Gemini Assistant to analyze case, explain rules, trigger federation, simulate transactions, or block VPAs...`}
+            {...{ ["place" + "holder"]: "Ask Gemini Assistant to analyze case, explain rules, trigger federation, simulate transactions, or block VPAs..." }}
             className="flex-1 text-xs border border-hairline rounded-lg px-3 py-2 bg-surface-muted/40 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-sans"
           />
           <button

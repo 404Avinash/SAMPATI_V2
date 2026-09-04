@@ -1,24 +1,15 @@
-# Progress — teamwork_preview_worker_m1
+# Progress: Milestone 1 Anti-Slop & Copywriting Overhaul
 
-Last visited: 2026-09-03T10:22:30Z
+Last visited: 2026-09-04T10:43:00Z
 
 ## Status
-- Initialized briefing and reviewed blueprints.
-- Planning and execution of implementation tasks underway.
-
-## Steps
-- [x] Read DISPATCH, ORIGINAL_REQUEST, PROJECT, and all Explorer handoffs/analyses.
-- [x] Initialize BRIEFING.md and progress.md.
-- [x] Implement `app/models/threat_intel.py`.
-- [x] Implement `ThreatSignalModel` in `app/models/upi_persistence.py`.
-- [x] Implement `app/services/graph_service.py`.
-- [x] Implement `app/services/threat_intel_service.py`.
-- [x] Implement `app/api/intel.py`.
-- [x] Update router mounting and SPA fallback disambiguation in `app/main.py`.
-- [x] Implement comprehensive test suite in `tests/test_threat_intel_r1.py` (30/30 passed).
-- [x] Run linter (`./.venv/bin/ruff check app tests` passed with 0 violations).
-- [x] Verify full regression suite (`./.venv/bin/pytest tests/ -q` 880 passed, 0 failures).
-- [ ] Write hard handoff report to `handoff.md`.
-- [ ] Send message to parent.
-
-
+- [x] Read DISPATCH.md, ORIGINAL_REQUEST.md, PROJECT.md, survey_r1_report.md
+- [x] Initialize BRIEFING.md, progress.md, local skill copy
+- [x] Task 1: ThreatIntelPage.jsx copy replacements & empty state
+- [x] Task 2: CaseFilterBar.jsx, CaseAiCopilotView.jsx, StatusTransitionActions.jsx placeholder dynamic refactor
+- [x] Task 3: Autonomous and AI SAR buzzwords cleanup in ControlBar.jsx, CaseDrawer.jsx, SarNarrativeView.jsx, InvestigationsPage.jsx, CaseAiCopilotView.jsx, gemini_service.py
+- [x] Task 4: Syndicate replacements & empty states in TopFlaggedAccountsTable.jsx, TopDmvAccountsTable.jsx, AnalyticsPage.jsx
+- [x] Task 5: Verification — grep audit across frontend/src (0 hits on all forbidden terms)
+- [x] Task 6: Verification — npm run lint (0 warnings) & npm run build (clean 0 error build)
+- [x] Task 7: Verification — pytest test suite (all 969 tests pass) & ruff check (all pass)
+- [x] Task 8: Final Handoff report & message to parent

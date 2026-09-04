@@ -61,7 +61,7 @@ export default function TopFlaggedAccountsTable({ accounts = [] }) {
             {accounts.length === 0 && (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-muted font-mono text-xs">
-                  No flagged corporate accounts registered yet.
+                  No high-risk mule or aggregator accounts identified in the current evaluation window.
                 </td>
               </tr>
             )}

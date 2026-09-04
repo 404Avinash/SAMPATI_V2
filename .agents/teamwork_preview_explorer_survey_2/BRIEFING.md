@@ -1,66 +1,56 @@
-# BRIEFING — 2026-09-03T09:35:48Z
+# BRIEFING — 2026-09-04T10:25:00Z
 
 ## Mission
-Survey frontend architecture and UI requirements for Requirement 2 ("Threat Intelligence Dashboard") and R3 UI Interactivity (buttons, live feed, toasts, WebSocket updates).
+Conduct a comprehensive Survey on Requirement R2 (Make KPI Numbers Dynamic & Real) across frontend and backend.
 
 ## 🔒 My Identity
 - Archetype: explorer
-- Roles: frontend investigator, code surveyor, synthesizer
+- Roles: survey, read-only investigation, produce structured reports
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2
-- Original parent: e091e8ff-a378-4da9-bac2-dfc927cb605b
-- Milestone: Sprint 3 Frontend Architecture Survey
-- Milestone: R2 Terminology & UI Overhaul (The Pivot) Survey
-- Milestone: R2 Threat Intelligence Dashboard & R3 UI Interactivity Survey
+- Original parent: 633a9079-d863-4bd1-9c75-d637844689ae
+- Milestone: Requirement R2 Survey
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement
-- Analyze requested components thoroughly
-- Produce structured 5-component handoff report
 - Do NOT modify any source code files
-- Grep of frontend source code must return 0 results for "Dead Money Velocity" and "Criminal Network" after implementation
-- Remove overclaiming phrases ("100% confidence", "100% traceable")
-- Identify Overview header layout for tagline "Everyone sees a piece. SAMPATI connects the dots."
-- Audit backend and frontend test impacts
-- Survey navigation tabs for "Threat Intelligence" page
-- Determine real-time pre-transaction signal visualization & entity extraction flow
-- Survey R3 UI wiring: Live feed start/stop, simulation button, WebSocket chart updates, and reactive toast notifications
-- Verify ESLint and build constraints
+- Deliver findings in survey_r2_report.md and handoff in handoff.md
 
 ## Current Parent
-- Conversation ID: 1d0e3cfc-1bcd-4db9-88c0-55fb7981a628
-- Updated: 2026-09-03T09:35:48Z
+- Conversation ID: 633a9079-d863-4bd1-9c75-d637844689ae
+- Updated: not yet
 
 ## Investigation State
 - **Explored paths**:
-  - `frontend/src/App.jsx`
-  - `frontend/src/layouts/MainLayout.jsx`
-  - `frontend/src/components/common/Navbar.jsx`
+  - `frontend/src/pages/ThreatIntelPage.jsx`
   - `frontend/src/pages/OverviewPage.jsx`
-  - `frontend/src/pages/AnalyticsPage.jsx`
-  - `frontend/src/pages/InvestigationsPage.jsx`
-  - `frontend/src/components/ControlBar.jsx`
-  - `frontend/src/components/VerdictHistoryChart.jsx`
+  - `frontend/src/components/KpiStrip.jsx`
   - `frontend/src/context/AppStateContext.jsx`
-  - `frontend/src/hooks/useWebSocket.js`
+  - `frontend/src/components/common/Navbar.jsx`
+  - `frontend/src/pages/AnalyticsPage.jsx`
+  - `frontend/src/components/analytics/AnalyticsSummaryKpis.jsx`
+  - `frontend/src/components/analytics/TopFlaggedAccountsTable.jsx`
+  - `frontend/src/components/analytics/TopDmvAccountsTable.jsx`
+  - `frontend/src/components/analytics/AnalystWorkloadHeatmap.jsx`
   - `frontend/src/services/api.js`
-  - `app/services/autofeed.py`
+  - `app/api/intel.py`
+  - `app/services/threat_intel_service.py`
+  - `app/services/graph_service.py`
+  - `app/models/threat_intel.py`
+  - `app/api/upi.py`
   - `app/services/upi_cases.py`
-  - `frontend/package.json`
-  - `frontend/.eslintrc.cjs`
-  - `tests/frontend_contracts_test.py`
+  - `app/engine/dmv.py`
 - **Key findings**:
-  - Navigation: `Navbar.jsx` maps `NAV_ITEMS` using `NavLink`; adding `{ to: "/threat-intel", label: "Threat Intelligence", badgeKey: "threats" }` and `<Route path="/threat-intel" element={<ThreatIntelPage />} />` in `App.jsx` integrates cleanly.
-  - Threat Intel Page architecture mapped: Live signal feed, suspected campaign similarity metrics (e.g. 94%), and 3-stage entity extraction flow (`SMS -> Phone/UPI/URL -> Central Fraud Graph`) with interactive playback and simulation button.
-  - Button wiring: "Start Live Feed", "Run batch simulation", "Federation round" exist in `ControlBar.jsx` and `AppStateContext.jsx` but lack reactive toast feedback.
-  - Chart WebSocket disconnect root cause identified: `autofeed.py` emits single transaction `eval_dict` without cumulative stats; `useWebSocket` and `AppStateContext` fail to increment counters, leading to static chart. Fix identified on both backend and frontend hook/state.
-  - Toast notification system: zero-dependency `ToastContext.jsx` + `ToastContainer.jsx` using `framer-motion` `<AnimatePresence>` designed for instant feedback across all actions.
-  - Quality gates: `npm run lint` and `npm run build` both pass with 0 warnings/errors.
-- **Unexplored areas**: None.
+  - `ThreatIntelPage.jsx:416-456`: hardcoded `signals.length + 18`, `"3 Campaigns"`, `"42 Nodes"`, `"98% Defensible"`, `"Zero False-Pos"`.
+  - `AppStateContext.jsx:400-410`: `refreshStats()` is only executed once on mount; lacks 15s auto-refresh interval.
+  - `Navbar.jsx:69-75`: Investigations badge calculates `flaggedCount` from local sliced `cases` array rather than `/stats` `cases.open` or `/cases?status=OPEN`.
+  - `AnalyticsPage.jsx:339`: queries `analyticsData?.top_accounts`, but `upi_cases.py:624` returns `"top_flagged_accounts"`, leading to dropped live mule data.
+  - Backend endpoints (`/intel/signals`, `/intel/campaigns`, `/intel/graph`, `/cases`, `/stats`, `/stats/analytics`) are mostly fully populated and need minor field alias additions for seamless consumption.
+- **Unexplored areas**: None for R2 scope.
 
 ## Key Decisions Made
-- Authored complete 5-component hard handoff report in `handoff.md`.
+- Fully documented all 4 frontend targets and 6 backend endpoints in `survey_r2_report.md`.
+- Authored self-contained 5-component handoff report in `handoff.md`.
 
 ## Artifact Index
-- `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_2/handoff.md` — Complete 5-component handoff report for orchestrator
-
-
+- survey_r2_report.md — Comprehensive survey report on R2
+- handoff.md — 5-component handoff report
