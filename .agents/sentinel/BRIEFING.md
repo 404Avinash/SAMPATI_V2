@@ -1,7 +1,7 @@
-# BRIEFING — 2026-09-04T13:14:00Z
+# BRIEFING — 2026-09-04T16:22:00Z
 
 ## Mission
-Conduct comprehensive UI redesign and bug fix pass: R1 high-fidelity geographic India map (Leaflet/Deck.gl/TopoJSON), R2 separate Topology visualizers into dedicated sub-navbar / top-level space, R3 ambient background traffic simulation in VerdictVelocityChart, R4 Threat Intel UI cleanup with uniform white background & refined typography.
+Orchestrate SWE Light fix for SAMPATI V2: Replace custom SVG map in `GeoMuleMap.jsx` with `react-simple-maps` and embedded high-fidelity offline TopoJSON/GeoJSON of India, plotting financial hubs and fraud corridors with accurate geographic coordinates.
 
 ## 🔒 My Identity
 - Archetype: sentinel
@@ -11,6 +11,7 @@ Conduct comprehensive UI redesign and bug fix pass: R1 high-fidelity geographic 
 - Active Orchestrator: 7f8b92d3-b4aa-4f57-8eed-0a730f162d25 (.agents/teamwork_preview_orchestrator_15)
 - Active Victory Auditor: c943e3c0-c665-4c20-ab60-a7384e4848fb (.agents/teamwork_preview_victory_auditor_sentinel_9)
 - Orchestrator (active assigned): 7f8b92d3-b4aa-4f57-8eed-0a730f162d25 (.agents/teamwork_preview_orchestrator_15)
+- SWE Orchestrator: cdc65fba-8fa3-4f10-bc4b-2fb2d5cf22cf (.agents/teamwork_preview_swe_2)
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
@@ -27,31 +28,31 @@ Conduct comprehensive UI redesign and bug fix pass: R1 high-fidelity geographic 
 - New R2: Separate Topology Visualizers into dedicated sub-navbar / page
 - New R3: Ambient background traffic simulation in VerdictVelocityChart (2-5 TPS)
 - New R4: Threat Intel UI cleanup (uniform white, typography, spacing)
+- Route: SWE Light (teamwork_preview_swe) - single self-contained code change with explicit small/focused team request
+- R1: Replace GeoMuleMap.jsx with react-simple-maps + embedded TopoJSON/GeoJSON (100% offline)
+- R2: Accurate coordinate plotting for fraud hubs and corridors using real lat/lng
+- Acceptance: cd frontend && npm run build succeeds; .venv/bin/pytest tests/ passes; 0 external network requests
 
 ## User Context
-- **Last user request**: UI redesign pass (R1 Geo Map, R2 Dedicated Topology sub-navbar, R3 Ambient Velocity Chart, R4 Threat Intel Polish)
+- **Last user request**: Single self-contained fix: replace GeoMuleMap.jsx with react-simple-maps + offline India TopoJSON, accurate coordinate plotting. Small focused team requested.
 - **Pending clarifications**: none
 - **Delivered results**:
-  - R1: High-fidelity India vector cartography (`GeoMuleMap.jsx`) with 139-vertex authentic boundary, 9 calibrated financial/threat hubs, dual-layer glowing bezier arcs, animated SVG particle flows, and radar pulses.
-  - R2: Dedicated Topology Mesh page (`TopologyPage.jsx`) at `/topology` with sub-navbar (Constellation Graph, Mule Corridors, Dual Perspective) and fullscreen support; Overview layout uncluttered.
-  - R3: Organic ambient background traffic simulation in `AppStateContext.jsx` (2–5 TPS continuous ALLOW baseline) keeping `VerdictVelocityChart` alive and dynamic during idle states.
-  - R4: Threat Intelligence page (`ThreatIntelPage.jsx`) fully unified on a clean white palette (`bg-white border-hairline`), clean Lucide vector icons, and professional spacing.
+  - Previous sprint UI redesign and bug fixes completed and verified.
 
 ## Project Status
-- **Phase**: complete
-- **Active Orchestrator**: none (cleaned up)
-- **Active Victory Auditor**: none (cleaned up)
-- **Cron 1 (Progress)**: killed
-- **Cron 2 (Liveness)**: killed
+- **Phase**: in progress
+- **Active Orchestrator**: cdc65fba-8fa3-4f10-bc4b-2fb2d5cf22cf (.agents/teamwork_preview_swe_2)
+- **Active Victory Auditor**: none
+- **Cron 1 (Progress)**: task-41 (active)
+- **Cron 2 (Liveness)**: task-43 (active)
 
 ## Victory Audit Status
-- **Triggered**: yes
-- **Verdict**: VICTORY CONFIRMED
+- **Triggered**: no
+- **Verdict**: pending
 - **Retry count**: 0
 
 ## Artifact Index
 - /home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md — Root User Request record
 - /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md — Agent User Request record
 - /home/avi/Downloads/Sampati_v2/.agents/sentinel/BRIEFING.md — Sentinel Briefing
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_victory_auditor_sentinel_9/handoff.md — Victory Audit Report (VICTORY CONFIRMED)
-
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_swe_2/DISPATCH.md — SWE Light Orchestrator dispatch instructions

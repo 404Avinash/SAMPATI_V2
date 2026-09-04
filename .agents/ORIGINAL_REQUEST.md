@@ -334,3 +334,33 @@ The Threat Intelligence page needs a final polish. Ensure the background color i
 - [ ] The velocity chart displays continuous, ambient background activity even when manual simulations are not running.
 - [ ] The Threat Intel page has a unified white background and professional typography.
 </USER_REQUEST>
+
+## 2026-09-04T16:19:46Z
+
+<USER_REQUEST>
+# Teamwork Project Prompt — Draft
+
+> Status: Ready for launch — awaiting user approval
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: Small focused team
+
+This is a single self-contained fix; keep it small and focused. Replace the current custom SVG map in SAMPATI V2's `GeoMuleMap.jsx` component with a robust open-source mapping library (`react-simple-maps`) and a high-fidelity TopoJSON file of India to accurately plot the fraud hubs and corridors using real geographic coordinates.
+
+Working directory: ~/teamwork_projects/sampati_map_fix
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. High-Fidelity Offline Map
+Replace the existing `GeoMuleMap.jsx` implementation to use `react-simple-maps`. You must provide and embed a high-fidelity TopoJSON or GeoJSON of India's boundaries. The map must work 100% offline without fetching external tiles.
+
+### R2. Accurate Coordinate Plotting
+Plot the existing financial hubs and fraud corridors using their actual latitude and longitude coordinates over the new map projection. Maintain the existing visual language (nodes, glowing corridors, labels).
+
+## Acceptance Criteria
+
+### Implementation Quality
+- [ ] The frontend compiles successfully without errors (`cd frontend && npm run build`).
+- [ ] The existing test suite passes without regressions (`.venv/bin/pytest tests/`).
+- [ ] `GeoMuleMap.jsx` does not make any external network requests for map tiles or assets.
+</USER_REQUEST>
