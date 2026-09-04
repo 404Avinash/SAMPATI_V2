@@ -255,5 +255,42 @@ Every visible button must do something when clicked and show a Toast notificatio
 
 A server restart killed the background tasks. Please check the current state: Milestone 1 (R1 Copy Overhaul) appears to be DONE — I've verified that the slop phrases ("Zero False-Pos", "Pillar 1", etc.) have been successfully purged from the frontend. Please resume work with Milestone 2 (Live/Dynamic KPIs across Threat Intel, Overview, and Investigations) and Milestone 3 (Fix Dead Buttons and Broken Interactions). Ensure the full test suite (969 tests), ESLint, and the Vite build pass before claiming victory.
 
+## 2026-09-04T12:04:16Z
 
+<USER_REQUEST>
+Fix three specific critical UI bugs on the SAMPATI V2 dashboard, and implement a high-impact visual feature for the demo: a geographic India map showing active mule network connections.
 
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: demo
+
+## Requirements
+
+### R1. Geographic India Map Visualization
+Add a new visualizer (e.g., `GeoMuleMap.jsx`) to the Overview or Threat Intel dashboard that renders a stylized map of India. This map should visualize the active mule rings geographically, drawing animated connection lines (arcs or vectors) between major Indian tech/financial hubs (e.g., Mumbai, Bangalore, Delhi, Jamtara, NCR). You can use a library like `react-simple-maps`, `deck.gl`, or a lightweight SVG map of India. The map should look highly professional (fintech/cybersecurity aesthetic) and plot the live fraud topology data or realistic simulated geographic coordinates.
+
+### R2. Fix Threat Intel Page Crash (White Screen)
+The `/threat-intel` route is currently crashing and rendering a blank white screen. This is likely due to a React runtime error (e.g., attempting to map over `undefined` data). Diagnose and fix the crash in `ThreatIntelPage.jsx` so the page renders reliably, ensuring proper loading states or fallback data if the API hasn't responded yet.
+
+### R3. Whitewash the Constellation Graph Background
+The `NetworkConstellation` canvas currently has a dark/slate background that clashes heavily with the clean white aesthetic of the rest of the dashboard. Change the canvas background to white (or transparent if resting on a white container) and update the node, edge, and label colors so they are clearly visible against a white background (e.g., use darker colors for text/edges, maintain the semantic red/yellow/green for nodes). 
+
+### R4. Fix Verdict Velocity Graph to Show Rolling Rate, Not Cumulative
+The "Verdict Velocity & History" chart currently plots a cumulative, monotonically increasing line. Update the charting logic (likely in `VerdictVelocityChart.jsx` or where the data is aggregated) to calculate and display the rolling rate (transactions per second/minute) instead of cumulative totals, so the graph moves up and down reflecting actual traffic bursts.
+
+## Verification Resources
+- Existing pytest suite (969 tests): `.venv/bin/pytest tests/ -v`
+- Frontend build: `cd frontend && npm run lint && npm run build`
+
+## Acceptance Criteria
+
+### Automated Tests
+- [ ] `.venv/bin/pytest tests/ -v` passes with 0 failures.
+- [ ] `cd frontend && npm run lint` passes with 0 ESLint warnings.
+- [ ] `cd frontend && npm run build` completes with no errors.
+
+### Quality Criteria
+- [ ] A geographic map of India successfully renders on the dashboard showing connections between cities.
+- [ ] The `/threat-intel` page loads without throwing a React error boundary / blank screen.
+- [ ] The `NetworkConstellation` component has a white/light background and its contents (nodes, links, text) contrast properly against it.
+- [ ] The Velocity chart data aggregation computes a rate over time rather than an ever-increasing cumulative sum.
+</USER_REQUEST>

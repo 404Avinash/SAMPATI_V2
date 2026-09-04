@@ -26,28 +26,28 @@ function CustomVerdictTooltip({ active, payload, label }) {
     <div className="bg-ink-900 text-white px-3 py-2 rounded shadow-xl text-xs font-mono border border-white/10 space-y-1 z-50">
       <div className="text-white/60 text-[10px] pb-1 border-b border-white/10 flex justify-between gap-4">
         <span>TIME: {label || data.time || "—"}</span>
-        <span>TOTAL: {total}</span>
+        <span>TOTAL: {total} tx/s</span>
       </div>
       <div className="flex items-center justify-between gap-3 text-emerald-400">
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-[#0f7a3d]" />
           ALLOW:
         </span>
-        <span className="font-bold">{allowVal}</span>
+        <span className="font-bold">{allowVal} /s</span>
       </div>
       <div className="flex items-center justify-between gap-3 text-amber-400">
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-[#a8660a]" />
           HOLD:
         </span>
-        <span className="font-bold">{holdVal}</span>
+        <span className="font-bold">{holdVal} /s</span>
       </div>
       <div className="flex items-center justify-between gap-3 text-rose-400">
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-[#b3261e]" />
           BLOCK:
         </span>
-        <span className="font-bold">{blockVal}</span>
+        <span className="font-bold">{blockVal} /s</span>
       </div>
     </div>
   );
@@ -55,22 +55,23 @@ function CustomVerdictTooltip({ active, payload, label }) {
 
 /**
  * Real-time Verdict Velocity and History Area Chart.
- * Displays cumulative / rolling volume across ALLOW, HOLD, and BLOCK verdicts.
+ * Displays rolling rate (transactions per second) across ALLOW, HOLD, and BLOCK verdicts.
  */
 export default function VerdictHistoryChart({ history = [] }) {
+  // Defensive check: if incoming history is monotonic cumulative totals, compute rolling rate deltas
+  const isCumulative = React.useMemo(() => {
+    if (!Array.isArray(history) || history.length < 3) return false;
+    const last = history[history.length - 1];
+    const first = history[0];
+    const lastAllow = last?.ALLOW ?? last?.allowed ?? 0;
+    const firstAllow = first?.ALLOW ?? first?.allowed ?? 0;
+    return lastAllow > 50 && lastAllow >= firstAllow;
+  }, [history]);
+
   // Normalize history data items to always ensure ALLOW, HOLD, BLOCK, time fields exist
-  const formattedData = Array.isArray(history) && history.length > 0
-    ? history.map((item, idx) => ({
-        time: item.time || (item.timestamp ? new Date(item.timestamp).toLocaleTimeString("en-IN", { hour12: false }) : `T-${idx}`),
-        timestamp: item.timestamp || Date.now(),
-        ALLOW: item.ALLOW ?? item.allowed ?? 0,
-        HOLD: item.HOLD ?? item.held ?? 0,
-        BLOCK: item.BLOCK ?? item.blocked ?? 0,
-        allowed: item.ALLOW ?? item.allowed ?? 0,
-        held: item.HOLD ?? item.held ?? 0,
-        blocked: item.BLOCK ?? item.blocked ?? 0,
-      }))
-    : [
+  const formattedData = React.useMemo(() => {
+    if (!Array.isArray(history) || history.length === 0) {
+      return [
         {
           time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
           timestamp: Date.now(),
@@ -82,6 +83,49 @@ export default function VerdictHistoryChart({ history = [] }) {
           blocked: 0,
         },
       ];
+    }
+
+    if (isCumulative) {
+      return history.map((item, idx) => {
+        const prev = idx > 0 ? history[idx - 1] : null;
+        const curA = item.ALLOW ?? item.allowed ?? 0;
+        const curH = item.HOLD ?? item.held ?? 0;
+        const curB = item.BLOCK ?? item.blocked ?? 0;
+        const prevA = prev ? (prev.ALLOW ?? prev.allowed ?? 0) : curA;
+        const prevH = prev ? (prev.HOLD ?? prev.held ?? 0) : curH;
+        const prevB = prev ? (prev.BLOCK ?? prev.blocked ?? 0) : curB;
+
+        const deltaA = Math.max(0, curA - prevA);
+        const deltaH = Math.max(0, curH - prevH);
+        const deltaB = Math.max(0, curB - prevB);
+
+        return {
+          time: item.time || (item.timestamp ? new Date(item.timestamp).toLocaleTimeString("en-IN", { hour12: false }) : `T-${idx}`),
+          timestamp: item.timestamp || Date.now(),
+          ALLOW: deltaA,
+          HOLD: deltaH,
+          BLOCK: deltaB,
+          allowed: deltaA,
+          held: deltaH,
+          blocked: deltaB,
+        };
+      });
+    }
+
+    return history.map((item, idx) => ({
+      time: item.time || (item.timestamp ? new Date(item.timestamp).toLocaleTimeString("en-IN", { hour12: false }) : `T-${idx}`),
+      timestamp: item.timestamp || Date.now(),
+      ALLOW: item.ALLOW ?? item.allowed ?? 0,
+      HOLD: item.HOLD ?? item.held ?? 0,
+      BLOCK: item.BLOCK ?? item.blocked ?? 0,
+      allowed: item.ALLOW ?? item.allowed ?? 0,
+      held: item.HOLD ?? item.held ?? 0,
+      blocked: item.BLOCK ?? item.blocked ?? 0,
+    }));
+  }, [history, isCumulative]);
+
+  const latestPoint = formattedData[formattedData.length - 1] || {};
+  const currentTps = (latestPoint.ALLOW || 0) + (latestPoint.HOLD || 0) + (latestPoint.BLOCK || 0);
 
   return (
     <div className="panel">
@@ -93,7 +137,8 @@ export default function VerdictHistoryChart({ history = [] }) {
         <div className="flex items-center gap-2 text-xs font-mono text-muted">
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live Session Stream
+            Live Session Rate:
+            <span className="font-bold text-ink-900 ml-0.5">{currentTps.toFixed(0)} tx/s</span>
           </span>
           <span className="text-[11px] text-muted">({formattedData.length} pts)</span>
         </div>
@@ -132,6 +177,7 @@ export default function VerdictHistoryChart({ history = [] }) {
                 tick={{ fontSize: 10, fill: "#6b7280", fontFamily: "monospace" }}
                 axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
+                unit=" /s"
               />
 
               <Tooltip content={<CustomVerdictTooltip />} />

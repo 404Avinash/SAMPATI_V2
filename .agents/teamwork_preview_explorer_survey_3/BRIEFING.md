@@ -1,12 +1,13 @@
-# BRIEFING — 2026-09-04T10:35:00Z
+# BRIEFING — 2026-09-04T12:08:00Z
 
 ## Mission
-Comprehensive Survey on Requirement R3 (Fix Dead Buttons and Broken Interactions) across frontend/src/:
-1. Complete Button Audit across all .jsx/.js files (71 buttons across 18 files)
-2. Threat Intelligence 'Simulate Flow' Button tracing and remediation design
-3. Tab Navigation & Scroll Preservation investigation and architecture fix
-4. Form Validation & Submission audit across all forms/modals
-5. Toast Notification coverage audit and comprehensive message mapping
+Investigate R4: Fix Verdict Velocity Graph to Show Rolling Rate, Not Cumulative.
+- Inspect frontend/src/components/VerdictVelocityChart.jsx
+- Inspect frontend/src/pages/OverviewPage.jsx and related state/hooks/WebSocket feeds
+- Diagnose why Verdict Velocity & History plots a cumulative, monotonically increasing line instead of rolling rate
+- Trace how points are added to the chart dataset
+- Propose algorithm and implementation for rolling rate (tx/sec or tx/min) over sliding windows
+- Check backend endpoints/formats vs frontend computation options
 
 ## 🔒 My Identity
 - Archetype: Explorer
@@ -18,6 +19,9 @@ Comprehensive Survey on Requirement R3 (Fix Dead Buttons and Broken Interactions
 - Updated Identity: survey_explorer_3 (Anti-Slop Audit: Requirement R3 - Dead Buttons & Broken Interactions)
 - Current Parent ID: 633a9079-d863-4bd1-9c75-d637844689ae
 - Milestone: Anti-Slop Audit - Survey Phase (R3)
+- Survey Identity: Explorer Survey 3 (Survey R4: Fix Verdict Velocity Graph to Show Rolling Rate)
+- Current Parent ID: 271e71dd-4370-4307-afc1-a65ac33fe525
+- Milestone: R4 Verdict Velocity Rolling Rate Investigation
 
 ## 🔒 Key Constraints
 - Read-only investigation — do NOT implement
@@ -26,35 +30,35 @@ Comprehensive Survey on Requirement R3 (Fix Dead Buttons and Broken Interactions
 - Do not modify source code
 - Produce survey_r3_report.md and handoff.md
 - Verify all claims with exact file paths and line numbers
+- Read-only investigation: do NOT modify source code files under app/ or frontend/src/
 
 ## Current Parent
-- Conversation ID: 633a9079-d863-4bd1-9c75-d637844689ae
-- Updated: 2026-09-04T10:35:00Z
+- Conversation ID: 271e71dd-4370-4307-afc1-a65ac33fe525
+- Updated: 2026-09-04T12:12:00Z
 
 ## Investigation State
 - **Explored paths**:
-  - `frontend/src/` (45 total source files)
-  - `frontend/src/pages/SettingsPage.jsx` (10 buttons)
-  - `frontend/src/pages/ThreatIntelPage.jsx` (8 buttons, Simulate Flow traced)
-  - `frontend/src/App.jsx`, `frontend/src/layouts/MainLayout.jsx`, `frontend/src/components/common/Navbar.jsx` (Tab Navigation & Scroll)
-  - `frontend/src/components/investigations/StatusTransitionActions.jsx`, `CaseDetailModal.jsx` (native alerts identified)
-  - `frontend/src/components/ControlBar.jsx`, `CaseDrawer.jsx`, `AnalyticsPage.jsx`, `InvestigationsPage.jsx`, `SystemHealthPage.jsx`
-  - `frontend/src/context/ToastContext.jsx`, `ToastContainer.jsx`
+  - `frontend/src/components/VerdictHistoryChart.jsx`
+  - `frontend/src/pages/OverviewPage.jsx`
+  - `frontend/src/context/AppStateContext.jsx`
+  - `frontend/src/hooks/useWebSocket.js`
+  - `app/services/upi_cases.py`, `app/api/upi.py`, `app/services/autofeed.py`
+  - `tests/test_tier1_features.py`, `tests/frontend_contracts_test.py`
 - **Key findings**:
-  - Exactly 71 buttons identified; 0 missing onClick, 0 empty `onClick={() => {}}`.
-  - 2 dead/inert buttons: `SettingsPage.jsx:460` (fake 2.5s setTimeout) and `ThreatIntelPage.jsx:483` (purely local 3-step animation without backend API call or state persistence).
-  - Native browser `alert()` found at `StatusTransitionActions.jsx:37` and `CaseDetailModal.jsx:19`.
-  - Only 2 files use `toast.*`; 16 button files have zero toast notifications.
-  - Scroll loss and blank flashes caused by missing `<ScrollRestoration>` / `<ScrollToTop>` in React Router `<Outlet />` navigation, compounded by asynchronous fetch latency.
-- **Unexplored areas**: None. All 5 parts of Mission R3 are thoroughly surveyed and documented.
+  - `VerdictHistoryChart.jsx` is the component in codebase (with title "Verdict Velocity & History").
+  - `verdictHistory` in `AppStateContext.jsx` was directly storing monotonically increasing cumulative lifetime counters from `seenTotals.current` and `service.get_current_stats()`.
+  - Individual `UPI_EVALUATED` WebSocket events were pushed to `onStatsUpdate` without action parsing, writing 0-value points to `verdictHistory`.
+  - Devised a 100% frontend solution using a 1-second sliding window discrete bucket aggregator in `AppStateContext.jsx`, coupled with Y-axis rate labelling and current rate display in `VerdictHistoryChart.jsx`, and a `VerdictVelocityChart.jsx` re-export alias.
+- **Unexplored areas**: None.
 
 ## Key Decisions Made
-- Authored complete survey report in `survey_r3_report.md` (34KB) and self-contained 5-component `handoff.md`.
-- Formulated clear 5-step blueprint for implementer agent to remediate all issues safely without regressions.
+- Authored comprehensive 5-component report in `handoff.md` with exact file paths, lines, logic chain, and implementation code snippets.
+- Confirmed no backend changes are required; preserves all existing 969 pytest tests and contract tests.
 
 ## Artifact Index
 - DISPATCH.md — Dispatch log
 - BRIEFING.md — Situational awareness
 - progress.md — Liveness heartbeat & progress log
-- survey_r3_report.md — Detailed Requirement R3 Survey Report
 - handoff.md — 5-component handoff report
+
+

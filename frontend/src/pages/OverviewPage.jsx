@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppState } from "../context/AppStateContext";
 import { formatINR } from "../services/api";
@@ -6,10 +6,12 @@ import KpiStrip from "../components/KpiStrip";
 import VerdictHistoryChart from "../components/VerdictHistoryChart";
 import ControlBar from "../components/ControlBar";
 import NetworkConstellation from "../components/NetworkConstellation";
+import GeoMuleMap from "../components/overview/GeoMuleMap";
 import LiveFeed from "../components/LiveFeed";
 import VerdictDonut from "../components/VerdictDonut";
 
 export default function OverviewPage() {
+  const [topologyTab, setTopologyTab] = useState("constellation");
   const {
     stats,
     cases,
@@ -103,14 +105,44 @@ export default function OverviewPage() {
               Live Constellation &amp; Mule Rings
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-mono text-muted">
-            <span className="px-2 py-0.5 rounded bg-surface-muted border border-hairline">
-              {cases.length} active rings tracked
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-surface-muted rounded-lg p-0.5 border border-hairline text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setTopologyTab("constellation")}
+                className={`px-3 py-1 rounded font-semibold transition-all ${
+                  topologyTab === "constellation"
+                    ? "bg-white text-ink-900 shadow-xs"
+                    : "text-muted hover:text-ink-900"
+                }`}
+              >
+                ☍ Constellation Graph
+              </button>
+              <button
+                type="button"
+                onClick={() => setTopologyTab("geomap")}
+                className={`px-3 py-1 rounded font-semibold transition-all ${
+                  topologyTab === "geomap"
+                    ? "bg-white text-ink-900 shadow-xs"
+                    : "text-muted hover:text-ink-900"
+                }`}
+              >
+                🗺️ India Mule Corridors
+              </button>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-muted">
+              <span className="px-2 py-0.5 rounded bg-surface-muted border border-hairline">
+                {cases.length} active rings tracked
+              </span>
+            </div>
           </div>
         </div>
         <div className="h-[440px] p-2 bg-[#f8f9fc]">
-          <NetworkConstellation cases={cases} onSelectCase={openCase} />
+          {topologyTab === "constellation" ? (
+            <NetworkConstellation cases={cases} onSelectCase={openCase} />
+          ) : (
+            <GeoMuleMap cases={cases} onSelectCase={openCase} />
+          )}
         </div>
       </div>
 

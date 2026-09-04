@@ -63,40 +63,84 @@ export function AppStateProvider({ children }) {
     }, 5000);
   }, []);
 
-  // Rolling 40-point time-series history
-  const [verdictHistory, setVerdictHistory] = useState([
-    {
-      time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
-      timestamp: Date.now(),
-      ALLOW: 0,
-      HOLD: 0,
-      BLOCK: 0,
-      allowed: 0,
-      held: 0,
-      blocked: 0,
-    },
-  ]);
+  // 1-second discrete bucket for rolling rate calculation
+  const currentBucketRef = useRef({ ALLOW: 0, HOLD: 0, BLOCK: 0, total: 0 });
+  const lastCumulativeStatsRef = useRef({ allowed: 0, held: 0, blocked: 0 });
+
+  // Rolling 30-second time-series history
+  const [verdictHistory, setVerdictHistory] = useState(() => {
+    const now = Date.now();
+    return Array.from({ length: 30 }, (_, i) => {
+      const ts = now - (29 - i) * 1000;
+      return {
+        time: new Date(ts).toLocaleTimeString("en-IN", { hour12: false }),
+        timestamp: ts,
+        ALLOW: 0,
+        HOLD: 0,
+        BLOCK: 0,
+        allowed: 0,
+        held: 0,
+        blocked: 0,
+        total: 0,
+      };
+    });
+  });
+
+  // Sliding 1-second interval ticker for real-time transactions/sec
+  useEffect(() => {
+    const ticker = setInterval(() => {
+      const now = Date.now();
+      const timeStr = new Date(now).toLocaleTimeString("en-IN", { hour12: false });
+
+      const allowRate = currentBucketRef.current.ALLOW;
+      const holdRate = currentBucketRef.current.HOLD;
+      const blockRate = currentBucketRef.current.BLOCK;
+      const totalRate = currentBucketRef.current.total;
+
+      // Reset bucket for the upcoming 1s interval
+      currentBucketRef.current = { ALLOW: 0, HOLD: 0, BLOCK: 0, total: 0 };
+
+      setVerdictHistory((prev) => {
+        const newPoint = {
+          time: timeStr,
+          timestamp: now,
+          ALLOW: allowRate,
+          HOLD: holdRate,
+          BLOCK: blockRate,
+          allowed: allowRate,
+          held: holdRate,
+          blocked: blockRate,
+          total: totalRate,
+        };
+        return [...prev.slice(1), newPoint];
+      });
+    }, 1000);
+
+    return () => clearInterval(ticker);
+  }, []);
 
   const appendVerdictHistory = useCallback((currentCounts) => {
-    const timeStr = new Date().toLocaleTimeString("en-IN", { hour12: false });
+    if (!currentCounts) return;
     const allowVal = currentCounts.ALLOW ?? currentCounts.allowed ?? 0;
     const holdVal = currentCounts.HOLD ?? currentCounts.held ?? 0;
     const blockVal = currentCounts.BLOCK ?? currentCounts.blocked ?? 0;
 
-    setVerdictHistory((prev) => {
-      const newPoint = {
-        time: timeStr,
-        timestamp: Date.now(),
-        ALLOW: allowVal,
-        HOLD: holdVal,
-        BLOCK: blockVal,
-        allowed: allowVal,
-        held: holdVal,
-        blocked: blockVal,
-      };
-      const updated = [...prev, newPoint];
-      return updated.slice(-40);
-    });
+    if (currentCounts._isDelta) {
+      currentBucketRef.current.ALLOW += allowVal;
+      currentBucketRef.current.HOLD += holdVal;
+      currentBucketRef.current.BLOCK += blockVal;
+      currentBucketRef.current.total += (allowVal + holdVal + blockVal);
+    } else {
+      const deltaAllow = Math.max(0, allowVal - lastCumulativeStatsRef.current.allowed);
+      const deltaHold = Math.max(0, holdVal - lastCumulativeStatsRef.current.held);
+      const deltaBlock = Math.max(0, blockVal - lastCumulativeStatsRef.current.blocked);
+      lastCumulativeStatsRef.current = { allowed: allowVal, held: holdVal, blocked: blockVal };
+
+      currentBucketRef.current.ALLOW += deltaAllow;
+      currentBucketRef.current.HOLD += deltaHold;
+      currentBucketRef.current.BLOCK += deltaBlock;
+      currentBucketRef.current.total += (deltaAllow + deltaHold + deltaBlock);
+    }
   }, []);
 
   const refreshCases = useCallback(async () => {
@@ -256,6 +300,17 @@ export function AppStateProvider({ children }) {
   const handleWsStatsUpdate = useCallback(
     (incomingStats) => {
       if (!incomingStats) return;
+
+      // Handle individual transaction evaluation broadcast (UPI_EVALUATED)
+      if (incomingStats.action) {
+        const act = String(incomingStats.action).toUpperCase();
+        if (act === "ALLOW" || act === "HOLD" || act === "BLOCK") {
+          currentBucketRef.current[act] = (currentBucketRef.current[act] || 0) + 1;
+          currentBucketRef.current.total = (currentBucketRef.current.total || 0) + 1;
+        }
+        return;
+      }
+
       const hpVal =
         incomingStats.honeypot_hits_24h ??
         incomingStats.honeypot_hits ??
@@ -324,7 +379,12 @@ export function AppStateProvider({ children }) {
           dpip: prev.dpip,
         }));
 
-        appendVerdictHistory({ allowed, held, blocked });
+        appendVerdictHistory({
+          ALLOW: v.ALLOW || 0,
+          HOLD: v.HOLD || 0,
+          BLOCK: v.BLOCK || 0,
+          _isDelta: true,
+        });
         await Promise.all([refreshCases(), refreshStats()]);
       } catch (err) {
         console.error("simulate failed", err);

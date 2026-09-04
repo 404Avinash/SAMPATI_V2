@@ -2,6 +2,33 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, relativeTime } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import ErrorBoundary from "../components/common/ErrorBoundary";
+
+/**
+ * Safely extracts a display label from a matched campaign which can be either
+ * a string or a serialized CampaignMatch object ({ campaign_id, name, campaign_name }).
+ */
+export function getCampaignLabel(campaign) {
+  if (!campaign) return null;
+  if (typeof campaign === "string") return campaign;
+  return campaign.campaign_id || campaign.name || campaign.campaign_name || null;
+}
+
+/**
+ * Normalizes extracted entity identifiers across signal and extracted_entities.
+ */
+export function getEntityValues(signal) {
+  if (!signal) return { phone: null, upiId: null, url: null, tags: [] };
+  const ext = signal.extracted_entities || {};
+  return {
+    phone: signal.phone || ext.primary_phone || ext.phone || (Array.isArray(ext.phones) && ext.phones.length > 0 ? ext.phones[0] : null),
+    upiId: signal.upi_id || ext.primary_upi_id || ext.upi_id || (Array.isArray(ext.upi_ids) && ext.upi_ids.length > 0 ? ext.upi_ids[0] : null),
+    url: signal.url || ext.primary_url || ext.url || (Array.isArray(ext.urls) && ext.urls.length > 0 ? ext.urls[0] : null),
+    tags: Array.isArray(signal.tags) && signal.tags.length > 0
+      ? signal.tags
+      : (Array.isArray(ext.tags) ? ext.tags : []),
+  };
+}
 
 const SAMPLE_SIMULATION_PAYLOADS = [
   {
@@ -229,7 +256,7 @@ export function renderInstitutionBadge(source, institution) {
   );
 }
 
-export default function ThreatIntelPage() {
+function ThreatIntelDashboard() {
   const { toast } = useToast();
   const [signals, setSignals] = useState(INITIAL_FALLBACK_SIGNALS);
   const [campaigns, setCampaigns] = useState([]);
@@ -789,7 +816,7 @@ export default function ThreatIntelPage() {
             <div className="text-[11px] font-mono text-muted uppercase font-semibold">
               Other Tracked Campaign Clusters
             </div>
-            {campaigns.length > 1 ? (
+            {Array.isArray(campaigns) && campaigns.length > 1 ? (
               campaigns.slice(1, 3).map((camp) => (
                 <div key={camp.campaign_id} className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
                   <div>
@@ -918,9 +945,9 @@ export default function ThreatIntelPage() {
                         <span className="text-xs font-mono text-muted">
                           {relativeTime(signal.created_at)}
                         </span>
-                        {signal.matched_campaign && (
+                        {getCampaignLabel(signal.matched_campaign || signal.matched_campaign_id) && (
                           <span className="ml-auto text-[10px] font-mono bg-surface-muted text-slate-700 px-2 py-0.5 rounded border border-hairline font-semibold">
-                            {signal.matched_campaign}
+                            {getCampaignLabel(signal.matched_campaign || signal.matched_campaign_id)}
                           </span>
                         )}
                       </div>
@@ -930,31 +957,36 @@ export default function ThreatIntelPage() {
                       </p>
 
                       {/* Extracted Identifiers Strip */}
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
-                        {signal.extracted_entities?.phone && (
-                          <span className="text-[11px] font-mono px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-200">
-                            📱 {signal.extracted_entities.phone}
-                          </span>
-                        )}
-                        {signal.extracted_entities?.upi_id && (
-                          <span className="text-[11px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-800 rounded border border-indigo-200 font-semibold">
-                            ⚡ {signal.extracted_entities.upi_id}
-                          </span>
-                        )}
-                        {signal.extracted_entities?.url && (
-                          <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-50 text-rose-800 rounded border border-rose-200 truncate max-w-xs">
-                            🔗 {signal.extracted_entities.url}
-                          </span>
-                        )}
-                        {(signal.extracted_entities?.tags || []).map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-[10px] font-mono px-1.5 py-0.5 bg-surface-muted text-slate-600 rounded border border-hairline"
-                          >
-                            🏷️ {tag}
-                          </span>
-                        ))}
-                      </div>
+                      {(() => {
+                        const entities = getEntityValues(signal);
+                        return (
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            {entities.phone && (
+                              <span className="text-[11px] font-mono px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-200">
+                                📱 {entities.phone}
+                              </span>
+                            )}
+                            {entities.upiId && (
+                              <span className="text-[11px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-800 rounded border border-indigo-200 font-semibold">
+                                ⚡ {entities.upiId}
+                              </span>
+                            )}
+                            {entities.url && (
+                              <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-50 text-rose-800 rounded border border-rose-200 truncate max-w-xs">
+                                🔗 {entities.url}
+                              </span>
+                            )}
+                            {(entities.tags || []).map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-[10px] font-mono px-1.5 py-0.5 bg-surface-muted text-slate-600 rounded border border-hairline"
+                              >
+                                🏷️ {tag}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 md:self-center">
@@ -1016,7 +1048,7 @@ export default function ThreatIntelPage() {
                 <div className="p-3 bg-surface-muted rounded-lg border border-hairline">
                   <div className="text-muted text-[10px] uppercase">Matched Campaign:</div>
                   <div className="font-bold text-indigo-700 mt-1">
-                    {selectedSignal.matched_campaign || "CAMP-KYC-PHISH-01"}
+                    {getCampaignLabel(selectedSignal.matched_campaign || selectedSignal.matched_campaign_id) || "CAMP-KYC-PHISH-01"}
                   </div>
                 </div>
                 <div className="p-3 bg-surface-muted rounded-lg border border-hairline">
@@ -1030,18 +1062,25 @@ export default function ThreatIntelPage() {
               <div className="space-y-2">
                 <div className="text-[11px] font-mono text-muted uppercase">Linked Central Fraud Graph Nodes:</div>
                 <div className="flex flex-wrap gap-2">
-                  {(selectedSignal.linked_graph_nodes || [
-                    `VPA:${selectedSignal.extracted_entities?.upi_id || "mule@oksbi"}`,
-                    `PHONE:${selectedSignal.extracted_entities?.phone || "+919876543210"}`,
-                    `URL:${selectedSignal.extracted_entities?.url || "phish.in"}`,
-                  ]).map((node, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded font-mono text-xs font-bold"
-                    >
-                      ☍ {node}
-                    </span>
-                  ))}
+                  {(() => {
+                    const selEntities = getEntityValues(selectedSignal);
+                    const defaultNodes = [
+                      `VPA:${selEntities.upiId || "mule@oksbi"}`,
+                      `PHONE:${selEntities.phone || "+919876543210"}`,
+                      `URL:${selEntities.url || "phish.in"}`,
+                    ];
+                    const nodes = Array.isArray(selectedSignal.linked_graph_nodes) && selectedSignal.linked_graph_nodes.length > 0
+                      ? selectedSignal.linked_graph_nodes
+                      : defaultNodes;
+                    return nodes.map((node, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded font-mono text-xs font-bold"
+                      >
+                        ☍ {typeof node === "object" ? (node.id || node.label || JSON.stringify(node)) : String(node)}
+                      </span>
+                    ));
+                  })()}
                 </div>
               </div>
 
@@ -1058,5 +1097,13 @@ export default function ThreatIntelPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function ThreatIntelPage() {
+  return (
+    <ErrorBoundary title="Threat Intelligence View Temporarily Unavailable">
+      <ThreatIntelDashboard />
+    </ErrorBoundary>
   );
 }

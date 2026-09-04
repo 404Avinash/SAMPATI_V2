@@ -1,53 +1,34 @@
-# Dispatch for teamwork_preview_explorer_survey_1
+# Explorer Survey 1 Task Assignment
 
-- Role: Backend & Threat Intel Explorer
-- Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1
-- Parent orchestrator: teamwork_preview_orchestrator_10
-- Objective: Survey R1 (Early Warning Intelligence Layer backend infrastructure, FastAPI routes, PostgreSQL models, fraud signal ingestion, fraud graph linkage) and relevant existing backend architecture.
+## Mission: Survey R1 (Geographic India Map) and R2 (Threat Intel Page Crash)
 
-## 2026-09-03T09:35:00Z
-Investigate the backend architecture, PRD documents, database models, and existing API routes for Requirement 1: "Early Warning Intelligence Layer (Backend)".
-Specifically:
-1. Search for any PRD, architecture docs, or specs in the repository (e.g., PRD.md, README.md, ENCYCLOPEDIA.md, docs/, etc.) regarding the "Intelligence Mesh" pivot, pre-transaction threat signals, social engineering tags, and entity extraction.
-2. Investigate existing FastAPI routers (app/api/), database connections/models (app/models/, SQLAlchemy/SQL/PostgreSQL or in-memory repositories), and the central Fraud Graph (app/services/graph_service.py, app/engine/, etc.).
-3. Determine how standard fraud signal JSON payloads (Phone, UPI ID, URL, tags like "Bank impersonation", "Urgency") should be structured, validated (Pydantic models), stored, and ingested via new FastAPI endpoints (e.g. /intel/signals, /threat-intel/, etc.).
-4. Determine how these incoming threat signals will automatically link to the central Fraud Graph and how they can be retrieved or streamed to the frontend.
-5. Check existing tests in tests/ to see what test patterns are used, and what new endpoints or fixtures will be needed.
+### Context
+Read `/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md` (under timestamp 2026-09-04T12:04:16Z).
+Project Root: `/home/avi/Downloads/Sampati_v2`
+Working Directory: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1`
 
-Write your findings and recommendations into /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md.
-Use send_message to notify parent when complete with the path to your handoff file.
+### Objectives
+1. **R2 Investigation**:
+   - Inspect `frontend/src/pages/ThreatIntelPage.jsx` (and related components/hooks/APIs).
+   - Diagnose why the `/threat-intel` route is crashing with a blank white screen / React runtime error.
+   - Trace all API calls (`/intel/signals`, `/intel/campaigns`, etc.), state hooks, and render mappings. Identify exact lines where `undefined` or `null` is dereferenced or mapped.
+   - Propose a robust fix ensuring safe defaults, proper loading/fallback states, and error handling.
+2. **R1 Investigation**:
+   - Inspect where the Geographic India Map (`GeoMuleMap.jsx` or similar) can be added (e.g. in `ThreatIntelPage.jsx` or `OverviewPage.jsx` / tabs).
+   - Check `frontend/package.json` to see if libraries like `react-simple-maps`, `deck.gl`, `lucide-react`, or SVG rendering utilities are installed.
+   - Investigate lightweight, high-performance approaches for rendering a stylized map of India with animated connection lines (arcs or vectors) between major Indian tech/financial hubs (e.g. Mumbai, Bangalore, Delhi, Jamtara, NCR).
+   - Propose concrete component architecture and data source (live fraud topology / simulated coordinates).
 
-## 2026-09-04T10:21:18Z
-Role: survey_explorer_1
-Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1
-Parent conversation ID: 633a9079-d863-4bd1-9c75-d637844689ae
+### Output
+Write your comprehensive investigation report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md` with:
+- Exact file paths, line numbers, and root causes identified.
+- Concrete, actionable implementation recommendations.
+- Commands to verify your findings.
 
-MANDATORY INPUT:
-Read the authoritative user request at:
-/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md
-Specifically section ## 2026-09-04T10:20:00Z.
+## 2026-09-04T12:07:22Z
 
-MISSION:
-Conduct a comprehensive Survey on Requirement R1 (Kill All Overclaims and AI-Sounding Copy):
-1. Audit all visible text across the entire frontend (in /home/avi/Downloads/Sampati_v2/frontend/src):
-   - Page titles, subtitles, headers, navigation labels
-   - KPI labels, metric cards, stat descriptions
-   - Card copy, badge labels
-   - Empty state messages (e.g., "No data", "Loading...", "No cases found")
-   - Offending terms specified in acceptance criteria:
-     - "Zero False-Pos" (target: replace with realistic metric like "< 2% analyst escalation rate")
-     - "98% Defensible" (target: replace with grounded, specific analyst metric)
-     - "Pillar 1", "Pillar 2" (e.g. "Pillar 1: Multi-Modal Ingestion Pipeline", "Pillar 2: Threat Syndicate Analytics" -> plain, direct headers)
-     - "100% confidence"
-     - "real-time AI", "advanced ML", "AI slop"
-     - "No data available", "TODO", "placeholder"
-2. Search and catalogue every single instance in the frontend codebase (exact file path, line numbers, current text, recommended realistic replacement text suited for bank fraud analysts and hackathon judges).
-3. Check for any backend strings returned in API responses that might bleed into the frontend with overclaims.
-
-CONSTRAINTS:
-- You are a READ-ONLY explorer. Do NOT modify any source code files.
-- Deliver your detailed findings in:
-  /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/survey_r1_report.md
-  and write your handoff in:
-  /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md
-- When finished, send a message to your parent using send_message with a summary of findings and the path to your report.
+You are Explorer Survey 1. Read your task description in /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/DISPATCH.md and /home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md.
+Investigate R1 (Geographic India Map component integration, styling, libraries, SVG map approach) and R2 (Threat Intel Page Crash white screen root cause in ThreatIntelPage.jsx).
+Investigate thoroughly using view_file and grep_search.
+Write your detailed report to /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_1/handoff.md.
+Communicate back to orchestrator when finished using send_message.

@@ -22,25 +22,25 @@ export function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
  * High (>70): Crimson / Red spectrum (#ef4444)
  */
 export function getEdgeStroke(riskScore, isHovered = false) {
-  if (isHovered) return "rgba(255, 120, 0, 1.0)";
-  if (riskScore == null) return "rgba(20, 184, 166, 0.45)";
+  if (isHovered) return "rgba(194, 65, 12, 1.0)";
+  if (riskScore == null) return "rgba(13, 148, 136, 0.60)";
 
   const num = typeof riskScore === "number" ? riskScore : parseFloat(riskScore);
-  if (isNaN(num)) return "rgba(20, 184, 166, 0.45)";
+  if (isNaN(num)) return "rgba(13, 148, 136, 0.60)";
 
   const clamped = Math.max(0, Math.min(100, num));
   if (clamped < 40) {
     const ratio = clamped / 40;
-    const alpha = 0.4 + ratio * 0.25;
-    return `rgba(20, 184, 166, ${alpha.toFixed(2)})`;
+    const alpha = 0.55 + ratio * 0.25;
+    return `rgba(13, 148, 136, ${alpha.toFixed(2)})`;
   } else if (clamped <= 70) {
     const ratio = (clamped - 40) / 30;
-    const alpha = 0.65 + ratio * 0.25;
-    return `rgba(245, 158, 11, ${alpha.toFixed(2)})`;
+    const alpha = 0.70 + ratio * 0.25;
+    return `rgba(180, 83, 9, ${alpha.toFixed(2)})`;
   } else {
     const ratio = (clamped - 70) / 30;
     const alpha = 0.85 + ratio * 0.15;
-    return `rgba(239, 68, 68, ${alpha.toFixed(2)})`;
+    return `rgba(220, 38, 38, ${alpha.toFixed(2)})`;
   }
 }
 
@@ -531,16 +531,27 @@ export default function NetworkConstellation({
       const transform = transformRef.current;
       const dpr = window.devicePixelRatio || 1;
 
-      // Clear Canvas
+      // Clear Canvas with pure white fill
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+
+      // Subtle dot grid background
+      ctx.fillStyle = "rgba(226, 232, 240, 0.85)";
+      for (let gx = 16; gx < width; gx += 28) {
+        for (let gy = 16; gy < height; gy += 28) {
+          ctx.beginPath();
+          ctx.arc(gx, gy, 1.0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
 
       // If at step 0 (t=0 / Reset), display initial invitation state
       if (currentStep === 0 || visibleNodeIds.size === 0) {
         if (totalSteps > 0) {
           ctx.save();
-          ctx.fillStyle = "rgba(100, 116, 139, 0.6)";
+          ctx.fillStyle = "#475569";
           ctx.font = "500 13px monospace";
           ctx.textAlign = "center";
           ctx.fillText(
@@ -634,7 +645,7 @@ export default function NetworkConstellation({
 
         ctx.save();
         if (isActive) {
-          ctx.strokeStyle = "rgba(251, 191, 36, 0.95)";
+          ctx.strokeStyle = "rgba(200, 100, 30, 0.95)";
           ctx.lineWidth = 3.2;
         } else {
           ctx.strokeStyle = getEdgeStroke(e.riskScore, isHovered);
@@ -667,31 +678,26 @@ export default function NetworkConstellation({
           ctx.save();
           if (risk >= 70) {
             // Crimson high-risk glowing particle
-            ctx.fillStyle = "rgba(239, 68, 68, 0.35)";
+            ctx.fillStyle = "rgba(220, 38, 38, 0.25)";
             ctx.beginPath();
             ctx.arc(px, py, 5.0, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = "#ef4444";
+            ctx.fillStyle = "#b91c1c";
             ctx.beginPath();
-            ctx.arc(px, py, 3.0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.arc(px, py, 1.2, 0, Math.PI * 2);
+            ctx.arc(px, py, 3.2, 0, Math.PI * 2);
             ctx.fill();
           } else if (risk >= 40) {
             // Amber medium-risk particle
-            ctx.fillStyle = "#f59e0b";
+            ctx.fillStyle = "#b45309";
             ctx.beginPath();
-            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+            ctx.arc(px, py, 2.8, 0, Math.PI * 2);
             ctx.fill();
           } else {
             // Teal low-risk particle
-            ctx.fillStyle = "#14b8a6";
+            ctx.fillStyle = "#0d9488";
             ctx.beginPath();
-            ctx.arc(px, py, 2.0, 0, Math.PI * 2);
+            ctx.arc(px, py, 2.4, 0, Math.PI * 2);
             ctx.fill();
           }
           ctx.restore();
@@ -714,37 +720,37 @@ export default function NetworkConstellation({
         if (isHovered || isPartOfActiveEdge) baseRadius += 2.5;
 
         let glowMultiplier = 1.0;
-        let glowColor = "rgba(16, 185, 129, 0.25)";
-        let coreColor = "#059669";
+        let glowColor = "rgba(15, 122, 61, 0.20)";
+        let coreColor = "#0f7a3d";
 
         if (verdict === "BLOCK") {
           // BLOCK verdict: pulsing red glow with Math.sin(t * 4)
           const pulseFactor = Math.sin(t * 4.0 + (n.x * 0.04));
           glowMultiplier = 2.2 + 0.45 * pulseFactor;
-          glowColor = `rgba(220, 38, 38, ${(0.35 + 0.15 * pulseFactor).toFixed(2)})`;
+          glowColor = `rgba(220, 38, 38, ${(0.30 + 0.15 * pulseFactor).toFixed(2)})`;
           coreColor = "#dc2626";
         } else if (verdict === "HOLD") {
           // HOLD verdict: pulsing amber glow with Math.sin(t * 2.5)
           const pulseFactor = Math.sin(t * 2.5 + (n.y * 0.04));
           glowMultiplier = 1.8 + 0.35 * pulseFactor;
-          glowColor = `rgba(245, 158, 11, ${(0.30 + 0.12 * pulseFactor).toFixed(2)})`;
-          coreColor = "#d97706";
+          glowColor = `rgba(180, 83, 9, ${(0.25 + 0.10 * pulseFactor).toFixed(2)})`;
+          coreColor = "#b45309";
         } else {
           // ALLOW verdict: subtle neutral glow
           glowMultiplier = 1.3 + 0.1 * Math.sin(t * 1.5);
-          glowColor = "rgba(16, 185, 129, 0.25)";
-          coreColor = "#059669";
+          glowColor = "rgba(15, 122, 61, 0.20)";
+          coreColor = "#0f7a3d";
         }
 
         if (n.kind === "cashout" && verdict !== "BLOCK") {
-          coreColor = "#1e293b";
+          coreColor = "#0b1f3a";
         }
 
-        // Draw Radial Glow Halo
+        // Draw Radial Glow Halo without dark fringing on white
         const maxGlowR = baseRadius * glowMultiplier;
         const glowGrad = ctx.createRadialGradient(n.x, n.y, baseRadius * 0.4, n.x, n.y, maxGlowR);
         glowGrad.addColorStop(0, glowColor);
-        glowGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        glowGrad.addColorStop(1, glowColor.replace(/[\d.]+\)$/, "0)"));
         ctx.fillStyle = glowGrad;
         ctx.beginPath();
         ctx.arc(n.x, n.y, maxGlowR, 0, Math.PI * 2);
@@ -756,10 +762,19 @@ export default function NetworkConstellation({
         ctx.fillStyle = coreColor;
         ctx.fill();
 
-        // Stroke Border
-        ctx.lineWidth = isHovered || isPartOfActiveEdge ? 2.5 : 1.5;
-        ctx.strokeStyle = isHovered || isPartOfActiveEdge ? "#fbbf24" : "#ffffff";
+        // Stroke Border with high contrast on white
+        if (isHovered || isPartOfActiveEdge) {
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = "#c8641e"; // Saffron active border
+        } else {
+          ctx.lineWidth = 1.8;
+          ctx.strokeStyle = "#ffffff";
+          ctx.shadowColor = "rgba(0, 0, 0, 0.16)";
+          ctx.shadowBlur = 3;
+        }
         ctx.stroke();
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
       }
 
       ctx.restore(); // Restore Zoom/Pan Transform
@@ -980,7 +995,7 @@ export default function NetworkConstellation({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full flex flex-col overflow-hidden rounded-md bg-[#0f172a] select-none"
+      className="relative w-full h-full flex flex-col overflow-hidden rounded-lg bg-white border border-hairline select-none shadow-xs"
     >
       {/* Canvas Viewport Area */}
       <div className="relative flex-1 min-h-0 w-full">
@@ -994,38 +1009,38 @@ export default function NetworkConstellation({
         />
 
         {totalSteps === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-400 font-mono">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-600 font-mono">
             Awaiting mule-ring detections…
           </div>
         )}
 
         {/* HUD Legend */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1 text-[11px] font-mono text-slate-300 bg-slate-900/85 backdrop-blur px-3 py-2 rounded-lg border border-slate-700/60 shadow-lg pointer-events-none">
-          <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">
-            Network Entities & Verdicts
+        <div className="absolute top-3 left-3 flex flex-col gap-1 text-[11px] font-mono text-ink-900 bg-white/95 backdrop-blur px-3 py-2 rounded-lg border border-hairline shadow-md pointer-events-none">
+          <div className="text-[10px] text-muted uppercase tracking-wider font-semibold mb-0.5">
+            Network Entities &amp; Verdicts
           </div>
           <div className="flex items-center gap-3">
-            <LegendDot color="#dc2626" label="BLOCK / Hub" glow="rgba(220, 38, 38, 0.6)" />
-            <LegendDot color="#d97706" label="HOLD / Hop" glow="rgba(245, 158, 11, 0.5)" />
-            <LegendDot color="#059669" label="ALLOW / Victim" glow="rgba(16, 185, 129, 0.4)" />
-            <LegendDot color="#1e293b" label="Cash-Out" border="#475569" />
+            <LegendDot color="#dc2626" label="BLOCK / Hub" glow="rgba(220, 38, 38, 0.4)" />
+            <LegendDot color="#b45309" label="HOLD / Hop" glow="rgba(180, 83, 9, 0.35)" />
+            <LegendDot color="#0f7a3d" label="ALLOW / Target" glow="rgba(15, 122, 61, 0.25)" />
+            <LegendDot color="#0b1f3a" label="Cash-Out" border="#cbd5e1" />
           </div>
-          <div className="flex items-center gap-2 pt-1 mt-0.5 border-t border-slate-800 text-[10px] text-slate-400">
+          <div className="flex items-center gap-2 pt-1 mt-0.5 border-t border-hairline text-[10px] text-muted">
             <span>Edge Risk:</span>
-            <span className="text-[#14b8a6]">Low &lt;40</span>
+            <span className="text-[#0d9488] font-semibold">Low &lt;40</span>
             <span>·</span>
-            <span className="text-[#f59e0b]">Med 40-70</span>
+            <span className="text-[#b45309] font-semibold">Med 40-70</span>
             <span>·</span>
-            <span className="text-[#ef4444]">High &gt;70</span>
+            <span className="text-[#dc2626] font-semibold">High &gt;70</span>
           </div>
         </div>
 
         {/* Viewport Zoom / Reset HUD Controls */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/85 backdrop-blur p-1 rounded-lg border border-slate-700/60 shadow-lg">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/95 backdrop-blur p-1 rounded-lg border border-hairline shadow-md">
           <button
             type="button"
             onClick={handleZoomIn}
-            className="w-7 h-7 flex items-center justify-center text-sm font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded transition-colors"
+            className="w-7 h-7 flex items-center justify-center text-sm font-bold text-ink-900 hover:text-ink-900 bg-white hover:bg-surface-muted border border-hairline rounded transition-colors shadow-xs"
             title="Zoom In (or scroll up)"
           >
             +
@@ -1033,7 +1048,7 @@ export default function NetworkConstellation({
           <button
             type="button"
             onClick={handleZoomOut}
-            className="w-7 h-7 flex items-center justify-center text-sm font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded transition-colors"
+            className="w-7 h-7 flex items-center justify-center text-sm font-bold text-ink-900 hover:text-ink-900 bg-white hover:bg-surface-muted border border-hairline rounded transition-colors shadow-xs"
             title="Zoom Out (or scroll down)"
           >
             −
@@ -1041,8 +1056,8 @@ export default function NetworkConstellation({
           <button
             type="button"
             onClick={handleResetView}
-            className="px-2 h-7 flex items-center justify-center text-[10px] font-mono text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded transition-colors"
-            title="Reset Pan & Zoom (100%)"
+            className="px-2 h-7 flex items-center justify-center text-[10px] font-mono text-ink-900 hover:text-ink-900 bg-white hover:bg-surface-muted border border-hairline rounded transition-colors shadow-xs"
+            title="Reset Pan &amp; Zoom (100%)"
           >
             {viewportZoom}% · Fit
           </button>
@@ -1051,7 +1066,7 @@ export default function NetworkConstellation({
         {/* Interactive Tooltip Overlay */}
         {tooltip && (
           <div
-            className="absolute z-30 pointer-events-none bg-slate-900/95 text-white p-3 rounded-lg shadow-2xl text-xs backdrop-blur border border-slate-700 max-w-[260px] space-y-1.5 transition-opacity duration-150"
+            className="absolute z-30 pointer-events-none bg-white/98 text-ink-900 p-3 rounded-lg shadow-xl text-xs backdrop-blur border border-hairline max-w-[260px] space-y-1.5 transition-opacity duration-150"
             style={{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }}
           >
             {tooltip.type === "node" ? (
@@ -1068,10 +1083,10 @@ export default function NetworkConstellation({
                     <span
                       className={`text-[10px] uppercase px-1.5 py-0.5 rounded font-mono font-bold ${
                         tooltip.verdict === "BLOCK"
-                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
                           : tooltip.verdict === "HOLD"
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                       }`}
                     >
                       {tooltip.verdict}
@@ -1079,13 +1094,13 @@ export default function NetworkConstellation({
                   )}
                 </div>
                 <div
-                  className="font-mono text-xs font-semibold text-white truncate pt-0.5"
+                  className="font-mono text-xs font-semibold text-ink-900 truncate pt-0.5"
                   title={tooltip.vpa}
                 >
                   {shortVpa(tooltip.vpa)}
                 </div>
                 {tooltip.caseId && (
-                  <div className="text-[10px] text-amber-400 font-sans pt-1 border-t border-slate-800 flex items-center justify-between">
+                  <div className="text-[10px] text-amber-700 font-sans pt-1 border-t border-hairline flex items-center justify-between">
                     <span>Case: {tooltip.caseId.slice(-8)}</span>
                     <span className="font-semibold">Click to open drawer →</span>
                   </div>
@@ -1093,32 +1108,32 @@ export default function NetworkConstellation({
               </>
             ) : (
               <>
-                <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
-                  <span className="text-[10px] uppercase text-slate-400 font-mono">
+                <div className="flex items-center justify-between gap-2 border-b border-hairline pb-1">
+                  <span className="text-[10px] uppercase text-muted font-mono">
                     {tooltip.stage || "Transaction Conduit"}
                   </span>
                   {tooltip.riskScore != null && (
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${
                         tooltip.riskScore >= 70
-                          ? "bg-rose-500/30 text-rose-300 border border-rose-500/50"
+                          ? "bg-rose-50 text-rose-700 border border-rose-200"
                           : tooltip.riskScore >= 40
-                          ? "bg-amber-500/30 text-amber-300 border border-amber-500/50"
-                          : "bg-teal-500/30 text-teal-300 border border-teal-500/50"
+                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-teal-50 text-teal-700 border border-teal-200"
                       }`}
                     >
                       Risk {tooltip.riskScore}
                     </span>
                   )}
                 </div>
-                <div className="font-sans text-sm font-bold text-white">
+                <div className="font-sans text-sm font-bold text-ink-900">
                   {formatINR(tooltip.amount)}
                 </div>
-                <div className="font-mono text-[11px] text-slate-300 truncate">
+                <div className="font-mono text-[11px] text-slate-600 truncate">
                   {shortVpa(tooltip.from)} → {shortVpa(tooltip.to)}
                 </div>
                 {tooltip.caseId && (
-                  <div className="text-[10px] text-amber-400 font-sans pt-0.5 flex items-center justify-between">
+                  <div className="text-[10px] text-amber-700 font-sans pt-0.5 flex items-center justify-between">
                     <span>Case: {tooltip.caseId.slice(-8)}</span>
                     <span className="font-semibold">Click to inspect →</span>
                   </div>
@@ -1130,7 +1145,7 @@ export default function NetworkConstellation({
       </div>
 
       {/* Timeline Controls Strip */}
-      <div className="border-t border-slate-800 bg-slate-900/95 backdrop-blur px-3 py-2.5 flex flex-col gap-1.5 shrink-0">
+      <div className="border-t border-hairline bg-surface-muted/95 backdrop-blur px-3 py-2.5 flex flex-col gap-1.5 shrink-0">
         {/* Controls and Slider Row */}
         <div className="flex items-center gap-3">
           {/* Play / Pause Button */}
@@ -1138,7 +1153,7 @@ export default function NetworkConstellation({
             <button
               type="button"
               onClick={handlePause}
-              className="px-2.5 py-1 text-xs font-semibold bg-amber-500 text-slate-950 rounded hover:bg-amber-400 transition-colors flex items-center gap-1 shadow-sm"
+              className="px-2.5 py-1 text-xs font-semibold bg-amber-600 text-white rounded hover:bg-amber-500 transition-colors flex items-center gap-1 shadow-xs"
               title="Pause Playback"
             >
               <span>⏸</span>
@@ -1149,7 +1164,7 @@ export default function NetworkConstellation({
               type="button"
               onClick={handlePlay}
               disabled={totalSteps === 0}
-              className="px-2.5 py-1 text-xs font-semibold bg-emerald-500 text-slate-950 rounded hover:bg-emerald-400 disabled:opacity-40 transition-colors flex items-center gap-1 shadow-sm font-mono"
+              className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 text-white rounded hover:bg-emerald-500 disabled:opacity-40 transition-colors flex items-center gap-1 shadow-xs font-mono"
               title="Play Timeline Animation"
             >
               <span>▶</span>
@@ -1162,7 +1177,7 @@ export default function NetworkConstellation({
             type="button"
             onClick={handleReset}
             disabled={totalSteps === 0 && currentStep === 0}
-            className="px-2 py-1 text-xs font-medium bg-slate-800 text-slate-200 border border-slate-700 rounded hover:bg-slate-700 disabled:opacity-40 transition-colors flex items-center gap-1 font-mono"
+            className="px-2 py-1 text-xs font-medium bg-white text-ink-900 border border-hairline rounded hover:bg-slate-50 disabled:opacity-40 transition-colors flex items-center gap-1 font-mono shadow-xs"
             title="Reset to t=0 (Clear Canvas)"
           >
             <span>↺</span>
@@ -1179,17 +1194,17 @@ export default function NetworkConstellation({
               value={currentStep}
               onChange={handleSliderChange}
               disabled={totalSteps === 0}
-              className="w-full accent-amber-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer disabled:opacity-40"
+              className="w-full accent-ink-900 h-1.5 bg-slate-200 rounded-lg cursor-pointer disabled:opacity-40"
             />
           </div>
 
           {/* Step Counter Badge */}
-          <div className="text-[11px] font-mono whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-semibold">
+          <div className="text-[11px] font-mono whitespace-nowrap px-2 py-0.5 rounded bg-white border border-hairline text-ink-900 font-semibold shadow-xs">
             {currentStep === 0 ? "t=0" : `Step ${currentStep}/${totalSteps}`}
           </div>
 
           {/* Speed Multipliers */}
-          <div className="flex items-center gap-0.5 bg-slate-800 p-0.5 rounded border border-slate-700 text-[10px] font-mono">
+          <div className="flex items-center gap-0.5 bg-white p-0.5 rounded border border-hairline text-[10px] font-mono shadow-xs">
             {[0.5, 1, 2].map((spd) => (
               <button
                 key={spd}
@@ -1197,8 +1212,8 @@ export default function NetworkConstellation({
                 onClick={() => setPlaybackSpeed(spd)}
                 className={`px-1.5 py-0.5 rounded ${
                   playbackSpeed === spd
-                    ? "bg-amber-500 font-bold text-slate-950 shadow-xs"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-ink-900 font-bold text-white shadow-xs"
+                    : "text-muted hover:text-ink-900"
                 }`}
               >
                 {spd}x
@@ -1208,30 +1223,30 @@ export default function NetworkConstellation({
         </div>
 
         {/* Step Telemetry Status Chip */}
-        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
+        <div className="flex items-center justify-between text-[10px] font-mono text-muted px-1">
           {currentStep === 0 ? (
-            <span className="text-slate-400 italic">
+            <span className="text-muted italic">
               Canvas cleared (t=0) · Timeline will auto-play, or drag slider to inspect chronological hops
             </span>
           ) : activeEdge ? (
             <div className="flex items-center gap-2 overflow-hidden truncate">
-              <span className="px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-700/60 font-semibold uppercase">
+              <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200 font-semibold uppercase">
                 {activeEdge.stage || "Hop"}
               </span>
-              <span className="font-semibold text-slate-100">
+              <span className="font-semibold text-ink-900">
                 {formatINR(activeEdge.amount)}
               </span>
-              <span className="text-slate-300">
+              <span className="text-slate-600">
                 {shortVpa(activeEdge.a)} → {shortVpa(activeEdge.b)}
               </span>
               {activeEdge.riskScore != null && (
                 <span
                   className={`font-bold ${
                     activeEdge.riskScore >= 70
-                      ? "text-rose-400"
+                      ? "text-rose-600"
                       : activeEdge.riskScore >= 40
-                      ? "text-amber-400"
-                      : "text-teal-400"
+                      ? "text-amber-600"
+                      : "text-teal-600"
                   }`}
                 >
                   (Risk {activeEdge.riskScore})
@@ -1243,7 +1258,7 @@ export default function NetworkConstellation({
           )}
 
           {activeEdge?.timestamp && (
-            <span className="text-slate-400 shrink-0">
+            <span className="text-muted shrink-0">
               {formatTime(new Date(activeEdge.timestamp).toISOString())}
             </span>
           )}

@@ -1,152 +1,380 @@
-# Handoff Report: Requirement R3 — Fix Dead Buttons and Broken Interactions
+# Handoff Report: R4 — Fix Verdict Velocity Graph to Show Rolling Rate, Not Cumulative
 
-**Agent**: survey_explorer_3  
-**Working Directory**: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3`  
-**Parent**: `633a9079-d863-4bd1-9c75-d637844689ae`  
-**Task**: R3 Comprehensive Survey (Dead Buttons, Threat Intel Simulate Flow, Tab Navigation, Forms, Toasts)  
-**Report Artifact**: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/survey_r3_report.md`  
+**Role**: Explorer Survey 3 (Investigation & Architecture Design)  
+**Mission**: Requirement R4 — Fix Verdict Velocity Graph to Show Rolling Rate, Not Cumulative  
+**Target Files**: 
+- `frontend/src/components/VerdictHistoryChart.jsx` (and alias `VerdictVelocityChart.jsx`)
+- `frontend/src/context/AppStateContext.jsx`
+- `frontend/src/pages/OverviewPage.jsx`
+- `frontend/src/hooks/useWebSocket.js`
+- `app/services/upi_cases.py`, `app/api/upi.py`, `app/services/autofeed.py`
 
 ---
 
 ## 1. Observation
 
-### Obs 1: Total Button Count and Syntactic Audit
-AST parsing across all 45 `.jsx` / `.js` files in `frontend/src/` revealed exactly 71 `<button>` elements across 18 files:
-- `components/CaseDrawer.jsx` (9 buttons: L309, L322, L334, L346, L358, L389, L656, L662, L668)
-- `components/ControlBar.jsx` (3 buttons: L99, L152, L159)
-- `components/NetworkConstellation.jsx` (7 buttons: L1025, L1033, L1041, L1138, L1148, L1161, L1194)
-- `components/analytics/TimeSeriesVerdictChart.jsx` (2 buttons: L62, L72)
-- `components/common/Modal.jsx` (1 button: L52)
-- `components/common/Navbar.jsx` (1 button: L142)
-- `components/common/ToastContainer.jsx` (1 button: L106)
-- `components/investigations/CaseAiCopilotView.jsx` (9 buttons: L251, L505, L528, L578, L760, L796, L827, L838, L845)
-- `components/investigations/CaseDetailModal.jsx` (1 button: L30)
-- `components/investigations/CaseFilterBar.jsx` (4 buttons: L77, L104, L120, L144)
-- `components/investigations/ForensicImageViewer.jsx` (2 buttons: L364, L430)
-- `components/investigations/StatusTransitionActions.jsx` (4 buttons: L74, L84, L94, L104)
-- `pages/AnalyticsPage.jsx` (2 buttons: L267, L288)
-- `pages/InvestigationsPage.jsx` (4 buttons: L120, L238, L290, L297)
-- `pages/OverviewPage.jsx` (1 button: L44)
-- `pages/SettingsPage.jsx` (10 buttons: L209, L220, L231, L242, L268, L307, L357, L365, L394, L460)
-- `pages/SystemHealthPage.jsx` (2 buttons: L130, L150)
-- `pages/ThreatIntelPage.jsx` (8 buttons: L399, L405, L483, L739, L753, L845, L883, L932)
+### 1.1 Component Naming & Layout Mapping
+- **Component in Codebase**: `frontend/src/components/VerdictHistoryChart.jsx`
+  - The user prompt refers to `VerdictVelocityChart.jsx`. In the codebase, this component is currently named `VerdictHistoryChart.jsx`.
+  - Header in `VerdictHistoryChart.jsx` lines 90–91 explicitly labels it:
+    ```jsx
+    <div className="text-[11px] uppercase tracking-wide text-muted">Session Velocity</div>
+    <div className="font-serif font-semibold text-ink-900">Verdict Velocity &amp; History</div>
+    ```
+  - In `frontend/src/pages/OverviewPage.jsx`:
+    - Line 6: `import VerdictHistoryChart from "../components/VerdictHistoryChart";`
+    - Line 16: `const { verdictHistory } = useAppState();`
+    - Line 86: `<VerdictHistoryChart history={verdictHistory} />`
+  - Automated test contracts: `tests/test_tier1_features.py` line 670 (`test_f14_01_verdict_history_component_exists`) and `tests/frontend_contracts_test.py` line 152 explicitly test for `frontend/src/components/VerdictHistoryChart.jsx` and its Recharts structure.
 
-Exactly 0 buttons have empty `onClick={() => {}}`. Exactly 1 button (`CaseAiCopilotView.jsx:796`) lacks `onClick` because it is an explicit `type="submit"` button inside `<form onSubmit={...}>`.
+### 1.2 Data Structure of `verdictHistory` in `AppStateContext.jsx`
+In `frontend/src/context/AppStateContext.jsx`:
+- **State Initialization** (lines 66–78):
+  ```javascript
+  // Rolling 40-point time-series history
+  const [verdictHistory, setVerdictHistory] = useState([
+    {
+      time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
+      timestamp: Date.now(),
+      ALLOW: 0,
+      HOLD: 0,
+      BLOCK: 0,
+      allowed: 0,
+      held: 0,
+      blocked: 0,
+    },
+  ]);
+  ```
+- **Append Handler** (lines 80–100):
+  ```javascript
+  const appendVerdictHistory = useCallback((currentCounts) => {
+    const timeStr = new Date().toLocaleTimeString("en-IN", { hour12: false });
+    const allowVal = currentCounts.ALLOW ?? currentCounts.allowed ?? 0;
+    const holdVal = currentCounts.HOLD ?? currentCounts.held ?? 0;
+    const blockVal = currentCounts.BLOCK ?? currentCounts.blocked ?? 0;
 
-### Obs 2: Purely Inert / Fake Buttons
-Two buttons in the platform exhibit purely decorative or mock behavior without executing real platform logic:
-1. `pages/SettingsPage.jsx:460`:
+    setVerdictHistory((prev) => {
+      const newPoint = {
+        time: timeStr,
+        timestamp: Date.now(),
+        ALLOW: allowVal,
+        HOLD: holdVal,
+        BLOCK: blockVal,
+        allowed: allowVal,
+        held: holdVal,
+        blocked: blockVal,
+      };
+      const updated = [...prev, newPoint];
+      return updated.slice(-40);
+    });
+  }, []);
+  ```
+
+### 1.3 How Points Are Ingested (The Monotonic Accumulation Cause)
+`appendVerdictHistory` is called from three locations in `AppStateContext.jsx`:
+
+1. **Manual / Initial Simulation** (lines 302–336):
    ```javascript
-   const handleSimulateDeploy = () => {
-     setDeployTriggered(true);
-     setTimeout(() => {
-       setDeployTriggered(false);
-       refreshDeployStatus();
-     }, 2500);
-   };
+   const result = await api.simulate(count, fraudRatio);
+   const v = result.verdicts || {};
+   const allowed = seenTotals.current.allowed + (v.ALLOW || 0);
+   const held = seenTotals.current.held + (v.HOLD || 0);
+   const blocked = seenTotals.current.blocked + (v.BLOCK || 0);
+   seenTotals.current = { allowed, held, blocked };
+   ...
+   appendVerdictHistory({ allowed, held, blocked });
    ```
-   This button ("Simulate Deploy Verification") sets a 2.5-second timer with a CSS ping animation and calls `refreshDeployStatus()`, but calls no backend deployment endpoint.
-2. `pages/ThreatIntelPage.jsx:483-489`:
+   `seenTotals.current` monotonically accumulates lifetime transactions. For a batch of 300 txns, it passes `{ allowed: 255, held: 30, blocked: 15 }`. Subsequent simulations add to this sum.
+
+2. **WebSocket Case Creation** (`handleWsNewCase`, lines 220–254):
    ```javascript
-   const handleSimulateExtraction = useCallback((targetIndex = null) => {
-     const idx = targetIndex !== null ? targetIndex : (simIndex + 1) % SAMPLE_SIMULATION_PAYLOADS.length;
-     setSimIndex(idx);
-     setIsSimulatingExtract(true);
-     setExtractStep(1);
-     setTimeout(() => setExtractStep(2), 700);
-     setTimeout(() => {
-       setExtractStep(3);
-       setIsSimulatingExtract(false);
-       toast.info(`Entity tokens extracted & linked to ${SAMPLE_SIMULATION_PAYLOADS[idx].campaign}`);
-     }, 1500);
-   }, [simIndex, toast]);
+   if (incomingStats) {
+     ...
+     appendVerdictHistory(incomingStats);
+   }
    ```
-   This button ("Simulate Flow") advances a local React state machine (`extractStep` 1 -> 2 -> 3) through a hardcoded array `SAMPLE_SIMULATION_PAYLOADS`. It does NOT invoke `POST /intel/signals` or `POST /intel/simulate`, does not persist tokens to the central Fraud Graph, and does not prepend the simulated signal into the `signals` state table displayed below.
+   `incomingStats` is passed from backend `service.get_current_stats()`, which returns cumulative lifetime counters (`app/services/upi_cases.py:849-890`):
+   `{ "evaluated": self._eval_count, "allowed": self._allow_count, "held": self._hold_count, "blocked": self._block_count }`.
 
-### Obs 3: Toast System Coverage Deficit
-Grep search for `useToast` and `toast.` across all 18 button files revealed:
-- `ToastContext.jsx` and `ToastContainer.jsx` are fully implemented and exposed.
-- Only **2 files** call `toast.*`: `CaseDrawer.jsx` (lines 274, 278) and `ThreatIntelPage.jsx` (lines 278, 323, 338, 363, 365).
-- **16 files** have zero toast calls.
-- `components/investigations/StatusTransitionActions.jsx:37` and `components/investigations/CaseDetailModal.jsx:19` invoke blocking native browser `alert()` instead of toast notifications:
-  - `alert("Error updating case: " + err.message);`
-  - `alert("Copied Case ID: " + caseData.case_id);`
+3. **WebSocket Stats Update** (`handleWsStatsUpdate`, lines 256–279):
+   ```javascript
+   const handleWsStatsUpdate = useCallback(
+     (incomingStats) => {
+       if (!incomingStats) return;
+       ...
+       appendVerdictHistory(incomingStats);
+     },
+     [appendVerdictHistory]
+   );
+   ```
 
-### Obs 4: Tab Navigation Scroll Loss & Flash
-- In `frontend/src/App.jsx:17-37`, React Router `<BrowserRouter>` mounts `<MainLayout />` with `<Outlet />`.
-- When switching routes via `<NavLink to={...}>` in `Navbar.jsx`, `<Outlet />` unmounts the current page component and mounts the target page.
-- There is no `<ScrollRestoration>` or `window.scrollTo` call anywhere in the application.
-- When navigating from a scrolled view (e.g. `/investigations` at scrollY = 800px) to another tab (e.g. `/threat-intel` or `/analytics`), `window.scrollY` remains at 800px. Because `/threat-intel` and `/analytics` fetch data asynchronously on mount, their initial container height is small, causing an abrupt layout jump or blank screen flash until data arrives.
+### 1.4 WebSocket Ingestion Anomaly in `useWebSocket.js`
+In `frontend/src/hooks/useWebSocket.js` (lines 100–103):
+```javascript
+} else if (eventType === "stats_update" || eventType === "UPI_EVALUATED") {
+  if (onStatsUpdateRef.current) {
+    onStatsUpdateRef.current(data);
+  }
+```
+- When backend `app/services/autofeed.py` evaluates an auto-feed transaction (lines 212–217), it broadcasts:
+  `{ "event": "UPI_EVALUATED", "data": eval_dict }` where `eval_dict` is an `UpiEvaluationResponse` model (`txn_id`, `action: "ALLOW"`, `risk_score`, etc.).
+- `eval_dict` has NO `allowed`, `held`, `blocked` properties.
+- `useWebSocket.js` routes `UPI_EVALUATED` directly into `onStatsUpdate(eval_dict)`.
+- In `AppStateContext.jsx`, `handleWsStatsUpdate(incomingStats)` receives `eval_dict`.
+- Because `incomingStats.ALLOW` and `incomingStats.allowed` are `undefined`, `appendVerdictHistory` creates a point with `{ ALLOW: 0, HOLD: 0, BLOCK: 0 }`.
+- Thus, during 10 TPS auto-feed, `appendVerdictHistory` was invoked 10 times per second pushing 0-value points, alternating with spikes to cumulative totals whenever a `new_case` arrived with `service.get_current_stats()`.
 
-### Obs 5: Form Validation and Inputs
-Audit of all form controls:
-- 1 `<form>`: `CaseAiCopilotView.jsx:773` (properly validates input trimming and enter key).
-- 10 `<input>`s: `ControlBar.jsx:127` has `min={10} max={2000}` but lacks programmatic clamping in `onChange`.
-- 1 `<textarea>`: `StatusTransitionActions.jsx:62` (analyst resolution notes).
-- 3 `<select>`s: `CaseFilterBar.jsx:90`, `InvestigationsPage.jsx:269`, `ThreatIntelPage.jsx:472`.
-- `CaseDetailModal.jsx` is an orphaned component not imported by any route or view.
+### 1.5 Backend Data Feeds and Endpoints
+- `GET /upi/stats` returns cumulative counters (`evaluated`, `allowed`, `held`, `blocked`).
+- `GET /upi/autofeed/status` returns `{ "active": bool, "rate_tps": float, "total_generated": int, "total_flagged": int }`.
+- `app/services/upi_cases.py:179` contains `get_throughput_metrics()` which computes rolling 60s throughput (`txns_per_sec`, `batches_per_min`), used for health telemetry.
+- The backend does NOT currently broadcast a rolling per-second verdict breakdown stream, but individual evaluations (`UPI_EVALUATED`) with `action: "ALLOW" | "HOLD" | "BLOCK"` are already broadcast in real time.
 
 ---
 
 ## 2. Logic Chain
 
-1. **Premise**: Requirement R3 mandates:
-   - Every `<button>` element must either have an `onClick` wired to a real action or be removed.
-   - All buttons on the Settings page must be audited and wired to real actions with Toast feedback or removed.
-   - The "Simulate Flow" button on Threat Intelligence must actually run a simulation and display a clear result.
-   - Tab navigation must preserve scroll position and prevent blank screen flashes.
-   - Form inputs and modals must validate and submit properly.
-   - Operational buttons must display reactive Toast notifications.
-2. **Settings Page Assessment**:
-   - `SettingsPage.jsx` has 10 button elements. Buttons 1–5 (preset & save sensitivity), 7 (federation sync), 8 (run simulation), and 9 (refresh deploy) perform real state/API mutations, but only use local inline state text (`sensitivitySavedMsg` and `simResultMsg`), providing no modern toast feedback.
-   - Button 10 (`Simulate Deploy Verification` at L460) is purely decorative mock code (`setTimeout(2500)`). Wiring it to `api.getDeployStatus()` / health probe with `toast.success` or removing it eliminates dead UI.
-3. **Simulate Flow Remediation**:
-   - `api.js` already provides `api.ingestThreatSignal()` and `api.simulateThreatSignals(count)`.
-   - By updating `handleSimulateExtraction()` in `ThreatIntelPage.jsx` to call `api.ingestThreatSignal(SAMPLE_SIMULATION_PAYLOADS[idx])` concurrently with the 3-stage visual animation, the simulated threat signal will be saved to the database, linked to the central fraud graph, prepended to the live `signals` table, and confirmed with `toast.success()`.
-4. **Scroll Preservation Mechanism**:
-   - Because React Router unmounts `<Outlet />` pages, retaining window scroll without an explicit scroll-to-top handler leaves the user scrolled down into empty space on tab change.
-   - Adding a `<ScrollToTop />` route listener inside `<BrowserRouter>` resets `window.scrollTo(0, 0)` on every route change, preventing blank screen flashes.
-   - Setting `min-h-[calc(100vh-10rem)]` on `<main>` in `MainLayout.jsx` guarantees the page never collapses to 0 height during asynchronous fetches.
-5. **Toast System Deployment**:
-   - `ToastProvider` is already mounted at the application root in `App.jsx`.
-   - Wiring `useToast()` into `ControlBar.jsx`, `SettingsPage.jsx`, `StatusTransitionActions.jsx`, `CaseDrawer.jsx`, `AnalyticsPage.jsx`, `InvestigationsPage.jsx`, and `SystemHealthPage.jsx` will close the entire coverage gap and eliminate native `alert()` calls.
+1. **Why the Graph is Monotonically Increasing**:
+   - `verdictHistory` records the absolute totals (`seenTotals.current` or `service.get_current_stats().allowed/held/blocked`).
+   - Because totals only increase over time, each point $(A_t, H_t, B_t) \ge (A_{t-1}, H_{t-1}, B_{t-1})$.
+   - The graph forms an ever-rising staircase.
+   - When traffic stops, the line stays permanently high at the maximum cumulative number, rather than returning to zero.
+   - When traffic bursts, the line steps up and stays there, obscuring whether current traffic is active or idle.
+
+2. **Why Client-Side Transformation is Optimal**:
+   - All 969 pytest tests pass and depend on the existing backend API contracts (`/upi/stats`, `/upi/autofeed/start`, `/upi/simulate`). Changing backend contracts risks breaking contract tests (`tests/test_tier1_features.py:363` checks `stats_update` payload conformance).
+   - The frontend receives every transaction verdict via WebSocket (`UPI_EVALUATED` event with `data.action`).
+   - The frontend knows the exact timestamp of every event and has access to timers (`setInterval`).
+   - A sliding 1-second time-bucket aggregator in `AppStateContext.jsx` transforms incoming events and batch deltas into genuine transactions-per-second (TPS) rates with zero backend schema modifications.
+
+3. **Why a 1-Second Sliding Window Aggregator Solves the Problem**:
+   - If points are only appended when events arrive, stopping traffic leaves the graph stuck at the last known rate forever.
+   - A 1-second interval ticker (`setInterval(..., 1000)`):
+     - Increments bucket counters `currentBucket.ALLOW`, `currentBucket.HOLD`, `currentBucket.BLOCK` whenever transactions occur (from `UPI_EVALUATED`, batch simulations, or stats updates).
+     - Every 1,000 ms, appends `{ time, timestamp, ALLOW: bucket.ALLOW, HOLD: bucket.HOLD, BLOCK: bucket.BLOCK, total: bucket.total }` to `verdictHistory`.
+     - Resets the bucket to zero for the next second.
+     - Maintains a rolling window of 30–40 seconds (`slice(-30)`).
+   - When Auto-Feed runs at 10 TPS: The graph oscillates around 10 tx/s, showing natural burst variations.
+   - When Auto-Feed stops / idle: The ticker records 0 events each second, smoothly bringing the line down to 0 on the baseline.
+   - When Batch Simulation runs: The second of the batch records a sharp burst spike (e.g. 150–300 tx/s), and then decays back to 0 on the following second.
+   - Render efficiency: Reduces React state dispatches from 10+ calls/sec to exactly 1 call/sec, eliminating Recharts SVG re-render lag.
 
 ---
 
-## 3. Caveats
+## 3. Concrete Implementation Plan
 
-1. **Read-Only Constraint**: As an explorer agent, no source files were modified during this investigation. All findings and proposed code changes are detailed in `survey_r3_report.md` for the implementer agent.
-2. **Backend Endpoints for Deploy Simulation**: The backend currently exposes `/health` and `/deploy/status` (or mock fallback). There is no dedicated CI/CD "trigger deploy" endpoint because GitHub Actions manages deployments automatically on git push to main. Wiring `Simulate Deploy Verification` to probe the existing `/health` endpoint is the cleanest, most realistic solution.
-3. **Orphaned Component**: `frontend/src/components/investigations/CaseDetailModal.jsx` was replaced by `CaseDrawer.jsx` in Sprint 2. It can be safely deleted or ignored without affecting runtime behavior.
+### 3.1 Step 1: Update `AppStateContext.jsx` (Sliding Window Aggregator)
+In `frontend/src/context/AppStateContext.jsx`:
+1. Initialize `verdictHistory` with 30 baseline zero-points spanning the last 30 seconds so the X-axis is immediately populated on load:
+   ```javascript
+   const [verdictHistory, setVerdictHistory] = useState(() => {
+     const now = Date.now();
+     return Array.from({ length: 30 }, (_, i) => {
+       const ts = now - (29 - i) * 1000;
+       return {
+         time: new Date(ts).toLocaleTimeString("en-IN", { hour12: false }),
+         timestamp: ts,
+         ALLOW: 0,
+         HOLD: 0,
+         BLOCK: 0,
+         allowed: 0,
+         held: 0,
+         blocked: 0,
+         total: 0,
+       };
+     });
+   });
+   ```
+
+2. Maintain rolling event bucket and cumulative reference counters:
+   ```javascript
+   const currentBucketRef = useRef({ ALLOW: 0, HOLD: 0, BLOCK: 0, total: 0 });
+   const lastCumulativeStatsRef = useRef({ allowed: 0, held: 0, blocked: 0 });
+   ```
+
+3. Update WebSocket event handlers:
+   - Handle `UPI_EVALUATED` in `handleWsStatsUpdate` (or add `onEvaluation`):
+     ```javascript
+     const handleWsStatsUpdate = useCallback((incomingData) => {
+       if (!incomingData) return;
+       // Check if payload is an individual transaction evaluation
+       if (incomingData.action) {
+         const verdict = String(incomingData.action).toUpperCase();
+         if (verdict === "ALLOW" || verdict === "HOLD" || verdict === "BLOCK") {
+           currentBucketRef.current[verdict] = (currentBucketRef.current[verdict] || 0) + 1;
+           currentBucketRef.current.total = (currentBucketRef.current.total || 0) + 1;
+         }
+         return;
+       }
+       // Otherwise, handle cumulative stats_update
+       const allowVal = incomingData.allowed ?? incomingData.ALLOW ?? 0;
+       const holdVal = incomingData.held ?? incomingData.HOLD ?? 0;
+       const blockVal = incomingData.blocked ?? incomingData.BLOCK ?? 0;
+       
+       const deltaAllow = Math.max(0, allowVal - lastCumulativeStatsRef.current.allowed);
+       const deltaHold = Math.max(0, holdVal - lastCumulativeStatsRef.current.held);
+       const deltaBlock = Math.max(0, blockVal - lastCumulativeStatsRef.current.blocked);
+       
+       currentBucketRef.current.ALLOW = Math.max(currentBucketRef.current.ALLOW, deltaAllow);
+       currentBucketRef.current.HOLD = Math.max(currentBucketRef.current.HOLD, deltaHold);
+       currentBucketRef.current.BLOCK = Math.max(currentBucketRef.current.BLOCK, deltaBlock);
+       currentBucketRef.current.total = currentBucketRef.current.ALLOW + currentBucketRef.current.HOLD + currentBucketRef.current.BLOCK;
+       
+       lastCumulativeStatsRef.current = { allowed: allowVal, held: holdVal, blocked: blockVal };
+       
+       setStats((prev) => ({
+         ...prev,
+         evaluated: incomingData.evaluated ?? prev.evaluated,
+         allowed: allowVal || prev.allowed,
+         held: holdVal || prev.held,
+         blocked: blockVal || prev.blocked,
+       }));
+     }, []);
+     ```
+
+4. When `runSimulation(count, fraudRatio)` completes:
+   ```javascript
+   const v = result.verdicts || {};
+   const simAllow = v.ALLOW || 0;
+   const simHold = v.HOLD || 0;
+   const simBlock = v.BLOCK || 0;
+   currentBucketRef.current.ALLOW += simAllow;
+   currentBucketRef.current.HOLD += simHold;
+   currentBucketRef.current.BLOCK += simBlock;
+   currentBucketRef.current.total += (simAllow + simHold + simBlock);
+   ```
+
+5. Add the 1-second Interval Ticker:
+   ```javascript
+   useEffect(() => {
+     const ticker = setInterval(() => {
+       const now = Date.now();
+       const timeStr = new Date(now).toLocaleTimeString("en-IN", { hour12: false });
+       
+       const allowRate = currentBucketRef.current.ALLOW;
+       const holdRate = currentBucketRef.current.HOLD;
+       const blockRate = currentBucketRef.current.BLOCK;
+       const totalRate = currentBucketRef.current.total;
+       
+       // Reset bucket for the upcoming second
+       currentBucketRef.current = { ALLOW: 0, HOLD: 0, BLOCK: 0, total: 0 };
+       
+       setVerdictHistory((prev) => {
+         const newPoint = {
+           time: timeStr,
+           timestamp: now,
+           ALLOW: allowRate,
+           HOLD: holdRate,
+           BLOCK: blockRate,
+           allowed: allowRate,
+           held: holdRate,
+           blocked: blockRate,
+           total: totalRate,
+         };
+         return [...prev.slice(1), newPoint];
+       });
+     }, 1000);
+     
+     return () => clearInterval(ticker);
+   }, []);
+   ```
+
+### 3.2 Step 2: Update `VerdictHistoryChart.jsx`
+In `frontend/src/components/VerdictHistoryChart.jsx`:
+1. **Header Updates**:
+   - Add current rolling rate display badge:
+     ```jsx
+     const latestPoint = formattedData[formattedData.length - 1] || {};
+     const currentTps = (latestPoint.ALLOW || 0) + (latestPoint.HOLD || 0) + (latestPoint.BLOCK || 0);
+     ```
+   - In the header badge:
+     ```jsx
+     <span className="font-mono font-bold text-ink-900 ml-1">
+       {currentTps.toFixed(0)} tx/s
+     </span>
+     ```
+2. **Y-Axis Configuration**:
+   - Set YAxis unit or label:
+     ```jsx
+     <YAxis
+       allowDecimals={false}
+       tick={{ fontSize: 10, fill: "#6b7280", fontFamily: "monospace" }}
+       axisLine={{ stroke: "#e5e7eb" }}
+       tickLine={false}
+       unit=" /s"
+     />
+     ```
+3. **Tooltip Formatting**:
+   - Update `CustomVerdictTooltip` to indicate rates:
+     ```jsx
+     <span>TOTAL: {total} tx/s</span>
+     ...
+     <span>ALLOW:</span> <span className="font-bold">{allowVal}/s</span>
+     ```
+4. **Defensive Rate Calculation Fallback**:
+   - If `history` is supplied from an external source that happens to be cumulative totals (e.g. unit tests or snapshots), dynamically calculate $\Delta / \Delta t$:
+     ```javascript
+     const isMonotonicCumulative = history.length > 2 && 
+       history[history.length - 1].ALLOW > 50 && 
+       history[history.length - 1].ALLOW >= history[0].ALLOW;
+     ```
+     If cumulative, compute point deltas: $\Delta C_i = C_i - C_{i-1}$.
+
+### 3.3 Step 3: Create Component Re-Export Alias
+Create `frontend/src/components/VerdictVelocityChart.jsx`:
+```javascript
+import VerdictHistoryChart from "./VerdictHistoryChart";
+export default VerdictHistoryChart;
+export * from "./VerdictHistoryChart";
+```
+This guarantees that imports using either `VerdictVelocityChart` or `VerdictHistoryChart` resolve properly and satisfy all prompt specifications and test contracts.
 
 ---
 
-## 4. Conclusion
+## 4. Caveats
 
-Requirement R3 has been completely audited and decomposed into concrete, verifiable tasks.
-- **Button Inventory**: All 71 `<button>` tags are cataloged with line numbers and remediation targets.
-- **Settings Page**: Identified 1 fake mock button (`Simulate Deploy Verification`), 4 presets, 1 save, 1 batch simulation, 1 federation sync, and 1 refresh button needing toast wiring.
-- **Threat Intelligence Simulate Flow**: Identified exact gap (visual state only, no API call). Provided exact implementation to call `api.ingestThreatSignal()` and update the signal table.
-- **Tab Navigation**: Pinpointed unmanaged `window.scrollY` and unmounting layout shifts as the cause of blank flashes. Prescribed `<ScrollToTop />` and container `min-height`.
-- **Toast Notifications**: Identified 16 files lacking toasts and 2 files using native `alert()`. Provided complete mapping of toast messages for every operational action.
+1. **Browser Inactive Tab Throttling**:
+   - When a browser tab is in the background, Chrome/Firefox throttle `setInterval` to 1,000ms or slower.
+   - When the user returns to the tab, the interval resumes. Using `Date.now() - prevTimestamp` prevents cumulative skew.
+2. **Simulation Spike Magnitude**:
+   - A batch simulation of 300 transactions finishes in ~150ms.
+   - In a 1-second discrete bucket, this records a peak of 300 tx/s. This is an accurate depiction of an instant batch burst.
+   - If a flatter visual curve is preferred, an exponential smoothing factor ($\alpha = 0.3$) could be applied, but discrete 1-second bucketing provides the truest representation of bursts and idle drops.
+3. **Test Constraints**:
+   - `tests/test_tier1_features.py` expects `ALLOW`, `HOLD`, `BLOCK` keys in data points and checks Recharts components in `VerdictHistoryChart.jsx`. All keys, colors (`#0f7a3d`, `#a8660a`, `#b3261e`), and Recharts imports are strictly preserved.
+
+---
+
+## 5. Conclusion
+
+- **Root Cause Confirmed**: The graph plotted a cumulative, non-decreasing line because `AppStateContext.jsx` stored lifetime transaction counters directly into `verdictHistory`. Furthermore, `UPI_EVALUATED` WebSocket events were routed into cumulative counters without verdict parsing, pushing zero-value points.
+- **Feasibility**: Can be fixed cleanly and entirely in frontend state and component presentation without touching backend models or endpoints.
+- **Outcome**: The graph will accurately display real-time velocity in transactions per second (TPS). It will actively rise and fall with traffic bursts (e.g. 10–25 tx/s during auto-feed, spikes during simulations) and promptly drop to 0 tx/s when traffic ceases.
 
 ---
 
-## 5. Verification Method
+## 6. Verification Method
 
-To independently verify all findings:
-1. **Button Enumeration**:
-   Run the AST extraction script:
-   `python3 -c "import os, re; ..."` -> Verify exactly 71 `<button>` elements across 18 files.
-2. **Check Dead / Decorative Buttons**:
-   Inspect `frontend/src/pages/SettingsPage.jsx:460` and `frontend/src/pages/ThreatIntelPage.jsx:483`.
-3. **Check Native `alert()` Calls**:
-   Run `grep -rn "alert(" frontend/src/` -> Confirm occurrences at `StatusTransitionActions.jsx:37` and `CaseDetailModal.jsx:19`.
-4. **Check Toast Invocations**:
-   Run `grep -rn "toast\." frontend/src/` -> Confirm exactly 7 invocations across only 2 files (`CaseDrawer.jsx` and `ThreatIntelPage.jsx`).
-5. **Lint and Build Baseline**:
-   - Pytest suite: `./.venv/bin/pytest tests/ -q` (969 passed).
-   - Frontend lint: `cd frontend && npm run lint` (0 errors, 0 warnings).
-   - Frontend build: `cd frontend && npm run build` (clean build).
+### Automated Suite
+Run the full test suite and frontend linting/build:
+```bash
+# 1. Pytest suite (must remain at 969 passed, 0 failures)
+./.venv/bin/pytest tests/ -v
 
----
+# 2. Specific contract tests for VerdictHistoryChart
+./.venv/bin/pytest tests/test_tier1_features.py -k f14 -v
+./.venv/bin/pytest tests/frontend_contracts_test.py -k verdict_history -v
+
+# 3. Frontend ESLint (--max-warnings 0 enforced)
+cd frontend && npm run lint
+
+# 4. Frontend Vite build
+cd frontend && npm run build
+```
+
+### Manual / Browser Verification
+1. Load `http://localhost:8000/overview` (or dev server `http://localhost:5173/overview`).
+2. Verify initial state: The graph displays a populated 30-second timeline sitting at 0 tx/s.
+3. Click "Run batch simulation": Observe an immediate spike in the velocity chart reflecting the evaluated batch burst, settling back to 0 within 2 seconds.
+4. Click "Start Live Feed": Observe the graph rise to ~10 tx/s with live oscillations and burst peaks. The header badge shows current rate (e.g. "10 tx/s").
+5. Click "Stop Live Feed": Observe the graph drop down to 0 tx/s.

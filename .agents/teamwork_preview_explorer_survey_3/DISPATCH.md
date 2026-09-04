@@ -1,67 +1,29 @@
-# Dispatch for teamwork_preview_explorer_survey_3
+# Explorer Survey 3 Task Assignment
 
-- Role: ML & Terminology Spec Miner
-- Working directory: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3
-- Parent orchestrator: teamwork_preview_orchestrator_10
-- Objective: Survey R3 (Unsupervised Isolation Forest model in app/engine/upi_scorer.py, ml_anomaly_score in /upi/check, global terminology overhaul removing "Dead Money Velocity" and "Criminal Network", stripping 100% confidence, adding tagline "Everyone sees a piece. SAMPATI connects the dots.").
+## Mission: Survey R4 (Fix Verdict Velocity Graph to Show Rolling Rate, Not Cumulative)
 
-## 2026-09-03T09:35:33Z
-You are teamwork_preview_explorer_survey_3 (teamwork_preview_spec_miner).
-Your working directory is `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3`.
-You MUST read the authoritative user request at `/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md` (especially the latest section timestamp 2026-09-03T09:32:24Z) and your dispatch at `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/DISPATCH.md`.
+### Context
+Read `/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md` (under timestamp 2026-09-04T12:04:16Z).
+Project Root: `/home/avi/Downloads/Sampati_v2`
+Working Directory: `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3`
 
-Your mission:
-Investigate the exact specifications and code locations for Requirement 3 (ML Layer & Terminology Overhaul):
-1. Investigate `app/engine/upi_scorer.py`, `app/engine/`, and any existing Isolation Forest files (such as `app/engine/isolation_forest.py` or similar if drafted). Determine:
-   - How `scikit-learn` IsolationForest or custom iForest is configured and instantiated.
-   - How feature vectors are extracted from transaction and state (e.g. amount, time-of-day, velocity, etc.).
-   - How `ml_anomaly_score` in [0.0, 1.0] is computed and incorporated into the `/upi/check` response JSON schema (`UpiEvaluationResponse` in `app/models/upi_models.py` or similar).
-   - How it factors into the final verdict (e.g., points or floor).
-2. Investigate all occurrences of "Dead Money Velocity" across frontend and backend:
-   - Find all files containing "Dead Money Velocity" or "DMV" and identify where it must be renamed to "Dormant-to-Active Velocity" without breaking internal abbreviations where required or keeping contract compatibility.
-3. Investigate all occurrences of "Criminal Network" or "Criminal Hierarchy" across frontend and backend:
-   - Identify every frontend file to ensure 0 occurrences remain for "Dead Money Velocity" and "Criminal Network".
-4. Investigate all "100% confidence" / "100% traceable" claims and find where they need to be replaced with defensible signal-correlation phrasing.
-5. Identify where the tagline "Everyone sees a piece. SAMPATI connects the dots." must be added (e.g., Overview header banner, navigation, masthead).
-6. Check existing pytest suite (`.venv/bin/pytest tests/ -v`, currently 833+ tests) and see what tests currently touch these areas.
+### Objectives
+1. **R4 Investigation**:
+   - Inspect `frontend/src/components/VerdictVelocityChart.jsx` (and wherever transaction history / velocity data is aggregated, fetched, or streamed via WebSocket, e.g. `OverviewPage.jsx`, hooks, or backend endpoints).
+   - Diagnose why the "Verdict Velocity & History" chart plots a cumulative, monotonically increasing line instead of a rolling rate.
+   - Trace how points are added to the chart dataset (timestamps, intervals, counters vs differential rate calculation).
+   - Propose an algorithm and implementation to calculate and display the rolling rate (transactions per second or transactions per minute) over sliding windows, so the line reflects actual traffic bursts (rising during bursts, dropping when idle).
+   - Check if any backend data format changes are needed, or if this can be computed cleanly in frontend state / data transformation.
 
-Write your findings and recommendations into `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md`.
-Use send_message to notify parent when complete with the path to your handoff file.
+### Output
+Write your comprehensive investigation report to `/home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md` with:
+- Exact file paths, line numbers, and data flow mechanisms.
+- Concrete, actionable implementation recommendations for calculating and rendering rolling rates.
+- Verification commands and test considerations.
 
-
-## 2026-09-04T10:21:18Z
-You are survey_explorer_3.
-Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3
-Your parent conversation ID is: 633a9079-d863-4bd1-9c75-d637844689ae
-
-MANDATORY INPUT:
-Read the authoritative user request at:
-/home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md
-Specifically section ## 2026-09-04T10:20:00Z.
-
-MISSION:
-Conduct a comprehensive Survey on Requirement R3 (Fix Dead Buttons and Broken Interactions):
-1. Button Audit:
-   - Enumerate EVERY <button> element across all .jsx / .js files in frontend/src/.
-   - Identify buttons missing onClick, buttons with empty onClick={() => {}}, or buttons whose action is purely decorative/inert.
-   - Pay special attention to the Settings page (SettingsPage.jsx or equivalent): list all buttons, what they do, which are dead, and determine whether they should be wired to real actions (with Toast feedback) or removed.
-2. Threat Intelligence "Simulate Flow" Button:
-   - Trace the "Simulate Flow" button on the Threat Intelligence tab.
-   - What does it currently trigger? Does it call an API endpoint? Does it show any visual result or toast? What is required to make it actually run a simulation and display a clear result?
-3. Tab Navigation & Scroll Preservation:
-   - Inspect the top-level tab navigation mechanism (App.jsx / layout components).
-   - Check why switching tabs causes scroll loss or blank screen flashes, and recommend how to preserve scroll or prevent layout shifts.
-4. Form Validation & Submission:
-   - Audit all form inputs and modals across the frontend (e.g., in Settings, Threat Intel, Investigations, Case Drawer).
-   - Verify whether each form validates and submits properly, or needs fixes.
-5. Toast Notifications:
-   - Inspect the existing toast notification system (how it is imported, configured, and used).
-   - Verify which actionable buttons are currently missing toast feedback.
-
-CONSTRAINTS:
-- You are a READ-ONLY explorer. Do NOT modify any source code files.
-- Deliver your detailed findings in:
-  /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/survey_r3_report.md
-  and write your handoff in:
-  /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md
-- When finished, send a message to your parent using send_message with a summary of findings and the path to your report.
+## 2026-09-04T12:07:22Z
+You are Explorer Survey 3. Read your task description in /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/DISPATCH.md and /home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md.
+Investigate R4 (Fix Verdict Velocity Graph to Show Rolling Rate, Not Cumulative: inspect VerdictVelocityChart.jsx, OverviewPage.jsx, live feed/history data structures, cumulative accumulation vs rolling rate calculation).
+Investigate thoroughly using view_file and grep_search.
+Write your detailed report to /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_explorer_survey_3/handoff.md.
+Communicate back to orchestrator when finished using send_message.

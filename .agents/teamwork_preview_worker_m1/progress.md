@@ -1,15 +1,15 @@
-# Progress: Milestone 1 Anti-Slop & Copywriting Overhaul
+# Progress: UI Bugs & Geographic India Map
 
-Last visited: 2026-09-04T10:43:00Z
+Last visited: 2026-09-04T12:26:00Z
 
 ## Status
-- [x] Read DISPATCH.md, ORIGINAL_REQUEST.md, PROJECT.md, survey_r1_report.md
-- [x] Initialize BRIEFING.md, progress.md, local skill copy
-- [x] Task 1: ThreatIntelPage.jsx copy replacements & empty state
-- [x] Task 2: CaseFilterBar.jsx, CaseAiCopilotView.jsx, StatusTransitionActions.jsx placeholder dynamic refactor
-- [x] Task 3: Autonomous and AI SAR buzzwords cleanup in ControlBar.jsx, CaseDrawer.jsx, SarNarrativeView.jsx, InvestigationsPage.jsx, CaseAiCopilotView.jsx, gemini_service.py
-- [x] Task 4: Syndicate replacements & empty states in TopFlaggedAccountsTable.jsx, TopDmvAccountsTable.jsx, AnalyticsPage.jsx
-- [x] Task 5: Verification — grep audit across frontend/src (0 hits on all forbidden terms)
-- [x] Task 6: Verification — npm run lint (0 warnings) & npm run build (clean 0 error build)
-- [x] Task 7: Verification — pytest test suite (all 969 tests pass) & ruff check (all pass)
-- [x] Task 8: Final Handoff report & message to parent
+- [x] Read DISPATCH.md, ORIGINAL_REQUEST.md, survey reports (1, 2, 3)
+- [x] Initialize BRIEFING.md, progress.md
+- [x] Task 1 (R2): Create ErrorBoundary.jsx and fix ThreatIntelPage.jsx crash (safe campaign label extractor, entity fallbacks)
+- [x] Task 2 (R1): Implement GeoMuleMap.jsx and wire view toggle in OverviewPage.jsx
+- [x] Task 3 (R3): Whitewash NetworkConstellation.jsx canvas (white background, dot-grid, saffron active stroke, high-contrast halos, light HUD)
+- [x] Task 4 (R4): Implement 1-second sliding bucket in AppStateContext.jsx, update VerdictHistoryChart.jsx, create VerdictVelocityChart.jsx
+- [x] Task 5: Verify npm run lint (0 warnings) & npm run build (clean build, 0 errors)
+- [x] Task 6: Final pytest test suite (969 passed, 0 failures in 159s)
+- [x] Task 7: Document handoff.md
+- [x] Task 8: Send completion report to parent via send_message
