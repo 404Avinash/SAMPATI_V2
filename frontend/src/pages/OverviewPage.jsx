@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppState } from "../context/AppStateContext";
 import { formatINR } from "../services/api";
@@ -6,12 +7,10 @@ import KpiStrip from "../components/KpiStrip";
 import VerdictHistoryChart from "../components/VerdictHistoryChart";
 import ControlBar from "../components/ControlBar";
 import NetworkConstellation from "../components/NetworkConstellation";
-import GeoMuleMap from "../components/overview/GeoMuleMap";
 import LiveFeed from "../components/LiveFeed";
 import VerdictDonut from "../components/VerdictDonut";
 
 export default function OverviewPage() {
-  const [topologyTab, setTopologyTab] = useState("constellation");
   const {
     stats,
     cases,
@@ -94,55 +93,42 @@ export default function OverviewPage() {
         busy={busy}
       />
 
-      {/* Mule-Network Interactive Fabric */}
+      {/* Topology Intelligence Snapshot & Dedicated Space Launcher */}
       <div className="panel overflow-hidden">
-        <div className="panel-header flex items-center justify-between">
+        <div className="panel-header flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="panel-title">
             <div className="text-[11px] uppercase tracking-wide text-muted font-mono">
-              Topology Visualizer
+              Fraud Mesh Intelligence
             </div>
-            <div className="font-serif font-bold text-ink-900">
-              Live Constellation &amp; Mule Rings
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex bg-surface-muted rounded-lg p-0.5 border border-hairline text-xs font-mono">
-              <button
-                type="button"
-                onClick={() => setTopologyTab("constellation")}
-                className={`px-3 py-1 rounded font-semibold transition-all ${
-                  topologyTab === "constellation"
-                    ? "bg-white text-ink-900 shadow-xs"
-                    : "text-muted hover:text-ink-900"
-                }`}
-              >
-                ☍ Constellation Graph
-              </button>
-              <button
-                type="button"
-                onClick={() => setTopologyTab("geomap")}
-                className={`px-3 py-1 rounded font-semibold transition-all ${
-                  topologyTab === "geomap"
-                    ? "bg-white text-ink-900 shadow-xs"
-                    : "text-muted hover:text-ink-900"
-                }`}
-              >
-                🗺️ India Mule Corridors
-              </button>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-muted">
-              <span className="px-2 py-0.5 rounded bg-surface-muted border border-hairline">
-                {cases.length} active rings tracked
+            <div className="font-serif font-bold text-ink-900 flex items-center gap-2">
+              <span>Topology &amp; Mule Corridors Snapshot</span>
+              <span className="text-xs font-mono font-normal px-2 py-0.5 rounded bg-saffron/10 text-saffron border border-saffron/20">
+                {cases.length} active rings
               </span>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/topology"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold bg-ink-900 text-white hover:bg-ink-800 transition-colors shadow-xs"
+            >
+              <span>Open Dedicated Topology Space</span>
+              <span>→</span>
+            </Link>
+          </div>
         </div>
-        <div className="h-[440px] p-2 bg-[#f8f9fc]">
-          {topologyTab === "constellation" ? (
-            <NetworkConstellation cases={cases} onSelectCase={openCase} />
-          ) : (
-            <GeoMuleMap cases={cases} onSelectCase={openCase} />
-          )}
+
+        {/* Sleek Preview Container */}
+        <div className="h-[280px] p-2 bg-[#f8f9fc] relative">
+          <NetworkConstellation cases={cases} onSelectCase={openCase} />
+          <div className="absolute top-4 right-4 z-20">
+            <Link
+              to="/topology"
+              className="px-2.5 py-1 rounded bg-white/95 backdrop-blur text-xs font-mono font-semibold text-ink-900 border border-hairline shadow-xs hover:bg-white flex items-center gap-1.5 transition-colors"
+            >
+              <span>⛶ Launch Fullscreen Mesh</span>
+            </Link>
+          </div>
         </div>
       </div>
 

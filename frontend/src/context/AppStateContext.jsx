@@ -4,6 +4,22 @@ import { api } from "../services/api";
 
 const AppStateContext = createContext(null);
 
+/**
+ * Generates an organic harmonic baseline for legitimate background ALLOW traffic (2–5 TPS).
+ * Uses sinusoidal wave oscillation (period ~16s) with stochastic micro-jitter
+ * to produce a natural breathing pattern representing continuous banking rails.
+ */
+function calculateAmbientAllowTps(timestamp) {
+  // Wave period ~ 16 seconds (2500ms * 2π ≈ 15.7s)
+  const phase = (timestamp / 2500) % (2 * Math.PI);
+  // Harmonic center at 3.3 TPS with ±1.1 amplitude -> [2.2, 4.4]
+  // Add micro-jitter between -0.4 and +0.4 for authentic network telemetry variation
+  const jitter = (Math.random() - 0.5) * 0.8;
+  const rawTps = 3.3 + 1.1 * Math.sin(phase) + jitter;
+  // Strictly clamp between 2 and 5 TPS
+  return Math.max(2, Math.min(5, Math.round(rawTps)));
+}
+
 export function AppStateProvider({ children }) {
   const [stats, setStats] = useState({
     evaluated: 0,
@@ -67,21 +83,22 @@ export function AppStateProvider({ children }) {
   const currentBucketRef = useRef({ ALLOW: 0, HOLD: 0, BLOCK: 0, total: 0 });
   const lastCumulativeStatsRef = useRef({ allowed: 0, held: 0, blocked: 0 });
 
-  // Rolling 30-second time-series history
+  // Rolling 30-second time-series history pre-populated with organic ambient baseline
   const [verdictHistory, setVerdictHistory] = useState(() => {
     const now = Date.now();
     return Array.from({ length: 30 }, (_, i) => {
       const ts = now - (29 - i) * 1000;
+      const ambient = calculateAmbientAllowTps(ts);
       return {
         time: new Date(ts).toLocaleTimeString("en-IN", { hour12: false }),
         timestamp: ts,
-        ALLOW: 0,
+        ALLOW: ambient,
         HOLD: 0,
         BLOCK: 0,
-        allowed: 0,
+        allowed: ambient,
         held: 0,
         blocked: 0,
-        total: 0,
+        total: ambient,
       };
     });
   });
@@ -92,10 +109,17 @@ export function AppStateProvider({ children }) {
       const now = Date.now();
       const timeStr = new Date(now).toLocaleTimeString("en-IN", { hour12: false });
 
-      const allowRate = currentBucketRef.current.ALLOW;
+      const realAllow = currentBucketRef.current.ALLOW;
       const holdRate = currentBucketRef.current.HOLD;
       const blockRate = currentBucketRef.current.BLOCK;
-      const totalRate = currentBucketRef.current.total;
+
+      // Organic harmonic ambient baseline (2–5 TPS ALLOW)
+      const ambientAllow = calculateAmbientAllowTps(now);
+
+      // Real bursts stack cleanly on top of ambient baseline,
+      // and settle gracefully back to 2–5 TPS ambient floor when burst subsides.
+      const effectiveAllow = realAllow > 0 ? realAllow + ambientAllow : ambientAllow;
+      const totalRate = effectiveAllow + holdRate + blockRate;
 
       // Reset bucket for the upcoming 1s interval
       currentBucketRef.current = { ALLOW: 0, HOLD: 0, BLOCK: 0, total: 0 };
@@ -104,10 +128,10 @@ export function AppStateProvider({ children }) {
         const newPoint = {
           time: timeStr,
           timestamp: now,
-          ALLOW: allowRate,
+          ALLOW: effectiveAllow,
           HOLD: holdRate,
           BLOCK: blockRate,
-          allowed: allowRate,
+          allowed: effectiveAllow,
           held: holdRate,
           blocked: blockRate,
           total: totalRate,

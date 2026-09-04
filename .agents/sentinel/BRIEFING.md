@@ -1,16 +1,16 @@
-# BRIEFING — 2026-09-04T12:05:00Z
+# BRIEFING — 2026-09-04T13:14:00Z
 
 ## Mission
-Fix three critical UI bugs (Threat Intel white screen crash, constellation dark background whitewash, verdict velocity cumulative to rolling rate) and implement high-impact geographic India map visualization for active mule network connections.
+Conduct comprehensive UI redesign and bug fix pass: R1 high-fidelity geographic India map (Leaflet/Deck.gl/TopoJSON), R2 separate Topology visualizers into dedicated sub-navbar / top-level space, R3 ambient background traffic simulation in VerdictVelocityChart, R4 Threat Intel UI cleanup with uniform white background & refined typography.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: /home/avi/Downloads/Sampati_v2/.agents/sentinel
 - Orchestrator: 633a9079-d863-4bd1-9c75-d637844689ae (.agents/teamwork_preview_orchestrator_13)
 - Victory Auditor: 88f31fe7-0a06-4daa-8ee7-09925a4ca391 (.agents/teamwork_preview_victory_auditor_sentinel_7)
-- Active Orchestrator: [to be assigned] (.agents/teamwork_preview_orchestrator_14)
-- Active Victory Auditor: [to be spawned on victory claim]
-- Orchestrator (active assigned): 271e71dd-4370-4307-afc1-a65ac33fe525 (.agents/teamwork_preview_orchestrator_14)
+- Active Orchestrator: 7f8b92d3-b4aa-4f57-8eed-0a730f162d25 (.agents/teamwork_preview_orchestrator_15)
+- Active Victory Auditor: c943e3c0-c665-4c20-ab60-a7384e4848fb (.agents/teamwork_preview_victory_auditor_sentinel_9)
+- Orchestrator (active assigned): 7f8b92d3-b4aa-4f57-8eed-0a730f162d25 (.agents/teamwork_preview_orchestrator_15)
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
@@ -23,15 +23,19 @@ Fix three critical UI bugs (Threat Intel white screen crash, constellation dark 
 - R2: Fix Threat Intel page crash / white screen
 - R3: Whitewash NetworkConstellation canvas background & contrast
 - R4: Fix Verdict Velocity graph to show rolling rate instead of cumulative total
+- New R1: Redesign Geographic India Map (high-fidelity mapping like Leaflet, Deck.gl or TopoJSON)
+- New R2: Separate Topology Visualizers into dedicated sub-navbar / page
+- New R3: Ambient background traffic simulation in VerdictVelocityChart (2-5 TPS)
+- New R4: Threat Intel UI cleanup (uniform white, typography, spacing)
 
 ## User Context
-- **Last user request**: R1 Geo India Map, R2 Threat Intel crash fix, R3 Constellation whitewash, R4 Velocity rolling rate chart fix.
+- **Last user request**: UI redesign pass (R1 Geo Map, R2 Dedicated Topology sub-navbar, R3 Ambient Velocity Chart, R4 Threat Intel Polish)
 - **Pending clarifications**: none
 - **Delivered results**:
-  - R1: Geographic India Map visualizer (`GeoMuleMap.jsx`) with animated bezier corridors, radar hotspots, and Overview toggle.
-  - R2: Threat Intel white screen crash fixed (`CampaignMatch` unboxing, entity fallbacks, `ErrorBoundary.jsx`).
-  - R3: NetworkConstellation graph whitewashed with pure white canvas, dot grid, Saffron active strokes, and executive light HUD.
-  - R4: Verdict Velocity chart converted to rolling rate (tx/s) with 1s sliding window bucket accumulator.
+  - R1: High-fidelity India vector cartography (`GeoMuleMap.jsx`) with 139-vertex authentic boundary, 9 calibrated financial/threat hubs, dual-layer glowing bezier arcs, animated SVG particle flows, and radar pulses.
+  - R2: Dedicated Topology Mesh page (`TopologyPage.jsx`) at `/topology` with sub-navbar (Constellation Graph, Mule Corridors, Dual Perspective) and fullscreen support; Overview layout uncluttered.
+  - R3: Organic ambient background traffic simulation in `AppStateContext.jsx` (2–5 TPS continuous ALLOW baseline) keeping `VerdictVelocityChart` alive and dynamic during idle states.
+  - R4: Threat Intelligence page (`ThreatIntelPage.jsx`) fully unified on a clean white palette (`bg-white border-hairline`), clean Lucide vector icons, and professional spacing.
 
 ## Project Status
 - **Phase**: complete
@@ -48,5 +52,6 @@ Fix three critical UI bugs (Threat Intel white screen crash, constellation dark 
 ## Artifact Index
 - /home/avi/Downloads/Sampati_v2/ORIGINAL_REQUEST.md — Root User Request record
 - /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md — Agent User Request record
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_orchestrator_14/handoff.md — Orchestrator Final Handoff
-- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_victory_auditor_sentinel_8/handoff.md — Victory Audit Report (VICTORY CONFIRMED)
+- /home/avi/Downloads/Sampati_v2/.agents/sentinel/BRIEFING.md — Sentinel Briefing
+- /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_victory_auditor_sentinel_9/handoff.md — Victory Audit Report (VICTORY CONFIRMED)
+

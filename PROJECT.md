@@ -1,66 +1,58 @@
-# Project: SAMPATI V2 — ML Layer, Terminology Pivot & Dashboard Interactivity
+# Project: SAMPATI V2 — Hackathon Demo UI Redesign & Intelligence Polish
 
 ## Architecture
 SAMPATI V2 is a Collaborative Fraud-Intelligence Mesh for real-time UPI mule-network interception.
-- **Backend**: FastAPI (Python 3.14) with an inline 4-layer risk evaluation pipeline (`app/engine/`):
-  * Layer 1: Deterministic Rules (0-100 pts)
-  * Layer 2: Adaptive EWMA Behavioral Anomaly (0-25 pts)
-  * Layer 3: Federated Cross-PSP Graph Network Score (0-40 pts)
-  * Layer 4: Unsupervised Isolation Forest Multivariate ML Anomaly Score (`ml_anomaly_score` in [0.0, 1.0])
+- **Backend**: FastAPI (Python 3.14) with a 4-layer risk evaluation pipeline (`app/engine/`), Early Warning threat intelligence ingestion (`/intel`), simulated institutional adapters (NPCI MuleHunter, DPIP, PSP), and WebSocket streaming.
 - **Frontend**: React 18 / Vite / Tailwind CSS / Framer Motion:
-  * Real-time WebSocket event ingestion (`/ws`, `/ws/feed`)
-  * Overview Dashboard with live KPI counters, Verdict Velocity & History chart, and animated Network Constellation topology
-  * Centralized reactive Toast Notification system (`ToastContext`)
-  * Case Investigation Drawer with Dormant-to-Active Velocity (DMV) dial gauge and SAR PDF export
+  * Executive Overview Dashboard with live KPI counters, ambient Verdict Velocity chart, and Topology Mesh Snapshot.
+  * Dedicated Topology Visualizers Space (`/topology`) featuring a 3-way sub-navbar (`Constellation Force Graph`, `India Mule Corridors`, and `Dual Perspective`).
+  * High-Fidelity Geographic India Mule Corridors Map (`GeoMuleMap.jsx`) with 139-vertex authentic boundary path, geodetically calibrated hubs, glowing bezier arcs, and Jamtara/Mewat radar hotspots.
+  * Uniform White Threat Intelligence Dashboard (`/threat-intel`) with executive typography, clean 3-stage entity extraction pipeline, and dynamic campaign clustering.
 
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Unsupervised Isolation Forest Engine | Pure-Python/NumPy iForest (Liu et al. 2008) in `app/engine/isolation_forest.py` with dynamic `sklearn` fallback | M1 | Survey / R1 |
-| 2 | ML Score API Integration | Expose `ml_anomaly_score` in `UpiEvaluationResponse` and `/upi/check` response JSON | M1 | Survey / R1 |
-| 3 | Scoring Pipeline & Verdict Factor | Layer 4 scoring in `UpiRiskScorer.evaluate`: $s \le 0.5 \implies 0$ pts, scaling to 25 pts, reason `"ML_MULTIVARIATE_ANOMALY"`, and `HOLD` floor at $s \ge 0.85$ | M1 | Survey / R1 |
-| 4 | "Dead Money Velocity" -> "Dormant-to-Active Velocity" | Global replacement across frontend (`CaseDrawer.jsx`, `TopDmvAccountsTable.jsx`, `AnalyticsPage.jsx`) and backend (`dmv.py`, `gemini_service.py`, `encyclopedia_kb.py`) | M2 | Survey / R2 |
-| 5 | "Criminal Network" -> "Suspected Mule Cluster" | Ensure 0 hits in frontend source and replace backend/encyclopedia occurrences | M2 | Survey / R2 |
-| 6 | Overclaiming Language Removal | Remove "100% confidence" / "100% traceable", cap confidence at 98%, use signal-correlation phrasing | M2 | Survey / R2 |
-| 7 | Collaborative Mesh Tagline | Add "Everyone sees a piece. SAMPATI connects the dots." prominently in Overview header banner, `Masthead.jsx`, and `Navbar.jsx` | M2 | Survey / R2 |
-| 8 | Reactive Toast Notification System | Custom React + `framer-motion` `ToastContext` & `ToastContainer` with dark theme styling | M3 | Survey / R3 |
-| 9 | Operational Button Wiring | Wire toasts and handlers to "Start Live Feed", "Run batch simulation", and "Federation round" | M3 | Survey / R3 |
-| 10 | Dynamic Chart Velocity Streaming | Enrich `UPI_EVALUATED` WebSocket broadcasts with running stats and update `AppStateContext` to dynamically advance "Verdict Velocity & History" chart | M3 | Survey / R3 |
-| 11 | Dynamic Topology Auto-Stepping | Update `NetworkConstellation.jsx` to auto-step when new cases arrive during live feed | M3 | Survey / R3 |
-| 12 | E2E Regression & Quality Gates | 833+ pytest tests pass, ESLint 0 errors/warnings (`--max-warnings 0`), Vite build clean, 0 grep hits | Final | Quality Gates |
+| 1 | High-Fidelity India Vector Cartography | Replace crude 20-point blob in `GeoMuleMap.jsx` with authentic 139-vertex geographic path (Kashmir, Gujarat peninsulas, Malabar/Konkan, Kanyakumari, Northeast) | M1 | Survey 15.1 / R1 |
+| 2 | Geodetic Hub & Arc Recalibration | Align `INDIAN_HUBS` coordinates to true lat/long from backend `CITY_COORDINATES`; recalibrate glowing bezier arcs and `<animateMotion>` particles | M1 | Survey 15.1 / R1 |
+| 3 | Dedicated Topology Visualizers Page | Create `TopologyPage.jsx` at `/topology` with dedicated sub-navbar (Constellation Graph, India Mule Corridors, Dual Perspective) and full viewport real estate | M2 | Survey 15.2 / R2 |
+| 4 | Navigation & Overview Integration | Add `Topology Mesh` to `Navbar.jsx`, register `/topology` in `App.jsx`, and streamline Overview with a Topology Snapshot linking to `/topology` (satisfying `test_f15_01_app_layout_order`) | M2 | Survey 15.2 / R2 |
+| 5 | Organic Ambient Traffic Generation | Implement harmonic ambient traffic simulation (2–5 TPS background ALLOW traffic) in `AppStateContext.jsx` so the chart always breathes and never flatlines at 0 | M3 | Survey 15.3 / R3 |
+| 6 | Verdict Velocity Chart Smooth Scaling | Anchor Y-axis domain floor to 8 in `VerdictHistoryChart.jsx` and tune animations for seamless real-time velocity curve rendering | M3 | Survey 15.3 / R3 |
+| 7 | Threat Intel Uniform White Theme | Replace undefined `.card` containers and dark/slate blocks with uniform clean white panels (`bg-white border border-hairline rounded-xl shadow-xs`) | M4 | Survey 15.3 / R4 |
+| 8 | Threat Intel Typography & Slop Purge | Clean up typography, remove emoji spam, refine 3-stage entity extraction cards, and fix null-check bug at line 1080 | M4 | Survey 15.3 / R4 |
+| 9 | Full Regression & Quality Gates | 969 pytest tests pass with 0 failures, ESLint 0 warnings (`--max-warnings 0`), Vite build succeeds cleanly | Final | Quality Gates |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | True ML Layer (Isolation Forest) | Implement Isolation Forest engine, update `UpiEvaluationResponse`, integrate into `UpiRiskScorer.evaluate` and `/upi/check` | none | PLANNED |
-| M2 | Terminology & UI Overhaul (The Pivot) | Replace DMV and Criminal Network terminology, strip overclaiming language, place tagline, update contract tests | none | PLANNED |
-| M3 | Dashboard Interactivity & API Wiring | Toast system, Overview buttons wiring, live chart velocity updates, live topology auto-advance | M1, M2 | PLANNED |
-| Final | Regression, Integration & E2E Validation | Full pytest suite (833+ tests), ESLint `--max-warnings 0`, Vite build, grep verification, Tier 5 adversarial check | M1, M2, M3 | PLANNED |
+| M1 | Geographic India Map Redesign | Authentic 139-vertex vector map, geodetic calibration, glowing arcs, city labels in `GeoMuleMap.jsx` | none | IN_PROGRESS |
+| M2 | Dedicated Topology Space & Sub-Navbar | `TopologyPage.jsx`, `/topology` route in `App.jsx`, `Navbar.jsx`, and Overview snapshot | none | PLANNED |
+| M3 | Ambient Verdict Velocity Chart | 2–5 TPS ambient ALLOW traffic in `AppStateContext.jsx` and Y-axis scaling in `VerdictHistoryChart.jsx` | none | PLANNED |
+| M4 | Threat Intel Uniform White Redesign | Uniform white panels, executive typography, entity extraction polish, null-check fix in `ThreatIntelPage.jsx` | none | PLANNED |
+| Final | Regression & Quality Verification | Full pytest suite (969 tests), ESLint (`--max-warnings 0`), Vite production build, visual checks | M1, M2, M3, M4 | PLANNED |
 
 ## Interface Contracts
-### `app/engine/isolation_forest.py` ↔ `app/engine/upi_scorer.py`
-- `UpiIsolationForest.score_txn(txn: UpiTransaction, state: UpiHotState, dmv_score: float) -> float`: returns normalized anomaly score in $[0.0, 1.0]$.
-- `get_isolation_forest() -> UpiIsolationForest`: singleton getter.
+### `GeoMuleMap.jsx` Props Contract
+- `GeoMuleMap({ cases, onSelectCase })`:
+  * `cases`: Array of case objects (from `AppStateContext.cases`).
+  * `onSelectCase(caseId)`: Callback when clicking a corridor or case hotspot.
 
-### `app/models/upi_models.py` ↔ `/upi/check` REST API
-- `UpiEvaluationResponse`: includes `ml_anomaly_score: float = Field(default=0.0, description="Unsupervised Isolation Forest multivariate anomaly score in [0.0, 1.0]")`.
-- `resp.model_dump()` guarantees `ml_anomaly_score` is serialized in JSON response.
+### `/topology` Route & Navigation Contract
+- Route path: `/topology` in `App.jsx` rendered inside `MainLayout`.
+- `Navbar.jsx`: Item `{ name: "Topology Mesh", path: "/topology", icon: Share2 }`.
+- `OverviewPage.jsx`: Must maintain `KpiStrip` followed by `NetworkConstellation` component (to preserve `tests/test_tier1_features.py::test_f15_01_app_layout_order`).
 
-### `frontend/src/context/ToastContext.jsx` ↔ Components
-- `useToast() -> { showToast(message, type, duration), toast: { success(msg), error(msg), info(msg), warning(msg) } }`.
+### Ambient Traffic Contract
+- `verdictHistory`: Array of 30 buckets with timestamps.
+- Ambient traffic: 2–5 TPS of `ALLOW` verdicts injected every 1000ms. Does not inflate `stats.evaluated` or generate false `HOLD`/`BLOCK` counts.
 
 ## Code Layout
-- `app/engine/isolation_forest.py`: Isolation Forest implementation.
-- `app/engine/upi_scorer.py`: Layer 4 scoring integration.
-- `app/models/upi_models.py`: Schema definitions.
-- `app/services/autofeed.py`: Live feed streaming with aggregate stats.
-- `frontend/src/context/ToastContext.jsx`: Toast state provider.
-- `frontend/src/components/common/ToastContainer.jsx`: Toast notification rendering.
-- `frontend/src/components/ControlBar.jsx`: Overview operational controls.
-- `frontend/src/pages/OverviewPage.jsx`: Header tagline banner and layout.
-- `frontend/src/components/CaseDrawer.jsx`: Terminology updates.
-- `frontend/src/components/analytics/TopDmvAccountsTable.jsx`: Terminology updates.
-- `frontend/src/pages/AnalyticsPage.jsx`: Terminology updates.
-- `frontend/src/components/NetworkConstellation.jsx`: Live topology auto-advance.
-- `tests/test_isolation_forest.py`: Unit and regression tests for ML model.
-- `tests/frontend_contracts_test.py`: Contract tests updated for new terminology.
+- `frontend/src/components/overview/GeoMuleMap.jsx`: High-fidelity geographic India map (Owned by M1).
+- `frontend/src/pages/TopologyPage.jsx`: Dedicated topology page with sub-navbar (Owned by M2).
+- `frontend/src/components/common/Navbar.jsx`: Navigation links (Owned by M2).
+- `frontend/src/App.jsx`: Route definitions (Owned by M2).
+- `frontend/src/pages/OverviewPage.jsx`: Overview layout and snapshot (Owned by M2).
+- `frontend/src/context/AppStateContext.jsx`: State provider and ambient traffic generator (Owned by M3).
+- `frontend/src/components/VerdictHistoryChart.jsx`: Velocity chart rendering and Y-axis scale (Owned by M3).
+- `frontend/src/components/VerdictVelocityChart.jsx`: Velocity chart alias re-export (Owned by M3).
+- `frontend/src/pages/ThreatIntelPage.jsx`: Threat Intelligence dashboard (Owned by M4).

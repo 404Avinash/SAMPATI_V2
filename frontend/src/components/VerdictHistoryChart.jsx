@@ -60,12 +60,16 @@ function CustomVerdictTooltip({ active, payload, label }) {
 export default function VerdictHistoryChart({ history = [] }) {
   // Defensive check: if incoming history is monotonic cumulative totals, compute rolling rate deltas
   const isCumulative = React.useMemo(() => {
-    if (!Array.isArray(history) || history.length < 3) return false;
-    const last = history[history.length - 1];
-    const first = history[0];
-    const lastAllow = last?.ALLOW ?? last?.allowed ?? 0;
-    const firstAllow = first?.ALLOW ?? first?.allowed ?? 0;
-    return lastAllow > 50 && lastAllow >= firstAllow;
+    if (!Array.isArray(history) || history.length < 5) return false;
+    // Cumulative totals must be strictly non-decreasing across all points
+    let nonDecreasingCount = 0;
+    for (let i = 1; i < history.length; i++) {
+      const cur = history[i]?.ALLOW ?? history[i]?.allowed ?? 0;
+      const prev = history[i - 1]?.ALLOW ?? history[i - 1]?.allowed ?? 0;
+      if (cur >= prev) nonDecreasingCount++;
+    }
+    const last = history[history.length - 1]?.ALLOW ?? history[history.length - 1]?.allowed ?? 0;
+    return nonDecreasingCount === history.length - 1 && last > 100;
   }, [history]);
 
   // Normalize history data items to always ensure ALLOW, HOLD, BLOCK, time fields exist
@@ -135,7 +139,7 @@ export default function VerdictHistoryChart({ history = [] }) {
           <div className="font-serif font-semibold text-ink-900">Verdict Velocity &amp; History</div>
         </div>
         <div className="flex items-center gap-2 text-xs font-mono text-muted">
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Live Session Rate:
             <span className="font-bold text-ink-900 ml-0.5">{currentTps.toFixed(0)} tx/s</span>
@@ -174,6 +178,7 @@ export default function VerdictHistoryChart({ history = [] }) {
 
               <YAxis
                 allowDecimals={false}
+                domain={[0, (dataMax) => Math.max(8, Math.ceil(dataMax * 1.25))]}
                 tick={{ fontSize: 10, fill: "#6b7280", fontFamily: "monospace" }}
                 axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
@@ -203,7 +208,8 @@ export default function VerdictHistoryChart({ history = [] }) {
                 fillOpacity={1}
                 fill="url(#gradientAllow)"
                 isAnimationActive={true}
-                animationDuration={800}
+                animationDuration={400}
+                animationEasing="linear"
               />
 
               <Area
@@ -215,7 +221,8 @@ export default function VerdictHistoryChart({ history = [] }) {
                 fillOpacity={1}
                 fill="url(#gradientHold)"
                 isAnimationActive={true}
-                animationDuration={800}
+                animationDuration={400}
+                animationEasing="linear"
               />
 
               <Area
@@ -227,7 +234,8 @@ export default function VerdictHistoryChart({ history = [] }) {
                 fillOpacity={1}
                 fill="url(#gradientBlock)"
                 isAnimationActive={true}
-                animationDuration={800}
+                animationDuration={400}
+                animationEasing="linear"
               />
             </AreaChart>
           </ResponsiveContainer>

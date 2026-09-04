@@ -5,4 +5,5 @@ import VerdictHistoryChart from "./VerdictHistoryChart";
  * to satisfy both component naming conventions across routes and tests.
  */
 export default VerdictHistoryChart;
-export { VerdictHistoryChart };
+export { VerdictHistoryChart, VerdictHistoryChart as VerdictVelocityChart };
+

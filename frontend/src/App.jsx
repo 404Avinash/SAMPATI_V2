@@ -6,6 +6,7 @@ import MainLayout from "./layouts/MainLayout";
 import ScrollToTop from "./components/common/ScrollToTop";
 import OverviewPage from "./pages/OverviewPage";
 import ThreatIntelPage from "./pages/ThreatIntelPage";
+import TopologyPage from "./pages/TopologyPage";
 import InvestigationsPage from "./pages/InvestigationsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SystemHealthPage from "./pages/SystemHealthPage";
@@ -25,6 +26,8 @@ export default function App() {
               {/* Core Application Pages */}
               <Route path="/overview" element={<OverviewPage />} />
               <Route path="/threat-intel" element={<ThreatIntelPage />} />
+              <Route path="/topology" element={<TopologyPage />} />
+              <Route path="/topology/:viewMode" element={<TopologyPage />} />
               <Route path="/investigations" element={<InvestigationsPage />} />
               <Route path="/investigations/:caseId" element={<InvestigationsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />

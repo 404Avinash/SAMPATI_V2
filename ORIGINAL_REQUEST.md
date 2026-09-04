@@ -519,3 +519,43 @@ The "Verdict Velocity & History" chart currently plots a cumulative, monotonical
 - [ ] The `NetworkConstellation` component has a white/light background and its contents (nodes, links, text) contrast properly against it.
 - [ ] The Velocity chart data aggregation computes a rate over time rather than an ever-increasing cumulative sum.
 </USER_REQUEST>
+
+## 2026-09-04T13:13:26Z
+
+<USER_REQUEST>
+The recent UI update needs significant refinement to meet the high quality bar required for a hackathon demo. The current geographic map looks amateurish, the verdict velocity chart appears dead, and the layout feels cramped. Conduct a comprehensive UI redesign and bug fix pass.
+
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: demo
+
+## Requirements
+
+### R1. Redesign the Geographic India Map
+The current SVG map of India in `GeoMuleMap.jsx` is poorly stylized (blob-like) and looks like an amateur placeholder. Replace it with a professional, high-fidelity, open-source mapping solution (e.g., Leaflet via `react-leaflet`, Deck.gl, or a highly detailed, topologically accurate SVG/TopoJSON). The map must have a sleek, modern fintech/cybersecurity aesthetic (e.g., clean monochromatic basemap, glowing arcs for connections, clear city labels).
+
+### R2. Separate the Topology Visualizer into a Dedicated Sub-Navbar
+The "Topology Visualizer" section (which houses both the Constellation Graph and the India Mule Corridors map) is currently crammed into the Overview page, making the layout feel cluttered ("putting so much in so little"). Move the Topology visualizers into their own dedicated space. Create a new sub-navbar or a dedicated top-level page for these visualizations so they have the real estate they need to shine, without nerfing the project's complexity.
+
+### R3. Fix the "Dead" Verdict Velocity Chart
+The `VerdictVelocityChart` currently looks "dead" (flatlined at 0) when there is no active traffic burst, which is a poor demo experience. Update the chart's logic so it always shows a base level of simulated ambient traffic (e.g., 2-5 TPS of background "ALLOW" traffic) so the chart is always moving and looks alive, even when the user isn't actively running a batch simulation or the live feed.
+
+### R4. Threat Intelligence UI Cleanup
+The Threat Intelligence page needs a final polish. Ensure the background color is a uniform, clean white across the entire page (no mixed gray/white sections). Refine the typography and spacing so the "Pre-Transaction Threat Intelligence" section doesn't look like "AI slop". Ensure the layout is breathable and professional.
+
+## Verification Resources
+- Existing pytest suite (969 tests): `.venv/bin/pytest tests/ -v`
+- Frontend build: `cd frontend && npm run lint && npm run build`
+
+## Acceptance Criteria
+
+### Automated Tests
+- [ ] `.venv/bin/pytest tests/ -v` passes with 0 failures.
+- [ ] `cd frontend && npm run lint` passes with 0 ESLint warnings.
+- [ ] `cd frontend && npm run build` completes with no errors.
+
+### Quality Criteria
+- [ ] The geographic map uses a high-fidelity mapping library (e.g. Leaflet) or a detailed TopoJSON, not a rough blob SVG.
+- [ ] The map and constellation graph have been given more screen real estate, either via a sub-navbar or dedicated page.
+- [ ] The velocity chart displays continuous, ambient background activity even when manual simulations are not running.
+- [ ] The Threat Intel page has a unified white background and professional typography.
+</USER_REQUEST>

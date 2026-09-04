@@ -4,6 +4,96 @@ import { api, relativeTime } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 
+// --- Clean SVG Vector Icons (Lucide Specification) ---
+function ZapIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
+  );
+}
+
+function PhoneIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"
+      />
+    </svg>
+  );
+}
+
+function LinkIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
+function TagIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M7 7h.01M7 3h5a2 2 0 011.41.59l7 7a2 2 0 010 2.82l-7 7a2 2 0 01-2.82 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
+      />
+    </svg>
+  );
+}
+
+function NetworkIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <rect x="9" y="2" width="6" height="6" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="2" y="16" width="6" height="6" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="16" y="16" width="6" height="6" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m-7 4v-2a2 2 0 012-2h10a2 2 0 012 2v2" />
+    </svg>
+  );
+}
+
+function RefreshCwIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M23 4v6h-6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M1 20v-6h6" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className = "w-4 h-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ShieldAlertIcon({ className = "w-3.5 h-3.5" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <line x1="12" y1="8" x2="12" y2="12" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="12" y1="16" x2="12.01" y2="16" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /**
  * Safely extracts a display label from a matched campaign which can be either
  * a string or a serialized CampaignMatch object ({ campaign_id, name, campaign_name }).
@@ -209,42 +299,42 @@ export function renderInstitutionBadge(source, institution) {
 
   if (src.includes("npci") || inst.includes("npci")) {
     return (
-      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-300">
         NPCI
       </span>
     );
   }
   if (src.includes("dpip") || inst.includes("dpip")) {
     return (
-      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300">
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-800 border border-indigo-300">
         DPIP
       </span>
     );
   }
   if (src.includes("phonepe") || inst.includes("phonepe")) {
     return (
-      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300">
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-300">
         PhonePe
       </span>
     );
   }
   if (src.includes("paytm") || inst.includes("paytm")) {
     return (
-      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-300">
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-300">
         Paytm
       </span>
     );
   }
   if (src.includes("google") || inst.includes("google")) {
     return (
-      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-300">
         GooglePay
       </span>
     );
   }
   if (src.includes("bhim") || inst.includes("bhim")) {
     return (
-      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800 border border-teal-300">
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-300">
         BHIM
       </span>
     );
@@ -493,84 +583,92 @@ function ThreatIntelDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Collaborative Intelligence Mesh Hero Banner */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-ink-900 via-slate-900 to-ink-900 text-white p-6 shadow-sm border border-hairline/20">
-        <div className="absolute top-0 right-0 w-96 h-full bg-gradient-to-l from-saffron/10 via-emerald-500/5 to-transparent pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Executive Clean White Hero Header Panel */}
+      <div className="panel p-6 bg-white border border-hairline rounded-xl shadow-xs relative overflow-hidden">
+        <div className="h-1 w-full bg-gradient-to-r from-saffron via-amber-400 to-emerald-500 absolute top-0 left-0" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-1">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold bg-saffron/20 text-saffron-light border border-saffron/30">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
               <span className="w-2 h-2 rounded-full bg-saffron animate-pulse" />
-              PRE-TRANSACTION THREAT INTELLIGENCE
+              PRE-TRANSACTION INTELLIGENCE MESH
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-ink-900 tracking-tight">
               Pre-Transaction Threat Intelligence
             </h1>
-            <p className="text-sm font-medium text-amber-200/90 italic tracking-wide">
+            <p className="text-xs font-serif italic text-muted">
               &ldquo;Everyone sees a piece. SAMPATI connects the dots.&rdquo;
             </p>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              Early warning ingestion engine intercepting social engineering payloads (SMS, WhatsApp, Phishing portals) before money moves, correlating threat tokens with the central fraud graph and pre-arming UPI mule defense rails.
+            <p className="text-xs text-muted max-w-2xl leading-relaxed">
+              Early-warning interception engine capturing social engineering payloads (SMS, WhatsApp, Phishing portals) before money moves. Intercepted tokens correlate in real time against the central fraud graph to pre-arm UPI mule defense rails.
             </p>
           </div>
 
-          <div className="flex flex-wrap md:flex-col gap-3 shrink-0">
+          <div className="flex flex-wrap md:flex-col gap-2.5 shrink-0">
             <button
               onClick={handleIngestMockSignal}
-              className="px-4 py-2 rounded-lg bg-saffron hover:bg-saffron-dark text-ink-900 font-bold text-xs font-mono shadow-glow transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-lg bg-ink-900 hover:bg-ink-800 text-white font-semibold text-xs font-mono shadow-xs transition-colors flex items-center gap-2 justify-center"
             >
-              <span>⚡ Ingest Mock Signal</span>
+              <ZapIcon className="w-3.5 h-3.5 text-amber-400" />
+              <span>Ingest Mock Signal</span>
             </button>
             <button
               onClick={handleSimulateBatch}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs font-mono transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-lg bg-white hover:bg-surface-muted border border-hairline text-ink-900 font-semibold text-xs font-mono transition-colors shadow-xs flex items-center gap-2 justify-center"
             >
-              <span>▶ Simulate Batch (3x)</span>
+              <PlayIcon className="w-3.5 h-3.5 text-ink-900" />
+              <span>Simulate Batch (3x)</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Telemetry KPI Strip */}
+      {/* Telemetry KPI Strip — 4 Uniform White Panels */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card p-4 flex flex-col justify-between">
+        <div className="panel p-4 bg-white border border-hairline rounded-xl shadow-xs flex flex-col justify-between">
           <span className="text-[11px] font-mono text-muted uppercase tracking-wider">
             Ingested Signals (24h)
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-ink-900">{totalSignalsCount || signals.length}</span>
+            <span className="text-2xl sm:text-3xl font-serif font-bold text-ink-900 tabular-nums">
+              {totalSignalsCount || signals.length}
+            </span>
             <span className="text-xs font-mono text-emerald-600 font-semibold">+12% vs avg</span>
           </div>
         </div>
 
-        <div className="card p-4 flex flex-col justify-between">
+        <div className="panel p-4 bg-white border border-hairline rounded-xl shadow-xs flex flex-col justify-between">
           <span className="text-[11px] font-mono text-muted uppercase tracking-wider">
             Active Campaigns
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-ink-900">{campaigns.length || 3} Campaigns</span>
+            <span className="text-2xl sm:text-3xl font-serif font-bold text-ink-900 tabular-nums">
+              {campaigns.length || 3}
+            </span>
             <span className="text-xs font-mono text-rose-600 font-semibold">1 Critical</span>
           </div>
         </div>
 
-        <div className="card p-4 flex flex-col justify-between">
+        <div className="panel p-4 bg-white border border-hairline rounded-xl shadow-xs flex flex-col justify-between">
           <span className="text-[11px] font-mono text-muted uppercase tracking-wider">
             Graph Linked Tokens
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-ink-900">{graphStats.total_nodes || 42} Nodes</span>
+            <span className="text-2xl sm:text-3xl font-serif font-bold text-ink-900 tabular-nums">
+              {graphStats.total_nodes || 42}
+            </span>
             <span className="text-xs font-mono text-indigo-600 font-semibold">VPAs &amp; Phones</span>
           </div>
         </div>
 
-        <div className="card p-4 flex flex-col justify-between">
+        <div className="panel p-4 bg-white border border-hairline rounded-xl shadow-xs flex flex-col justify-between">
           <span className="text-[11px] font-mono text-muted uppercase tracking-wider">
-            Early-Warning Interception
+            Early-Warning Match
           </span>
           <div className="flex items-baseline gap-2 mt-2">
-            <span className="text-2xl font-bold font-mono text-emerald-600">
-              {Math.round((campaigns[0]?.average_similarity || 0.94) * 100)}% Precision
+            <span className="text-2xl sm:text-3xl font-serif font-bold text-emerald-600 tabular-nums">
+              {Math.round((campaigns[0]?.average_similarity || 0.94) * 100)}%
             </span>
-            <span className="text-xs font-mono text-muted">&lt; 2% escalation rate</span>
+            <span className="text-xs font-mono text-muted">&lt; 2% analyst escalation rate</span>
           </div>
         </div>
       </div>
@@ -578,10 +676,10 @@ function ThreatIntelDashboard() {
       {/* Main 2-Column Grid: Ingestion & Campaign Clustering */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Ingestion: 3-Stage Entity Extraction Flow (7 cols) */}
-        <div className="lg:col-span-7 card p-5 flex flex-col justify-between space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+        <div className="lg:col-span-7 panel p-6 bg-white border border-hairline rounded-xl shadow-xs flex flex-col justify-between space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
             <div>
-              <div className="text-[11px] font-mono text-muted uppercase tracking-wide">
+              <div className="text-[11px] font-mono text-muted uppercase tracking-wider">
                 Pre-Transaction Ingestion Pipeline
               </div>
               <h3 className="font-serif font-bold text-lg text-ink-900">
@@ -592,7 +690,7 @@ function ThreatIntelDashboard() {
               <select
                 value={simIndex}
                 onChange={(e) => handleSimulateExtraction(Number(e.target.value))}
-                className="text-xs font-mono bg-surface-muted border border-hairline rounded px-2 py-1 text-ink-900"
+                className="text-xs font-mono bg-white border border-hairline rounded-md px-3 py-1.5 text-ink-900 shadow-xs"
               >
                 {SAMPLE_SIMULATION_PAYLOADS.map((s, idx) => (
                   <option key={idx} value={idx}>
@@ -603,40 +701,42 @@ function ThreatIntelDashboard() {
               <button
                 onClick={() => handleSimulateExtraction()}
                 disabled={isSimulatingExtract}
-                className="px-3 py-1 bg-ink-900 text-white hover:bg-slate-800 text-xs font-mono font-semibold rounded disabled:opacity-50 transition-colors"
+                className="px-3.5 py-1.5 bg-ink-900 text-white hover:bg-ink-800 text-xs font-mono font-semibold rounded-md disabled:opacity-50 transition-colors shadow-xs"
               >
                 {isSimulatingExtract ? "Extracting…" : "Simulate Flow"}
               </button>
             </div>
           </div>
 
-          {/* 3-Stage Visual Pipeline Diagram */}
+          {/* 3-Stage Visual Pipeline Diagram — Refined Clean White Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 relative py-2">
             {/* Stage 1: Raw Phishing Payload */}
             <motion.div
               animate={{
                 scale: extractStep === 1 ? 1.02 : 1,
-                borderColor: extractStep >= 1 ? "rgb(245, 158, 11)" : "rgb(226, 232, 240)",
               }}
-              className={`rounded-xl p-3.5 border transition-all ${
-                extractStep >= 1 ? "bg-amber-50/50 border-amber-300" : "bg-surface-muted border-hairline"
-              } flex flex-col justify-between`}
+              className={`rounded-xl p-4 border bg-white shadow-xs transition-all duration-300 flex flex-col justify-between ${
+                extractStep >= 1 ? "border-amber-400 ring-1 ring-amber-400/20" : "border-hairline"
+              }`}
             >
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
                     Stage 1
                   </span>
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 </div>
-                <div className="text-xs font-bold text-ink-900">SMS Phishing Payload</div>
-                <p className="text-[11px] font-mono text-slate-600 bg-white/80 p-2 rounded border border-amber-200/60 leading-relaxed line-clamp-4">
+                <div className="text-xs font-bold text-ink-900">Phishing Payload</div>
+                <p className="text-xs font-mono text-slate-700 bg-surface-muted/40 p-3 rounded-lg border border-hairline leading-relaxed italic line-clamp-4">
                   &ldquo;{activeSimulation.raw_content}&rdquo;
                 </p>
               </div>
-              <div className="text-[10px] font-mono text-muted mt-2 pt-2 border-t border-amber-200/60 flex items-center justify-between">
+              <div className="text-xs font-mono text-muted mt-3 pt-2.5 border-t border-hairline flex items-center justify-between">
                 <span>Source: {activeSimulation.source}</span>
-                <span className="text-emerald-700 font-semibold">Captured</span>
+                <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Captured
+                </span>
               </div>
             </motion.div>
 
@@ -644,38 +744,40 @@ function ThreatIntelDashboard() {
             <motion.div
               animate={{
                 scale: extractStep === 2 ? 1.02 : 1,
-                borderColor: extractStep >= 2 ? "rgb(99, 102, 241)" : "rgb(226, 232, 240)",
               }}
-              className={`rounded-xl p-3.5 border transition-all ${
-                extractStep >= 2 ? "bg-indigo-50/50 border-indigo-300" : "bg-surface-muted border-hairline"
-              } flex flex-col justify-between`}
+              className={`rounded-xl p-4 border bg-white shadow-xs transition-all duration-300 flex flex-col justify-between ${
+                extractStep >= 2 ? "border-indigo-400 ring-1 ring-indigo-400/20" : "border-hairline"
+              }`}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-indigo-800 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
                     Stage 2
                   </span>
                   <span className={`w-2 h-2 rounded-full ${extractStep >= 2 ? "bg-indigo-500 animate-pulse" : "bg-slate-300"}`} />
                 </div>
-                <div className="text-xs font-bold text-ink-900">Regex / NLP Tokenizer</div>
-                <div className="space-y-1 text-[11px] font-mono">
-                  <div className="bg-white/80 p-1.5 rounded border border-indigo-200/60">
-                    <span className="text-muted text-[9px] uppercase block">Phone:</span>
+                <div className="text-xs font-bold text-ink-900">Entity Extractor &amp; Tokenizer</div>
+                <div className="space-y-1.5 text-xs font-mono">
+                  <div className="bg-white p-2 rounded-lg border border-hairline shadow-xs flex items-center justify-between">
+                    <span className="text-muted text-[11px] uppercase">Phone</span>
                     <span className="text-ink-900 font-bold">{activeSimulation.extracted.phone}</span>
                   </div>
-                  <div className="bg-white/80 p-1.5 rounded border border-indigo-200/60">
-                    <span className="text-muted text-[9px] uppercase block">UPI VPA:</span>
-                    <span className="text-indigo-700 font-bold truncate block">{activeSimulation.extracted.upi_id}</span>
+                  <div className="bg-white p-2 rounded-lg border border-hairline shadow-xs flex items-center justify-between">
+                    <span className="text-muted text-[11px] uppercase">UPI VPA</span>
+                    <span className="text-indigo-700 font-bold truncate max-w-[170px]">{activeSimulation.extracted.upi_id}</span>
                   </div>
-                  <div className="bg-white/80 p-1.5 rounded border border-indigo-200/60">
-                    <span className="text-muted text-[9px] uppercase block">URL Token:</span>
-                    <span className="text-rose-600 font-medium truncate block">{activeSimulation.extracted.url}</span>
+                  <div className="bg-white p-2 rounded-lg border border-hairline shadow-xs flex items-center justify-between">
+                    <span className="text-muted text-[11px] uppercase">URL Token</span>
+                    <span className="text-rose-600 font-medium truncate max-w-[170px]">{activeSimulation.extracted.url || "N/A"}</span>
                   </div>
                 </div>
               </div>
-              <div className="text-[10px] font-mono text-muted mt-2 pt-2 border-t border-indigo-200/60 flex items-center justify-between">
-                <span>Tags: {activeSimulation.extracted.tags.length} extracted</span>
-                <span className="text-indigo-700 font-semibold">Structured</span>
+              <div className="text-xs font-mono text-muted mt-3 pt-2.5 border-t border-hairline flex items-center justify-between">
+                <span>{activeSimulation.extracted.tags.length} tags extracted</span>
+                <span className="text-indigo-700 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  Structured
+                </span>
               </div>
             </motion.div>
 
@@ -683,56 +785,58 @@ function ThreatIntelDashboard() {
             <motion.div
               animate={{
                 scale: extractStep === 3 ? 1.02 : 1,
-                borderColor: extractStep >= 3 ? "rgb(16, 185, 129)" : "rgb(226, 232, 240)",
               }}
-              className={`rounded-xl p-3.5 border transition-all ${
-                extractStep >= 3 ? "bg-emerald-50/50 border-emerald-300" : "bg-surface-muted border-hairline"
-              } flex flex-col justify-between`}
+              className={`rounded-xl p-4 border bg-white shadow-xs transition-all duration-300 flex flex-col justify-between ${
+                extractStep >= 3 ? "border-emerald-500 ring-1 ring-emerald-500/20" : "border-hairline"
+              }`}
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                     Stage 3
                   </span>
                   <span className={`w-2 h-2 rounded-full ${extractStep >= 3 ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
                 </div>
-                <div className="text-xs font-bold text-ink-900">Fraud Graph &amp; Pre-Arm</div>
-                <div className="space-y-1.5 text-[11px] font-mono">
-                  <div className="bg-white/90 p-2 rounded border border-emerald-200 text-[10px] space-y-1">
-                    <div className="text-emerald-800 font-semibold">Linked Campaign Profile:</div>
+                <div className="text-xs font-bold text-ink-900">Fraud Graph &amp; Pre-Arming</div>
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="bg-white p-2.5 rounded-lg border border-hairline shadow-xs space-y-1">
+                    <div className="text-muted text-[11px] uppercase">Linked Campaign Profile</div>
                     <div className="font-bold text-ink-900">{activeSimulation.campaign}</div>
-                    <div className="text-muted text-[9px]">{activeSimulation.campaignName}</div>
+                    <div className="text-muted text-[11px]">{activeSimulation.campaignName}</div>
                   </div>
-                  <div className="bg-emerald-100/70 p-1.5 rounded text-[10px] text-emerald-800 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                  <div className="bg-emerald-50 border border-emerald-200 p-2 rounded-lg text-xs font-mono text-emerald-800 font-semibold flex items-center gap-1.5">
+                    <ShieldAlertIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>R_HONEYPOT_HIT Pre-Armed</span>
                   </div>
                 </div>
               </div>
-              <div className="text-[10px] font-mono text-muted mt-2 pt-2 border-t border-emerald-200/60 flex items-center justify-between">
-                <span>4 Nodes Linked</span>
-                <span className="text-emerald-700 font-bold">Active Defense</span>
+              <div className="text-xs font-mono text-muted mt-3 pt-2.5 border-t border-hairline flex items-center justify-between">
+                <span>{activeSimulation.nodes.length} Nodes Linked</span>
+                <span className="text-emerald-700 font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                  Active Defense
+                </span>
               </div>
             </motion.div>
           </div>
 
-          <div className="bg-surface-muted/60 rounded-lg p-3 border border-hairline flex items-center justify-between text-xs">
+          <div className="border-t border-hairline pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="font-bold text-ink-900 font-mono">FLOW STATUS:</span>
               <span className="text-slate-600">
-                SMS extracted tokens mapped to <span className="font-mono font-bold text-indigo-700">{activeSimulation.campaign}</span> and linked to central fraud graph.
+                Extracted threat tokens mapped to <span className="font-mono font-bold text-indigo-700">{activeSimulation.campaign}</span> and linked to central fraud graph.
               </span>
             </div>
-            <span className="text-[11px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+            <span className="text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 shrink-0">
               Interception Latency: 4.8ms
             </span>
           </div>
         </div>
 
-        {/* Suspected Campaign Clustering Card (5 cols) */}
-        <div className="lg:col-span-5 card p-5 flex flex-col justify-between space-y-4">
-          <div className="border-b border-hairline pb-3">
-            <div className="text-[11px] font-mono text-muted uppercase tracking-wide">
+        {/* Suspected Campaign Clustering Panel (5 cols) — Clean White Overhaul */}
+        <div className="lg:col-span-5 panel p-6 bg-white border border-hairline rounded-xl shadow-xs flex flex-col justify-between space-y-5">
+          <div className="border-b border-hairline pb-4">
+            <div className="text-[11px] font-mono text-muted uppercase tracking-wider">
               Threat Campaign Clustering
             </div>
             <h3 className="font-serif font-bold text-lg text-ink-900">
@@ -740,115 +844,123 @@ function ThreatIntelDashboard() {
             </h3>
           </div>
 
-          {/* Campaign Similarity Hero Card */}
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-ink-900 text-white rounded-xl p-4.5 border border-slate-700 shadow-md space-y-4">
-            <div className="flex items-center justify-between">
+          {/* Luminous Clean White Campaign Hero Card */}
+          <div className="bg-white border-2 border-rose-200 rounded-xl p-5 shadow-xs space-y-4 relative overflow-hidden">
+            <div className="h-1 w-full bg-gradient-to-r from-rose-500 to-amber-500 absolute top-0 left-0" />
+            <div className="flex items-center justify-between pt-1">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
                   CRITICAL CAMPAIGN
                 </span>
-                <div className="text-base font-bold font-serif text-white mt-1">
+                <div className="text-lg font-mono font-bold text-ink-900 mt-1.5">
                   {campaigns[0]?.campaign_id || "CAMP-KYC-PHISH-01"}
                 </div>
-                <div className="text-xs text-slate-300">
+                <div className="text-xs text-muted">
                   {campaigns[0]?.name || "Coordinated KYC Phishing Campaign"}
                 </div>
               </div>
 
-              {/* Radial similarity cluster metric */}
-              <div className="text-center bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 min-w-[100px]">
-                <div className="text-[10px] uppercase font-mono text-slate-400">Campaign Similarity</div>
-                <div className="text-3xl font-mono font-extrabold text-amber-400 leading-tight">
+              {/* Clean White Similarity Metric Box */}
+              <div className="text-center bg-white border border-hairline rounded-xl p-3 min-w-[110px] shadow-xs">
+                <div className="text-[10px] uppercase font-mono text-muted">Similarity</div>
+                <div className="text-3xl font-serif font-bold text-ink-900 leading-tight tabular-nums">
                   {Math.round((campaigns[0]?.average_similarity || 0.94) * 100)}%
                 </div>
-                <div className="text-[9px] font-mono text-emerald-400">High Confidence</div>
+                <div className="text-[10px] font-mono text-emerald-700 font-semibold">High Match</div>
               </div>
             </div>
 
             {/* Similarity Progress Bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px] font-mono text-slate-300">
-                <span>Vector Cosine Correlation</span>
-                <span className="font-bold text-amber-400">{(campaigns[0]?.average_similarity || 0.94).toFixed(2)} / 1.00</span>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-mono text-slate-600">
+                <span>Cosine Match</span>
+                <span className="font-bold text-ink-900">{(campaigns[0]?.average_similarity || 0.94).toFixed(2)} / 1.00</span>
               </div>
-              <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-hairline">
                 <div
-                  className="h-full bg-gradient-to-r from-amber-400 to-rose-500 rounded-full"
+                  className="h-full bg-gradient-to-r from-amber-400 to-rose-500 rounded-full transition-all duration-500"
                   style={{ width: `${Math.round((campaigns[0]?.average_similarity || 0.94) * 100)}%` }}
                 />
               </div>
             </div>
 
-            {/* Tag cluster badges */}
+            {/* Cluster Tags with Clean White Pills */}
             <div className="space-y-1.5">
-              <div className="text-[10px] uppercase font-mono text-slate-400">Semantic &amp; Heuristic Cluster Tags:</div>
+              <div className="text-[10px] uppercase font-mono text-muted">Semantic &amp; Heuristic Cluster Tags:</div>
               <div className="flex flex-wrap gap-1.5">
                 {["Bank impersonation", "Urgency", "KYC suspension", "PAN Freeze Alert", "APK Dropper"].map((t) => (
                   <span
                     key={t}
-                    className="text-[11px] font-mono bg-slate-800 text-slate-200 border border-slate-700 px-2 py-0.5 rounded-md"
+                    className="text-xs font-mono bg-white text-slate-800 border border-hairline px-2.5 py-1 rounded-md shadow-xs flex items-center gap-1"
                   >
-                    {t}
+                    <TagIcon className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span>{t}</span>
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Campaign Invariant Stats */}
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-[11px] font-mono">
+            {/* Stats Grid on Pure White */}
+            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-hairline text-xs font-mono">
               <div>
-                <span className="text-slate-400 text-[9px] block uppercase">Signals Linked</span>
-                <span className="font-bold text-white">{campaigns[0]?.signals_count ?? campaigns[0]?.threat_signals_count ?? 14} Signals</span>
+                <span className="text-muted text-[10px] block uppercase">Signals Linked</span>
+                <span className="font-serif text-base font-bold text-ink-900">
+                  {campaigns[0]?.signals_count ?? campaigns[0]?.threat_signals_count ?? 14} Signals
+                </span>
               </div>
               <div>
-                <span className="text-slate-400 text-[9px] block uppercase">Mule VPAs Armed</span>
-                <span className="font-bold text-rose-400">{campaigns[0]?.associated_vpas_count ?? campaigns[0]?.member_count ?? 8} Accounts</span>
+                <span className="text-muted text-[10px] block uppercase">Mule VPAs Armed</span>
+                <span className="font-serif text-base font-bold text-rose-700">
+                  {campaigns[0]?.associated_vpas_count ?? campaigns[0]?.member_count ?? 8} Accounts
+                </span>
               </div>
               <div>
-                <span className="text-slate-400 text-[9px] block uppercase">Primary Rails</span>
-                <span className="font-bold text-white">{campaigns[0]?.primary_rails || "SBI · HDFC"}</span>
+                <span className="text-muted text-[10px] block uppercase">Primary Rails</span>
+                <span className="font-serif text-base font-bold text-ink-900">
+                  {campaigns[0]?.primary_rails || "SBI · HDFC"}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Secondary Campaign Roster */}
+          {/* Secondary Campaign Roster — Clean White Rows */}
           <div className="space-y-2 text-xs">
             <div className="text-[11px] font-mono text-muted uppercase font-semibold">
               Other Tracked Campaign Clusters
             </div>
             {Array.isArray(campaigns) && campaigns.length > 1 ? (
               campaigns.slice(1, 3).map((camp) => (
-                <div key={camp.campaign_id} className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
+                <div key={camp.campaign_id} className="flex items-center justify-between p-3 rounded-lg bg-white hover:bg-slate-50 border border-hairline shadow-xs transition-colors">
                   <div>
-                    <span className="font-mono font-bold text-ink-900">{camp.campaign_id}</span>
+                    <span className="font-mono font-bold text-ink-900 text-xs">{camp.campaign_id}</span>
                     <div className="text-[11px] text-muted">{camp.name || camp.scenario || "Mule Relay"} ({camp.signals_count ?? camp.threat_signals_count ?? 0} signals)</div>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-indigo-700 text-sm">{Math.round((camp.average_similarity || 0.9) * 100)}%</span>
-                    <div className="text-[10px] text-muted">Similarity</div>
+                    <span className="font-serif font-bold text-indigo-700 text-sm">{Math.round((camp.average_similarity || 0.9) * 100)}%</span>
+                    <div className="text-[10px] text-muted font-mono uppercase">Similarity</div>
                   </div>
                 </div>
               ))
             ) : (
               <>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-white hover:bg-slate-50 border border-hairline shadow-xs transition-colors">
                   <div>
-                    <span className="font-mono font-bold text-ink-900">CAMP-SMURF-DISPERSAL-03</span>
+                    <span className="font-mono font-bold text-ink-900 text-xs">CAMP-SMURF-DISPERSAL-03</span>
                     <div className="text-[11px] text-muted">Dormant-to-Active Mule Relay (19 signals)</div>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-indigo-700 text-sm">91%</span>
-                    <div className="text-[10px] text-muted">Similarity</div>
+                    <span className="font-serif font-bold text-indigo-700 text-sm">91%</span>
+                    <div className="text-[10px] text-muted font-mono uppercase">Similarity</div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-muted/60 border border-hairline">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-white hover:bg-slate-50 border border-hairline shadow-xs transition-colors">
                   <div>
-                    <span className="font-mono font-bold text-ink-900">CAMP-TASK-INVEST-02</span>
+                    <span className="font-mono font-bold text-ink-900 text-xs">CAMP-TASK-INVEST-02</span>
                     <div className="text-[11px] text-muted">Telegram Task Scam Campaign (8 signals)</div>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-amber-700 text-sm">88%</span>
-                    <div className="text-[10px] text-muted">Similarity</div>
+                    <span className="font-serif font-bold text-amber-700 text-sm">88%</span>
+                    <div className="text-[10px] text-muted font-mono uppercase">Similarity</div>
                   </div>
                 </div>
               </>
@@ -857,11 +969,11 @@ function ThreatIntelDashboard() {
         </div>
       </div>
 
-      {/* Live Pre-Transaction Signal Feed */}
-      <div className="card p-5 space-y-4">
+      {/* Live Pre-Transaction Signal Feed — Clean White Panel */}
+      <div className="panel p-6 bg-white border border-hairline rounded-xl shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline pb-4">
           <div>
-            <div className="text-[11px] font-mono text-muted uppercase tracking-wide">
+            <div className="text-[11px] font-mono text-muted uppercase tracking-wider">
               Pre-Transaction Signal Stream
             </div>
             <h3 className="font-serif font-bold text-lg text-ink-900">
@@ -876,7 +988,7 @@ function ThreatIntelDashboard() {
                 <button
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
-                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
+                  className={`px-3 py-1 rounded-md font-semibold transition-colors ${
                     activeFilter === filter
                       ? "bg-white text-ink-900 shadow-xs"
                       : "text-muted hover:text-ink-900"
@@ -890,12 +1002,10 @@ function ThreatIntelDashboard() {
             <button
               onClick={handleRefreshSignals}
               disabled={loading}
-              className="p-1.5 bg-surface-muted hover:bg-slate-200 border border-hairline rounded text-muted hover:text-ink-900 transition-colors"
+              className="p-1.5 bg-white hover:bg-slate-100 border border-hairline rounded-md text-muted hover:text-ink-900 transition-colors shadow-xs"
               title="Refresh Signals"
             >
-              <svg className={`w-4 h-4 ${loading ? "animate-spin text-saffron" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <RefreshCwIcon className={`w-3.5 h-3.5 ${loading ? "animate-spin text-saffron" : ""}`} />
             </button>
           </div>
         </div>
@@ -903,7 +1013,7 @@ function ThreatIntelDashboard() {
         {/* Signals Table / Cards Feed */}
         <div className="space-y-3">
           {filteredSignals.length === 0 ? (
-            <div className="p-8 text-center text-muted font-mono text-xs border border-hairline rounded-xl bg-surface-muted/30">
+            <div className="p-8 text-center text-muted font-mono text-xs border border-hairline rounded-xl bg-white shadow-xs">
               <div className="text-ink-900 font-semibold mb-1">No threat signals matching severity: {activeFilter}</div>
               <p>Incoming pre-transaction threat signals from SMS/WhatsApp gateways will appear here in real-time, or click &apos;Ingest Mock Signal&apos; to simulate.</p>
             </div>
@@ -921,9 +1031,9 @@ function ThreatIntelDashboard() {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98 }}
-                    className="rounded-xl border border-hairline bg-white hover:border-slate-300 p-4 transition-all shadow-xs hover:shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="rounded-xl border border-hairline bg-white hover:border-slate-300 p-5 transition-all shadow-xs hover:shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
-                    <div className="space-y-2 flex-1 min-w-0">
+                    <div className="space-y-2.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
@@ -946,7 +1056,7 @@ function ThreatIntelDashboard() {
                           {relativeTime(signal.created_at)}
                         </span>
                         {getCampaignLabel(signal.matched_campaign || signal.matched_campaign_id) && (
-                          <span className="ml-auto text-[10px] font-mono bg-surface-muted text-slate-700 px-2 py-0.5 rounded border border-hairline font-semibold">
+                          <span className="ml-auto text-[10px] font-mono bg-white text-slate-700 px-2 py-0.5 rounded border border-hairline font-semibold shadow-xs">
                             {getCampaignLabel(signal.matched_campaign || signal.matched_campaign_id)}
                           </span>
                         )}
@@ -956,32 +1066,36 @@ function ThreatIntelDashboard() {
                         &ldquo;{signal.raw_content}&rdquo;
                       </p>
 
-                      {/* Extracted Identifiers Strip */}
+                      {/* Extracted Identifiers Strip with Lucide Vector Icons */}
                       {(() => {
                         const entities = getEntityValues(signal);
                         return (
                           <div className="flex flex-wrap items-center gap-2 pt-1">
                             {entities.phone && (
-                              <span className="text-[11px] font-mono px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-200">
-                                📱 {entities.phone}
+                              <span className="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1 bg-white text-slate-800 rounded-md border border-slate-200 font-medium shadow-xs">
+                                <PhoneIcon className="w-3 h-3 text-slate-500 shrink-0" />
+                                <span>{entities.phone}</span>
                               </span>
                             )}
                             {entities.upiId && (
-                              <span className="text-[11px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-800 rounded border border-indigo-200 font-semibold">
-                                ⚡ {entities.upiId}
+                              <span className="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1 bg-indigo-50/70 text-indigo-900 rounded-md border border-indigo-200 font-bold shadow-xs">
+                                <ZapIcon className="w-3 h-3 text-indigo-600 shrink-0" />
+                                <span>{entities.upiId}</span>
                               </span>
                             )}
                             {entities.url && (
-                              <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-50 text-rose-800 rounded border border-rose-200 truncate max-w-xs">
-                                🔗 {entities.url}
+                              <span className="inline-flex items-center gap-1 text-xs font-mono px-2.5 py-1 bg-rose-50/70 text-rose-900 rounded-md border border-rose-200 font-medium truncate max-w-xs shadow-xs">
+                                <LinkIcon className="w-3 h-3 text-rose-600 shrink-0" />
+                                <span className="truncate">{entities.url}</span>
                               </span>
                             )}
                             {(entities.tags || []).map((tag) => (
                               <span
                                 key={tag}
-                                className="text-[10px] font-mono px-1.5 py-0.5 bg-surface-muted text-slate-600 rounded border border-hairline"
+                                className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 bg-white text-slate-700 rounded border border-hairline shadow-xs"
                               >
-                                🏷️ {tag}
+                                <TagIcon className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                                <span>{tag}</span>
                               </span>
                             ))}
                           </div>
@@ -992,7 +1106,7 @@ function ThreatIntelDashboard() {
                     <div className="flex items-center gap-2 shrink-0 md:self-center">
                       <button
                         onClick={() => setSelectedSignal(signal)}
-                        className="px-3 py-1.5 bg-surface-muted hover:bg-slate-200 text-ink-900 border border-hairline rounded text-xs font-mono font-semibold transition-colors"
+                        className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-ink-900 border border-hairline rounded-lg text-xs font-mono font-semibold transition-colors shadow-xs"
                       >
                         Inspect Detail
                       </button>
@@ -1005,7 +1119,7 @@ function ThreatIntelDashboard() {
         </div>
       </div>
 
-      {/* Signal Detail Modal */}
+      {/* Signal Detail Modal with Line 1080 Null Check Bug Fix */}
       <AnimatePresence>
         {selectedSignal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1017,41 +1131,41 @@ function ThreatIntelDashboard() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative z-10 max-w-2xl w-full bg-white rounded-xl shadow-2xl border border-hairline p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+              className="relative z-10 max-w-2xl w-full bg-white rounded-xl shadow-2xl border border-hairline p-6 space-y-5 max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <div className="flex items-center justify-between border-b border-hairline pb-4">
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold text-lg text-ink-900">
                     {selectedSignal.signal_id}
                   </span>
-                  <span className="text-xs font-mono px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold">
+                  <span className="text-xs font-mono px-2.5 py-0.5 bg-rose-50 text-rose-800 rounded border border-rose-200 font-bold">
                     {selectedSignal.severity}
                   </span>
                   {renderInstitutionBadge(selectedSignal.source, selectedSignal.institution)}
                 </div>
                 <button
                   onClick={() => setSelectedSignal(null)}
-                  className="text-slate-400 hover:text-ink-900 text-lg leading-none p-1"
+                  className="p-1 rounded-md text-slate-400 hover:text-ink-900 hover:bg-slate-100 transition-colors"
                 >
-                  ✕
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="space-y-2">
-                <div className="text-[11px] font-mono text-muted uppercase">Raw Content Payload:</div>
-                <div className="p-3 rounded-lg bg-surface-muted border border-hairline text-xs font-mono text-slate-800 leading-relaxed">
+                <div className="text-[11px] font-mono text-muted uppercase tracking-wider">Raw Content Payload:</div>
+                <div className="p-3.5 rounded-lg bg-surface-muted/40 border border-hairline text-xs font-mono text-slate-800 leading-relaxed">
                   {selectedSignal.raw_content}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-3 bg-surface-muted rounded-lg border border-hairline">
+                <div className="p-3 bg-white rounded-lg border border-hairline shadow-xs">
                   <div className="text-muted text-[10px] uppercase">Matched Campaign:</div>
                   <div className="font-bold text-indigo-700 mt-1">
                     {getCampaignLabel(selectedSignal.matched_campaign || selectedSignal.matched_campaign_id) || "CAMP-KYC-PHISH-01"}
                   </div>
                 </div>
-                <div className="p-3 bg-surface-muted rounded-lg border border-hairline">
+                <div className="p-3 bg-white rounded-lg border border-hairline shadow-xs">
                   <div className="text-muted text-[10px] uppercase">Signal Confidence:</div>
                   <div className="font-bold text-emerald-700 mt-1">
                     {Math.min(98, Math.round((selectedSignal.confidence || 0.95) * 100))}% Correlation Confidence
@@ -1060,7 +1174,7 @@ function ThreatIntelDashboard() {
               </div>
 
               <div className="space-y-2">
-                <div className="text-[11px] font-mono text-muted uppercase">Linked Central Fraud Graph Nodes:</div>
+                <div className="text-[11px] font-mono text-muted uppercase tracking-wider">Linked Central Fraud Graph Nodes:</div>
                 <div className="flex flex-wrap gap-2">
                   {(() => {
                     const selEntities = getEntityValues(selectedSignal);
@@ -1069,17 +1183,26 @@ function ThreatIntelDashboard() {
                       `PHONE:${selEntities.phone || "+919876543210"}`,
                       `URL:${selEntities.url || "phish.in"}`,
                     ];
-                    const nodes = Array.isArray(selectedSignal.linked_graph_nodes) && selectedSignal.linked_graph_nodes.length > 0
-                      ? selectedSignal.linked_graph_nodes
+                    const rawNodes = selectedSignal.linked_graph_nodes;
+                    const nodes = Array.isArray(rawNodes) && rawNodes.length > 0
+                      ? rawNodes
                       : defaultNodes;
-                    return nodes.map((node, i) => (
-                      <span
-                        key={i}
-                        className="px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded font-mono text-xs font-bold"
-                      >
-                        ☍ {typeof node === "object" ? (node.id || node.label || JSON.stringify(node)) : String(node)}
-                      </span>
-                    ));
+                    return nodes.map((node, i) => {
+                      // Fix: Safeguard null check before inspecting properties
+                      const nodeLabel =
+                        node && typeof node === "object"
+                          ? (node.id || node.label || JSON.stringify(node))
+                          : String(node ?? "");
+                      return (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-md font-mono text-xs font-bold shadow-xs"
+                        >
+                          <NetworkIcon className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                          <span>{nodeLabel}</span>
+                        </span>
+                      );
+                    });
                   })()}
                 </div>
               </div>
@@ -1087,7 +1210,7 @@ function ThreatIntelDashboard() {
               <div className="pt-3 border-t border-hairline flex justify-end">
                 <button
                   onClick={() => setSelectedSignal(null)}
-                  className="px-4 py-2 bg-ink-900 text-white rounded-lg text-xs font-mono font-bold hover:bg-slate-800 transition-colors"
+                  className="px-4 py-2 bg-ink-900 text-white rounded-lg text-xs font-mono font-bold hover:bg-ink-800 transition-colors shadow-xs"
                 >
                   Close Inspection
                 </button>
