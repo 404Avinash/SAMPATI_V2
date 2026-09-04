@@ -832,6 +832,11 @@ class UpiCaseService:
             "resolution": case_data.get("resolution"),
             "resolution_notes": case_data.get("resolution_notes"),
             "investigated_at": case_data.get("investigated_at"),
+            "mock_npci_score": float(case_data.get("mock_npci_score") or 0.0),
+            "mock_dpip_threat_level": case_data.get("mock_dpip_threat_level", 0.0),
+            "contributing_signals": list(case_data.get("contributing_signals") or []),
+            "dmv_score": float(case_data.get("dmv_score") or 0.0),
+            "campaign_id": case_data.get("campaign_id"),
         }
 
     def get_current_stats(self) -> Dict[str, Any]:
@@ -946,8 +951,12 @@ class UpiCaseService:
             "adaptive_score": float(resp.adaptive_score or 0.0),
             "network_score": float(resp.network_score or 0.0),
             "ml_anomaly_score": float(getattr(resp, "ml_anomaly_score", 0.0) or 0.0),
+            "supervised_fraud_score": float(getattr(resp, "supervised_fraud_score", 0.0) or 0.0),
             "dmv_score": float(getattr(resp, "dmv_score", 0.0) or 0.0),
             "campaign_id": getattr(resp, "campaign_id", None),
+            "mock_npci_score": float(getattr(resp, "mock_npci_score", 0.0) or 0.0),
+            "mock_dpip_threat_level": getattr(resp, "mock_dpip_threat_level", 0.0),
+            "contributing_signals": list(getattr(resp, "contributing_signals", []) or []),
             "status": "OPEN",
             "ring_hash": None,
             "ring_members_vpas": [],
@@ -1021,6 +1030,16 @@ class UpiCaseService:
 
         resp = self.scorer.evaluate(txn, network_score=combined_network)
 
+        # Evaluate simulated institutional signal adapters
+        try:
+            from app.adapters.service import get_institutional_adapters
+            inst_eval = get_institutional_adapters().evaluate_for_transaction(txn)
+            resp.mock_npci_score = inst_eval.get("mock_npci_score", 0.0)
+            resp.mock_dpip_threat_level = inst_eval.get("mock_dpip_threat_level", 0.0)
+            resp.contributing_signals = inst_eval.get("contributing_signals", [])
+        except Exception as exc:
+            logger.debug("Institutional adapter evaluation error: %s", exc)
+
         t_end = time.perf_counter()
         latency_ms = max(0.01, (t_end - t_start) * 1000.0)
         self.record_latency(latency_ms)
@@ -1040,6 +1059,10 @@ class UpiCaseService:
             "network_score": combined_network,
             "adaptive_score": resp.adaptive_score,
             "ml_anomaly_score": getattr(resp, "ml_anomaly_score", 0.0),
+            "supervised_fraud_score": getattr(resp, "supervised_fraud_score", 0.0),
+            "mock_npci_score": getattr(resp, "mock_npci_score", 0.0),
+            "mock_dpip_threat_level": getattr(resp, "mock_dpip_threat_level", 0.0),
+            "contributing_signals": getattr(resp, "contributing_signals", []),
             "dmv_score": getattr(resp, "dmv_score", 0.0),
             "campaign_id": getattr(resp, "campaign_id", None),
             "latency_ms": latency_ms,

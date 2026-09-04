@@ -482,6 +482,106 @@ export default function CaseDrawer({ caseData, onClose, onFeedback }) {
                 riskScore={caseData.risk_score}
               />
 
+              {/* Institutional Contributing Signals Card (NPCI MuleHunter, DPIP Smart Registry, PSP) */}
+              <div className="panel p-4 bg-white border border-hairline rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] uppercase font-mono tracking-wider text-muted">
+                      Federated Fraud Intelligence Mesh
+                    </div>
+                    <div className="font-serif font-bold text-sm text-ink-900">
+                      Institutional Contributing Signals
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Simulated Mesh
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* NPCI MuleHunter Tile */}
+                  <div className="p-3 bg-emerald-50/50 rounded-lg border border-emerald-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        NPCI MuleHunter
+                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-900">
+                        {((caseData.mock_npci_score ?? 0) * 100).toFixed(0)}% Probability
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          (caseData.mock_npci_score ?? 0) >= 0.7
+                            ? "bg-rose-500"
+                            : (caseData.mock_npci_score ?? 0) >= 0.4
+                            ? "bg-amber-500"
+                            : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(5, (caseData.mock_npci_score ?? 0) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-600 leading-tight">
+                      Central switch mule probability assessed by NPCI clearing switch.
+                    </p>
+                  </div>
+
+                  {/* DPIP Smart Registry Tile */}
+                  <div className="p-3 bg-indigo-50/50 rounded-lg border border-indigo-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300">
+                        DPIP Smart Registry
+                      </span>
+                      <span className={`text-xs font-mono font-bold ${
+                        (caseData.mock_dpip_threat_level ?? 0) > 0 ? "text-rose-700" : "text-slate-600"
+                      }`}>
+                        {(caseData.mock_dpip_threat_level ?? 0) > 0 ? "LISTED - HIGH" : "CLEAN"}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          (caseData.mock_dpip_threat_level ?? 0) > 0 ? "bg-rose-500" : "bg-slate-400"
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(5, ((caseData.mock_dpip_threat_level ?? 0) > 0 ? 90 : 10)))}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-600 leading-tight">
+                      National Cyber Crime & RBI Fraud Registry cross-reference via SHA-256 hash.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Detailed Contributing Signals List */}
+                {Array.isArray(caseData.contributing_signals) && caseData.contributing_signals.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[10px] uppercase font-mono text-muted tracking-wide">
+                      Signal Feed Breakdown
+                    </div>
+                    <div className="space-y-1">
+                      {caseData.contributing_signals.map((sig, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-xs font-mono p-2 bg-slate-50 rounded border border-hairline"
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800">
+                              {sig.institution || "PSP"}
+                            </span>
+                            <span className="text-slate-700 truncate">{sig.summary || sig.adapter || "Institutional Signal"}</span>
+                          </div>
+                          <span className={`font-bold shrink-0 ml-2 ${
+                            (sig.score ?? 0) >= 0.7 ? "text-rose-600" : (sig.score ?? 0) >= 0.4 ? "text-amber-600" : "text-emerald-600"
+                          }`}>
+                            {typeof sig.score === "number" ? sig.score.toFixed(2) : (sig.threat_level || "OK")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Trigger Transaction Info Card */}
               <div className="panel p-4 bg-white border border-hairline rounded-xl space-y-2">
                 <div className="text-[10px] uppercase tracking-wide text-muted font-mono font-semibold">

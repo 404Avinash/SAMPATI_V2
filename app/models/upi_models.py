@@ -70,6 +70,22 @@ class UpiEvaluationResponse(BaseModel):
         default=0.0,
         description="Unsupervised Isolation Forest multivariate anomaly score in [0.0, 1.0]",
     )
+    supervised_fraud_score: float = Field(
+        default=0.0,
+        description="Supervised ML fraud probability score in [0.0, 1.0]",
+    )
+    mock_npci_score: float = Field(
+        default=0.0,
+        description="Simulated NPCI MuleHunter mule-probability score in [0.0, 1.0]",
+    )
+    mock_dpip_threat_level: Union[float, int, str] = Field(
+        default=0.0,
+        description="Simulated DPIP Smart Registry threat level score",
+    )
+    contributing_signals: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Contributing institutional signal sources with institution labels",
+    )
     execution_latency_ms: float = Field(default=0.0, description="Decision latency in milliseconds")
     evaluated_at: datetime = Field(default_factory=utcnow, description="Evaluation timestamp")
     case_id: Optional[str] = Field(default=None, description="Investigative case ID if HOLD or BLOCK")

@@ -58,9 +58,20 @@ export default function LiveFeed({ cases, onSelect }) {
                       {verdict}
                     </span>
                   </td>
-                  <td className="py-2 px-3 text-right tabular-nums">{c.risk_score ?? "—"}</td>
-                  <td className="py-2 px-3 text-muted truncate max-w-[220px]">
-                    {(c.reasons || []).slice(0, 2).join(", ") || "—"}
+                  <td className="py-2 px-3 text-muted truncate max-w-[240px]">
+                    <div className="flex items-center gap-1 overflow-hidden">
+                      {(Number(c.mock_npci_score) > 0 || (Array.isArray(c.contributing_signals) && c.contributing_signals.some((s) => s.institution === "NPCI"))) && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                          NPCI
+                        </span>
+                      )}
+                      {(Number(c.mock_dpip_threat_level) > 0 || (Array.isArray(c.contributing_signals) && c.contributing_signals.some((s) => s.institution === "DPIP"))) && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-indigo-100 text-indigo-800 border border-indigo-300 shrink-0">
+                          DPIP
+                        </span>
+                      )}
+                      <span className="truncate">{(c.reasons || []).slice(0, 2).join(", ") || "—"}</span>
+                    </div>
                   </td>
                 </motion.tr>
               );

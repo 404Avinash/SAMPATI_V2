@@ -362,8 +362,29 @@ class ThreatIntelService:
         with self._lock:
             self._signals[signal_id] = signal_record
 
-        # 7. Real-Time Push Notification
+        # 7. Real-Time Push Notification & FCM Alert Dispatch
         self._broadcast_threat_signal(signal_record)
+        if str(severity).upper() in ("HIGH", "CRITICAL"):
+            try:
+                from app.services.notification_service import get_notification_service
+                notif_svc = get_notification_service()
+                risk_val = 95 if str(severity).upper() == "CRITICAL" else 85
+                top_tag = combined_tags[0] if combined_tags else (camp_name or "Pre-transaction threat")
+                top_reason = f"Pre-transaction threat: {top_tag}"
+                await notif_svc.dispatch_threat_alert(
+                    risk_score=risk_val,
+                    verdict="BLOCK",
+                    top_reason=top_reason,
+                    target_vpa=upi_id,
+                    metadata={
+                        "signal_id": signal_id,
+                        "source": source,
+                        "campaign_id": camp_id or "",
+                        "phone": phone or "",
+                    },
+                )
+            except Exception as exc:
+                logger.debug("Push notification dispatch failed: %s", exc)
 
         # 8. Dual-Mode DB Persistence
         if active_db is not None and SQLALCHEMY_AVAILABLE:

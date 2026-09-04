@@ -230,6 +230,49 @@ export const api = {
     req(`/intel/simulate?count=${count}`, { method: "POST" }).catch(() =>
       req(`/threat-intel/simulate?count=${count}`, { method: "POST" })
     ),
+
+  // Simulated Institutional Signal Adapters (NPCI, DPIP, PSP)
+  queryNpciMuleHunter: (vpa) =>
+    req(`/adapters/npci/mulehunter?vpa=${encodeURIComponent(vpa)}`).catch(() =>
+      req(`/upi/adapters/npci/mulehunter?vpa=${encodeURIComponent(vpa)}`)
+    ),
+
+  queryDpipRegistry: ({ vpa, vpa_hash } = {}) => {
+    const params = new URLSearchParams();
+    if (vpa) params.set("vpa", vpa);
+    if (vpa_hash) params.set("vpa_hash", vpa_hash);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    return req(`/adapters/dpip/registry${qs}`).catch(() =>
+      req(`/upi/adapters/dpip/registry${qs}`)
+    );
+  },
+
+  updateDpipRegistry: (data) =>
+    req("/adapters/dpip/registry", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }).catch(() =>
+      req("/upi/adapters/dpip/registry", {
+        method: "POST",
+        body: JSON.stringify(data),
+      })
+    ),
+
+  simulatePspSignal: (data) =>
+    req("/adapters/psp/simulate", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }).catch(() =>
+      req("/upi/adapters/psp/simulate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      })
+    ),
+
+  getContributingSignals: (vpa) =>
+    req(`/adapters/signals/contributing?vpa=${encodeURIComponent(vpa)}`).catch(() =>
+      req(`/upi/adapters/signals/contributing?vpa=${encodeURIComponent(vpa)}`)
+    ),
 };
 
 export function formatINR(amount) {

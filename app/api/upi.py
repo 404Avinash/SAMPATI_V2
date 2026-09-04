@@ -124,6 +124,26 @@ async def check_upi_txn(
     payload = resp.model_dump() if hasattr(resp, "model_dump") else resp.dict()
     await broadcast_event("UPI_EVALUATED", payload)
 
+    if resp.action == "BLOCK":
+        try:
+            from app.services.notification_service import get_notification_service
+            notif_svc = get_notification_service()
+            top_reason = resp.reasons[0] if resp.reasons else "High-risk transaction anomaly"
+            await notif_svc.dispatch_threat_alert(
+                risk_score=resp.risk_score,
+                verdict="BLOCK",
+                top_reason=top_reason,
+                target_vpa=txn.payer_vpa,
+                metadata={
+                    "txn_id": txn.txn_id,
+                    "amount": float(txn.amount),
+                    "payee_vpa": txn.payee_vpa,
+                    "case_id": resp.case_id or "",
+                },
+            )
+        except Exception as exc:
+            logger.debug("Push alert on BLOCK failed: %s", exc)
+
     if resp.case_id:
         case_data = service.get_case(resp.case_id)
         if case_data and db is not None:

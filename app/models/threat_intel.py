@@ -232,6 +232,89 @@ class ThreatSignalCreateRequest(BaseModel):
         super().__init__(**norm_data)
 
 
+class StandardFraudSignal(ThreatSignalCreateRequest):
+    """Standardized fraud signal format produced by PSP and institutional adapters."""
+    institution: Optional[str] = Field(default=None, description="Originating financial institution or PSP name (e.g. PhonePe, Paytm, NPCI, DPIP)")
+    anomaly_type: Optional[str] = Field(default=None, description="Typology or anomaly category (e.g. velocity_anomaly, suspicious_beneficiary)")
+
+    @classmethod
+    def from_psp(
+        cls,
+        psp: str,
+        vpa: str,
+        anomaly_type: str = "velocity_anomaly",
+        severity: str = "HIGH",
+        confidence: float = 0.88,
+        details: Optional[str] = None,
+        phone: Optional[str] = None,
+        url: Optional[str] = None,
+    ) -> StandardFraudSignal:
+        """Create a standardized fraud signal originating from a mock PSP engine."""
+        clean_psp = psp.strip() if psp else "PSP"
+        tags = [f"PSP:{clean_psp}", anomaly_type.replace("_", " ").title(), "Pre-transaction alert"]
+        raw_msg = details or f"[{clean_psp} Fraud Engine] Flagged {anomaly_type.replace('_', ' ')} for VPA {vpa}."
+        source = f"psp_{clean_psp.lower().replace(' ', '')}"
+        return cls(
+            source=source,
+            institution=clean_psp,
+            anomaly_type=anomaly_type,
+            upi_id=vpa,
+            phone=phone,
+            url=url,
+            tags=tags,
+            raw_content=raw_msg,
+            severity=severity,
+            confidence=confidence,
+        )
+
+    @classmethod
+    def from_npci(
+        cls,
+        vpa: str,
+        mule_probability: float,
+        flags: Optional[List[str]] = None,
+        severity: str = "HIGH",
+    ) -> StandardFraudSignal:
+        """Create a standardized fraud signal originating from NPCI MuleHunter."""
+        flags_list = flags or ["CENTRAL_SWITCH_FLAG"]
+        tags = ["NPCI:MuleHunter", "Central Switch Flag"] + flags_list[:2]
+        raw_msg = f"[NPCI Central Switch] MuleHunter probability {round(mule_probability, 2)} with flags: {', '.join(flags_list)}."
+        return cls(
+            source="npci_mulehunter",
+            institution="NPCI",
+            anomaly_type="mule_cluster",
+            upi_id=vpa,
+            tags=tags,
+            raw_content=raw_msg,
+            severity=severity,
+            confidence=min(0.98, max(0.5, mule_probability)),
+        )
+
+    @classmethod
+    def from_dpip(
+        cls,
+        vpa_or_hash: str,
+        threat_level: str = "HIGH",
+        threat_score: float = 0.90,
+        reporting_agencies: Optional[List[str]] = None,
+    ) -> StandardFraudSignal:
+        """Create a standardized fraud signal originating from DPIP Smart Registry."""
+        agencies = reporting_agencies or ["NATIONAL_CYBER_CRIME_PORTAL"]
+        tags = ["DPIP:Registry", threat_level] + agencies[:2]
+        raw_msg = f"[DPIP Smart Registry] Listed entity {vpa_or_hash} threat_level={threat_level} score={threat_score}."
+        upi = vpa_or_hash if "@" in vpa_or_hash else None
+        return cls(
+            source="dpip_registry",
+            institution="DPIP",
+            anomaly_type="national_registry_match",
+            upi_id=upi,
+            raw_content=raw_msg,
+            tags=tags,
+            severity=threat_level if threat_level in {"LOW", "MEDIUM", "HIGH", "CRITICAL"} else "HIGH",
+            confidence=min(0.98, max(0.5, threat_score)),
+        )
+
+
 class CampaignMatch(BaseModel):
     """Clustered fraud campaign syndicate match details."""
     campaign_id: str = Field(..., description="Unique campaign identifier")

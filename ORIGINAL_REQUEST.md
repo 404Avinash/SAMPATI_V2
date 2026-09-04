@@ -376,3 +376,50 @@ Create a dedicated "Threat Intelligence" tab in the React frontend's top navigat
 - [ ] A `grep` of the frontend source code returns 0 results for "Dead Money Velocity" and "Criminal Network".
 - [ ] Clicking "Start Live Feed" on the dashboard successfully initiates a stream of transactions that visibly update the charts in real-time with Toast notification feedback.
 </USER_REQUEST>
+
+## 2026-09-03T20:13:42Z
+
+<USER_REQUEST>
+Upgrade SAMPATI V2 from a prototype fraud scorer into a production-grade fraud intelligence system by: (1) training a real supervised ML model on public fraud datasets to drastically reduce false negatives, (2) adding realistic simulated institutional adapters (mock NPCI/DPIP/PSP signals) to demonstrate the full federated mesh in a live demo, and (3) integrating Firebase Cloud Messaging so the mobile app receives real-time push notifications when a threat is detected — with a benchmarked sub-200ms response latency for direct queries.
+
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. Production-Grade ML Model with Public Data
+Replace (or augment alongside) the existing Isolation Forest model with a supervised classifier trained on publicly available fraud datasets (e.g., PaySim from Kaggle, or any suitable labeled transaction fraud dataset). The training pipeline must: ingest and clean the raw public dataset, engineer features consistent with existing SAMPATI signals (amount, velocity, time-of-day, dormancy), train and evaluate the model with a reported precision/recall/F1 score, and serialize the model for inference. The new model must demonstrably reduce false negatives compared to the pure unsupervised baseline. The `/upi/check` response must include both the supervised model score and the existing Isolation Forest score so analysts can compare.
+
+### R2. Simulated Institutional Signal Adapters (Mock NPCI, DPIP, PSP)
+Build a set of realistic mock adapter endpoints or internal simulation modules that generate signals as if they came from real institutional sources. Specifically:
+- **Mock NPCI MuleHunter Adapter**: Given a VPA or account, returns a realistic mule-probability score.
+- **Mock DPIP Smart Registry Adapter**: Simulates querying/updating the national fraud registry (query by VPA hash, returns a threat level).
+- **Mock PSP Adapter (e.g., "PhonePe", "Paytm")**: Produces standardized fraud signals (velocity anomaly, suspicious beneficiary) using the existing `StandardFraudSignal` format.
+These adapters must produce deterministic but realistic outputs based on the input VPA's characteristics (e.g., honeypot VPAs always return HIGH from the mock NPCI adapter). They must be clearly displayed in the dashboard as contributing signal sources with their institution label.
+
+### R3. Mobile App Push Notification System (FCM Integration)
+Integrate Firebase Cloud Messaging (FCM) into the backend so that when SAMPATI detects a new high-risk threat (verdict: BLOCK or a new pre-transaction threat signal arriving via `/intel/signals`), it dispatches a push notification to registered mobile app clients. The backend must expose a device token registration endpoint (`POST /notifications/register`). The threat alert notification payload must include the risk score, verdict, and top reason. A benchmark test must demonstrate that the end-to-end latency from signal ingestion to notification dispatch is under 500ms on the local machine.
+
+## Verification Resources
+- Existing pytest suite (902 tests): `.venv/bin/pytest tests/ -v`
+- Frontend build: `cd frontend && npm run build`
+- Public dataset suggestion: PaySim (Kaggle synthetic mobile money fraud) or similar with labeled fraud column
+
+## Acceptance Criteria
+
+### Automated Testing
+- [ ] `.venv/bin/pytest tests/ -v` passes with 0 failures.
+- [ ] `ruff check app tests` passes with 0 errors.
+- [ ] Frontend builds cleanly with no ESLint errors.
+
+### Capabilities Verification
+- [ ] The `/upi/check` response includes both `ml_anomaly_score` (Isolation Forest) AND `supervised_fraud_score` (new supervised model) fields.
+- [ ] The training pipeline reports Precision, Recall, and F1 score in a printed evaluation summary.
+- [ ] A transaction sent to a known-bad VPA returns a non-zero `mock_npci_score` and `mock_dpip_threat_level` in the verdict response.
+- [ ] Sending a `POST /intel/signals` with a HIGH-risk payload triggers an FCM notification dispatch within 500ms (verified by a benchmark test).
+</USER_REQUEST>
+
+## 2026-09-03T21:50:20Z
+
+A server restart killed the background tasks. Please check the current state: Milestone 1 (Supervised ML) appears to be DONE — `supervised_classifier.py`, `train_supervised.py`, `supervised_fraud_model.pkl`, and 21 passing tests are all confirmed in the workspace. Please continue with Milestone 2 (Mock Institutional Adapters: NPCI MuleHunter, DPIP Smart Registry, PSP adapters) and Milestone 3 (FCM Push Notifications with `POST /notifications/register` endpoint and sub-500ms benchmark test). Run the full test suite before claiming completion.
+

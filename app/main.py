@@ -81,6 +81,18 @@ try:
 except Exception:
     intel_router = None
 
+# Simulated Institutional Signal Adapters (NPCI, DPIP, PSP)
+try:
+    from app.api import adapters as adapters_router
+except Exception:
+    adapters_router = None
+
+# Mobile App Push Notifications (FCM Integration)
+try:
+    from app.api import notifications as notifications_router
+except Exception:
+    notifications_router = None
+
 
 # DB + settings
 try:
@@ -200,6 +212,12 @@ if intel_router and hasattr(intel_router, "router"):
     app.include_router(intel_router.router, prefix="/intel", tags=["Threat Intel"])
     app.include_router(intel_router.router, prefix="/threat-intel", tags=["Threat Intel"])
     app.include_router(intel_router.router, prefix="/upi/intel", tags=["Threat Intel"])
+if adapters_router and hasattr(adapters_router, "router"):
+    app.include_router(adapters_router.router, prefix="/adapters", tags=["Institutional Adapters"])
+    app.include_router(adapters_router.router, prefix="/upi/adapters", tags=["Institutional Adapters"])
+if notifications_router and hasattr(notifications_router, "router"):
+    app.include_router(notifications_router.router, prefix="/notifications", tags=["Notifications"])
+    app.include_router(notifications_router.router, prefix="/upi/notifications", tags=["Notifications"])
 
 
 
@@ -445,6 +463,8 @@ if FASTAPI_AVAILABLE:
             "/static",
             "/intel",
             "/threat-intel",
+            "/adapters",
+            "/notifications",
         )
         is_ui_page = path in ("/threat-intel", "/threat-intel/")
         is_api = any(path.startswith(prefix) for prefix in api_prefixes) and not is_ui_page

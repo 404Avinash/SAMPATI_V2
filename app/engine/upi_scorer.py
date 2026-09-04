@@ -16,6 +16,7 @@ from app.engine.adaptive import AdaptiveBehaviorModel, get_adaptive_model
 from app.engine.campaign import CampaignSignatureStore, get_campaign_store
 from app.engine.dmv import DmvTracker, calculate_dmv_score, get_dmv_tracker
 from app.engine.isolation_forest import UpiIsolationForest, get_isolation_forest
+from app.engine.supervised_classifier import UpiSupervisedClassifier, get_supervised_classifier
 from app.engine.upi_rules import evaluate_rules, record_payer_telemetry
 from app.engine.upi_state import UpiHotState, get_upi_state
 from app.models.upi_models import UpiEvaluationResponse, UpiTransaction
@@ -28,6 +29,8 @@ NETWORK_MAX_POINTS: int = 40
 ML_MAX_POINTS: int = 25
 ML_HOLD_FLOOR: float = 0.85
 ML_ANOMALY_THRESHOLD: float = 0.70
+SUPERVISED_FRAUD_THRESHOLD: float = 0.70
+SUPERVISED_HOLD_FLOOR: float = 0.85
 
 
 class UpiRiskScorer:
@@ -40,6 +43,7 @@ class UpiRiskScorer:
         dmv_tracker: Optional[DmvTracker] = None,
         campaign_store: Optional[CampaignSignatureStore] = None,
         isolation_forest: Optional[UpiIsolationForest] = None,
+        supervised_classifier: Optional[UpiSupervisedClassifier] = None,
     ) -> None:
         self.state: UpiHotState = state if state is not None else get_upi_state()
         self.adaptive: AdaptiveBehaviorModel = adaptive if adaptive is not None else get_adaptive_model()
@@ -49,6 +53,9 @@ class UpiRiskScorer:
             isolation_forest if isolation_forest is not None else get_isolation_forest()
         )
         self.ml_scorer: UpiIsolationForest = self.isolation_forest
+        self.supervised_classifier: UpiSupervisedClassifier = (
+            supervised_classifier if supervised_classifier is not None else get_supervised_classifier()
+        )
 
     def evaluate(self, txn: UpiTransaction, network_score: float = 0.0) -> UpiEvaluationResponse:
         """Score an incoming UPI transaction through all 4 evaluation layers."""
@@ -73,6 +80,9 @@ class UpiRiskScorer:
         else:
             ml_pts = 0
 
+        # Supervised ML Fraud Probability Score
+        supervised_score = self.supervised_classifier.score_txn(txn, self.state, dmv_score)
+
         combined = rule_score + adaptive_pts + network_pts + ml_pts
         risk_score = min(100, max(0, combined))
 
@@ -86,6 +96,9 @@ class UpiRiskScorer:
         elif ml_score >= ML_HOLD_FLOOR:
             action = "HOLD"
             risk_score = max(risk_score, ALLOW_BELOW)
+        elif supervised_score >= SUPERVISED_HOLD_FLOOR:
+            action = "HOLD"
+            risk_score = max(risk_score, ALLOW_BELOW)
         else:
             action = "ALLOW"
 
@@ -96,6 +109,8 @@ class UpiRiskScorer:
             reasons.append("FEDERATED_MULE_NETWORK")
         if ml_score >= ML_ANOMALY_THRESHOLD:
             reasons.append("ML_MULTIVARIATE_ANOMALY")
+        if supervised_score >= SUPERVISED_FRAUD_THRESHOLD:
+            reasons.append("SUPERVISED_FRAUD_DETECTED")
 
         # Active Campaign Fingerprint matching
         matched_campaign = self.campaign_store.match_campaign(txn, threshold=0.82)
@@ -139,6 +154,7 @@ class UpiRiskScorer:
             adaptive_score=round(adaptive_score, 4),
             network_score=round(network_score, 4),
             ml_anomaly_score=round(ml_score, 4),
+            supervised_fraud_score=round(supervised_score, 4),
             dmv_score=dmv_score,
             campaign_id=campaign_id,
             execution_latency_ms=elapsed_ms,

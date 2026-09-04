@@ -52,6 +52,74 @@ const SAMPLE_SIMULATION_PAYLOADS = [
     similarity: 91,
     nodes: ["VPA:bescom.billdesk@paytm", "PHONE:+919711223344", "URL:bescom-bill-update.online", "RULE:PRE_ARM_BLOCK"],
   },
+  {
+    title: "[NPCI] MuleHunter Switch Alert",
+    source: "npci_mulehunter",
+    institution: "NPCI",
+    raw_content:
+      "[NPCI Central Switch] Flagged account darkweb_mule_sink@okaxis with 96% mule probability. Rapid inflow surge from multiple banks across 5 states.",
+    extracted: {
+      phone: "+919811223344",
+      upi_id: "darkweb_mule_sink@okaxis",
+      url: "",
+      tags: ["NPCI:MuleHunter", "Central Switch Flag", "High Mule Probability"],
+    },
+    campaign: "CAMP-KYC-PHISH-01",
+    campaignName: "Syndicate Central Switch Aggregation",
+    similarity: 95,
+    nodes: ["VPA:darkweb_mule_sink@okaxis", "INST:NPCI", "RULE:CENTRAL_SWITCH_HONEYPOT_SINK"],
+  },
+  {
+    title: "[DPIP] National Fraud Registry Match",
+    source: "dpip_registry",
+    institution: "DPIP",
+    raw_content:
+      "[DPIP Smart Registry] Entity honeypot_trap_01@okaxis actively listed on National Cyber Crime Reporting Portal (I4C). Threat score: 0.90.",
+    extracted: {
+      phone: "+919877665544",
+      upi_id: "honeypot_trap_01@okaxis",
+      url: "",
+      tags: ["DPIP:Registry", "I4C Portal", "Listed Fraud Entity"],
+    },
+    campaign: "CAMP-KYC-PHISH-01",
+    campaignName: "National Registry Match",
+    similarity: 92,
+    nodes: ["VPA:honeypot_trap_01@okaxis", "INST:DPIP", "RULE:PRE_ARM_BLOCK"],
+  },
+  {
+    title: "[PhonePe] Cross-PSP Velocity Burst",
+    source: "psp_phonepe",
+    institution: "PhonePe",
+    raw_content:
+      "[PhonePe Fraud Engine] Flagged velocity anomaly on beneficiary burst_fraud_node@ybl: 14 outbound transfers within 90 seconds.",
+    extracted: {
+      phone: "+919655443322",
+      upi_id: "burst_fraud_node@ybl",
+      url: "",
+      tags: ["PSP:PhonePe", "Velocity Anomaly", "Pre-transaction alert"],
+    },
+    campaign: "CAMP-TASK-INVEST-02",
+    campaignName: "Telegram Task Investment Scam",
+    similarity: 89,
+    nodes: ["VPA:burst_fraud_node@ybl", "INST:PhonePe", "RULE:VELOCITY_ANOMALY"],
+  },
+  {
+    title: "[Paytm] Suspicious Beneficiary Pooling",
+    source: "psp_paytm",
+    institution: "Paytm",
+    raw_content:
+      "[Paytm Risk Guard] Suspicious beneficiary pooling detected on trap_collect_007@paytm: high-velocity inflow aggregation.",
+    extracted: {
+      phone: "+919733221100",
+      upi_id: "trap_collect_007@paytm",
+      url: "",
+      tags: ["PSP:Paytm", "Suspicious Beneficiary", "Pre-transaction alert"],
+    },
+    campaign: "CAMP-KYC-PHISH-01",
+    campaignName: "Syndicate Central Switch Aggregation",
+    similarity: 90,
+    nodes: ["VPA:trap_collect_007@paytm", "INST:Paytm", "RULE:SUSPICIOUS_BENEFICIARY"],
+  },
 ];
 
 const INITIAL_FALLBACK_SIGNALS = [
@@ -107,6 +175,59 @@ const INITIAL_FALLBACK_SIGNALS = [
     created_at: new Date(Date.now() - 950000).toISOString(),
   },
 ];
+
+export function renderInstitutionBadge(source, institution) {
+  const src = (source || "").toLowerCase();
+  const inst = (institution || "").toLowerCase();
+
+  if (src.includes("npci") || inst.includes("npci")) {
+    return (
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+        NPCI
+      </span>
+    );
+  }
+  if (src.includes("dpip") || inst.includes("dpip")) {
+    return (
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 border border-indigo-300">
+        DPIP
+      </span>
+    );
+  }
+  if (src.includes("phonepe") || inst.includes("phonepe")) {
+    return (
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300">
+        PhonePe
+      </span>
+    );
+  }
+  if (src.includes("paytm") || inst.includes("paytm")) {
+    return (
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-300">
+        Paytm
+      </span>
+    );
+  }
+  if (src.includes("google") || inst.includes("google")) {
+    return (
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-300">
+        GooglePay
+      </span>
+    );
+  }
+  if (src.includes("bhim") || inst.includes("bhim")) {
+    return (
+      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800 border border-teal-300">
+        BHIM
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs font-mono text-muted uppercase">
+      {source || "sms_gateway"}
+    </span>
+  );
+}
 
 export default function ThreatIntelPage() {
   const { toast } = useToast();
@@ -676,9 +797,7 @@ export default function ThreatIntelPage() {
                         {signal.signal_id}
                       </span>
                       <span className="text-muted text-xs">·</span>
-                      <span className="text-xs font-mono text-muted uppercase">
-                        {signal.source || "sms_gateway"}
-                      </span>
+                      {renderInstitutionBadge(signal.source, signal.institution)}
                       <span className="text-muted text-xs">·</span>
                       <span className="text-xs font-mono text-muted">
                         {relativeTime(signal.created_at)}
@@ -759,6 +878,7 @@ export default function ThreatIntelPage() {
                   <span className="text-xs font-mono px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold">
                     {selectedSignal.severity}
                   </span>
+                  {renderInstitutionBadge(selectedSignal.source, selectedSignal.institution)}
                 </div>
                 <button
                   onClick={() => setSelectedSignal(null)}
