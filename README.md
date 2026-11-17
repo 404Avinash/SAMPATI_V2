@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ SAMPATI V2 × 🦊 FOX GUARD (`lomdi-guard`)
+# 🛡️ SAMPATI V2 × 🦊 FOX GUARD 
 
 ### **Sovereign Dual-Plane UPI Fraud Interception & On-Device Pre-Payment Firewall**
 
