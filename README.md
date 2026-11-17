@@ -61,40 +61,38 @@ The diagram below illustrates how the two repositories—`SAMPATI_V2` and `lomdi
 
 ```mermaid
 flowchart TB
-    subgraph Remote["🌐 GitHub Remote Repositories"]
-        direction LR
-        R_SAMPATI["📦 404Avinash/SAMPATI_V2.git<br/>(Core Mesh, ML Engine & React SPA)"]
-        R_LOMDI["📦 ashish757/lomdi-guard.git<br/>(Fox Guard Android Edge Firewall)"]
+    subgraph Remote["GitHub Remote Repositories"]
+        R_SAMPATI["404Avinash/SAMPATI_V2.git - Core Mesh, ML Engine and React SPA"]
+        R_LOMDI["ashish757/lomdi-guard.git - Fox Guard Android Edge Firewall"]
     end
 
-    subgraph Monorepo["🏛️ Unified SAMPATI_V2 Workspace (Isolated Coexistence)"]
-        direction TB
-        Root["/ (Repository Root)"]
+    subgraph Monorepo["Unified SAMPATI_V2 Workspace - Isolated Coexistence"]
+        Root["Repository Root (/)"]
         
-        subgraph CorePlane["🛡️ SAMPATI V2 Core Plane (Root)"]
-            BE["📁 app/<br/>FastAPI 0.141 + AsyncPG + Redis<br/>4-Layer ML Engine & 63 REST Endpoints"]
-            FE["📁 frontend/<br/>React 18 + Vite 5 + Tailwind CSS<br/>Canvas Physics & Geodetic India Map"]
-            TESTS["📁 tests/<br/>977 Pytest Suite + E2E Verification"]
+        subgraph CorePlane["SAMPATI V2 Core Plane (Root)"]
+            BE["app/ - FastAPI 0.141, AsyncPG, Redis, 4-Layer ML Engine, 63 Endpoints"]
+            FE["frontend/ - React 18, Vite 5, Tailwind CSS, Canvas Physics, India Map"]
+            TESTS["tests/ - 1019 Pytest Suite and E2E Verification"]
         end
 
-        subgraph EdgePlane["🦊 Fox Guard Edge Plane (Isolated Directory)"]
-            LG["📁 lomdi-guard/<br/>Isolated Android Project Root"]
-            LG_KT["📁 lomdi-guard/app/src/main/java/com/lomdi/dsih/<br/>Kotlin Context Fusion, .foxg ML & Auditors"]
-            LG_PY["📁 lomdi-guard/scripts/<br/>FastText Training & .foxg Binary Exporter"]
+        subgraph EdgePlane["Fox Guard Edge Plane (Isolated Directory)"]
+            LG["lomdi-guard/ - Isolated Android Project Root"]
+            LG_KT["lomdi-guard/app/src/main/java/com/lomdi/dsih/ - Kotlin Context Fusion and .foxg ML"]
+            LG_PY["lomdi-guard/scripts/ - FastText Training and .foxg Binary Exporter"]
         end
 
-        Root --> CorePlane
-        Root --> EdgePlane
+        Root --> BE
+        Root --> LG
         LG --> LG_KT
         LG --> LG_PY
     end
 
-    R_SAMPATI ==>|"git pull / push origin main<br/>(Safe-Push Protocol)"| CorePlane
-    R_LOMDI ==>|"Isolated Upstream Sync<br/>(Zero File Collision)"| EdgePlane
+    R_SAMPATI ==>|"git pull / push origin main (Safe-Push)"| BE
+    R_LOMDI ==>|"Isolated Upstream Sync (Zero File Collision)"| LG
 
-    LG_KT -.->|"HTTP REST Telemetry & Intel<br/>POST /telemetry/events<br/>POST /intel/signals"| BE
-    BE -.->|"FCM HTTP v1 Push Alerts<br/>POST /notifications/send"| LG_KT
-    BE <==>|"Persistent WebSocket (/ws)<br/>+ REST JSON + SAR PDF"| FE
+    LG_KT -.->|"POST /telemetry/events and /intel/signals"| BE
+    BE -.->|"POST /notifications/send (FCM v1 Push)"| LG_KT
+    BE ==>|"WebSocket /ws + REST JSON + SAR PDF"| FE
 ```
 
 ### 2.2 End-to-End Dual-Plane Threat Interception Sequence
@@ -104,45 +102,45 @@ How **Fox Guard (On-Device)** and **SAMPATI V2 (Cloud/Switch Mesh)** collaborate
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Scammer as 🎭 Scammer Syndicate
-    participant Phone as 📱 Victim Device (Fox Guard App)
-    participant Switch as ⚡ UPI PSP / Bank Switch
-    participant Sampati as 🛡️ SAMPATI V2 Inline Gate (<1.5ms)
-    participant Graph as 🕸️ FraudGraph & Federation Mesh
-    participant Dashboard as 🖥️ Analyst SOC (React + Gemini AI)
+    actor Scammer as Scammer Syndicate
+    participant Phone as Victim Device (Fox Guard App)
+    participant Switch as UPI PSP / Bank Switch
+    participant Sampati as SAMPATI V2 Inline Gate (under 1.5ms)
+    participant Graph as FraudGraph and Federation Mesh
+    participant Dashboard as Analyst SOC (React + Gemini AI)
 
-    Note over Scammer,Phone: PHASE 1: ON-DEVICE PRE-PAYMENT DEFENSE (T - 30s)
-    Scammer->>Phone: 1. Places Unsaved VoIP/PSTN Call + Sends Fake KYC SMS ("Account blocked! Pay ₹5000 to verify@okaxis")
+    Note over Scammer,Phone: PHASE 1 - ON-DEVICE PRE-PAYMENT DEFENSE (T - 30s)
+    Scammer->>Phone: Places Unsaved VoIP/PSTN Call + Fake KYC SMS (Pay Rs.5000 to verify@okaxis)
     activate Phone
-    Phone->>Phone: 2. CallReceiver + LomdiNotificationListener detect active unsaved call (+30 risk)
-    Phone->>Phone: 3. SmsAnalyzer + FoxGuardModel (.foxg FastText) classify SMS as 'fraud' (+60 risk)
-    Phone->>Phone: 4. RemoteAppScanner / ClipboardGuard detect copied VPA "verify@okaxis" (+30 risk)
-    Phone->>Phone: 5. RiskManager Context Fusion computes Severity Coefficient = 100% (CRITICAL)
+    Phone->>Phone: CallReceiver + LomdiNotificationListener detect active unsaved call (+30 risk)
+    Phone->>Phone: SmsAnalyzer + FoxGuardModel (.foxg FastText) classify SMS as fraud (+60 risk)
+    Phone->>Phone: RemoteAppScanner + ClipboardGuard detect copied VPA verify@okaxis (+30 risk)
+    Phone->>Phone: RiskManager Context Fusion computes Severity Coefficient = 100% (CRITICAL)
     
-    par Local User Intervention & Cloud Early-Warning Pre-Arming
-        Phone->>Phone: 6a. Victim opens GPay/PhonePe -> LomdiAccessibilityService fires Red CallStyle Blocking Alert!
-    and Telemetry & Entity Pre-Arming
-        Phone->>Sampati: 6b. POST /telemetry/events & POST /intel/signals (Raw SMS + "verify@okaxis")
+    par Local User Intervention
+        Phone->>Phone: Victim opens GPay/PhonePe - LomdiAccessibilityService fires Red CallStyle Blocking Alert
+    and Cloud Early-Warning Pre-Arming
+        Phone->>Sampati: POST /telemetry/events and POST /intel/signals (Raw SMS + verify@okaxis)
     end
     deactivate Phone
 
-    Note over Sampati,Graph: PHASE 2: EARLY-WARNING GRAPH PRE-ARMING (T - 25s)
+    Note over Sampati,Graph: PHASE 2 - EARLY-WARNING GRAPH PRE-ARMING (T - 25s)
     activate Sampati
-    Sampati->>Graph: 7. ThreatIntelService extracts VPA "verify@okaxis", Phone, URL -> Pre-arms Honeypot/Campaign Graph
+    Sampati->>Graph: ThreatIntelService extracts VPA verify@okaxis, Phone, URL - Pre-arms Campaign Graph
     deactivate Sampati
 
-    Note over Scammer,Dashboard: PHASE 3: INLINE SWITCH INTERCEPTION & MULE RING CONTAINMENT (T = 0ms)
-    Switch->>Sampati: 8. POST /upi/check (If victim overrides warning or another victim pays "verify@okaxis")
+    Note over Scammer,Dashboard: PHASE 3 - INLINE SWITCH INTERCEPTION AND MULE RING CONTAINMENT (T = 0ms)
+    Switch->>Sampati: POST /upi/check (If victim overrides warning or another victim pays verify@okaxis)
     activate Sampati
-    Sampati->>Sampati: 9. Layer 1 Rules (<0.3ms): R_CAMPAIGN_MATCH + R_FRESH_VPA + DMV Velocity
-    Sampati->>Sampati: 10. Layer 2 Isolation Forest (<0.5ms) + Layer 3 Supervised RF (<0.6ms)
-    Sampati->>Graph: 11. Query NetworkX Multi-Entity Graph + NPCI MuleHunter / DPIP Adapters
-    Sampati-->>Switch: 12. Return Synchronous Verdict: BLOCK (Combined Score: 94.5 / 100 in 1.3ms)
+    Sampati->>Sampati: Layer 1 Rules (0.3ms) - R_CAMPAIGN_MATCH + R_FRESH_VPA + DMV Velocity
+    Sampati->>Sampati: Layer 2 Isolation Forest (0.5ms) + Layer 3 Supervised RF (0.6ms)
+    Sampati->>Graph: Query NetworkX Multi-Entity Graph + NPCI MuleHunter / DPIP Adapters
+    Sampati-->>Switch: Return Synchronous Verdict BLOCK (Combined Score 94.5 / 100 in 1.3ms)
     
     par Asynchronous Post-Verdict Forensics
-        Sampati->>Dashboard: 13a. WebSocket Broadcast -> Live Constellation Graph & Geodetic India Map pulse red
-        Sampati->>Phone: 13b. FCM Push Notification ("Transaction to verify@okaxis blocked by SAMPATI Shield")
-        Sampati->>Dashboard: 13c. Gemini 1.5 Flash generates Executive Briefing & 2-Page FIU-IND Form 17B SAR PDF
+        Sampati->>Dashboard: WebSocket Broadcast - Live Constellation Graph and Geodetic India Map pulse red
+        Sampati->>Phone: FCM Push Notification (Transaction to verify@okaxis blocked by SAMPATI Shield)
+        Sampati->>Dashboard: Gemini 1.5 Flash generates Executive Briefing and 2-Page FIU-IND Form 17B SAR PDF
     end
     deactivate Sampati
 ```
@@ -155,48 +153,57 @@ SAMPATI V2 is engineered to meet strict retail payment switching SLAs (**`< 5ms`
 
 ```mermaid
 flowchart LR
-    subgraph Ingress["🔌 Payment & Intel Ingress"]
-        TX["POST /upi/check<br/>(Live UPI Txn)"]
-        INTEL["POST /intel/signals<br/>(Phishing SMS/WhatsApp)"]
-        TELEM["POST /telemetry/events<br/>(Fox Guard Edge Events)"]
-        FED_IN["POST /federation/signal<br/>(Partner Bank Signals)"]
+    subgraph Ingress["Payment and Intel Ingress"]
+        TX["POST /upi/check (Live UPI Txn)"]
+        INTEL["POST /intel/signals (Phishing SMS/WhatsApp)"]
+        TELEM["POST /telemetry/events (Fox Guard Edge Events)"]
+        FED_IN["POST /federation/signal (Partner Bank Signals)"]
     end
 
-    subgraph InlineGate["⚡ Synchronous Inline Decision Gate (< 1.5ms)"]
-        direction TB
-        HOT["Redis / In-Memory Hot State<br/>(Sub-ms Sliding Window Velocity)"]
-        L1["Layer 1: Deterministic Rules<br/>(15 Heuristics + DMV + Haversine)"]
-        L2["Layer 2: Isolation Forest<br/>(Pure NumPy Unsupervised 50 iTrees)"]
-        L3["Layer 3: Random Forest<br/>(Pure NumPy Supervised 30 Trees)"]
-        ENS["Ensemble Aggregator & Safety Floors<br/>(ALLOW < 45 | HOLD 45-69 | BLOCK >= 70)"]
+    subgraph InlineGate["Synchronous Inline Decision Gate (under 1.5ms)"]
+        HOT["Redis / In-Memory Hot State (Sub-ms Sliding Window)"]
+        L1["Layer 1: Deterministic Rules (15 Heuristics + DMV + Haversine)"]
+        L2["Layer 2: Isolation Forest (Pure NumPy Unsupervised 50 iTrees)"]
+        L3["Layer 3: Random Forest (Pure NumPy Supervised 30 Trees)"]
+        ENS["Ensemble Aggregator (ALLOW under 45 | HOLD 45-69 | BLOCK 70+)"]
         
-        HOT --> L1 & L2 & L3
-        L1 & L2 & L3 --> ENS
+        HOT --> L1
+        HOT --> L2
+        HOT --> L3
+        L1 --> ENS
+        L2 --> ENS
+        L3 --> ENS
     end
 
-    subgraph AsyncPlane["🔄 Asynchronous Forensic & Federation Plane"]
-        direction TB
-        NX["NetworkX Directed Fraud Graph<br/>(Tarjan Cycle & Ring Detection)"]
-        ADAPT["Institutional Adapters<br/>(NPCI MuleHunter, DPIP, PSP)"]
-        DB[("PostgreSQL 16 (asyncpg)<br/>+ SQLite/In-Memory Fallback")]
-        GEMINI["Layer 4: Google Gemini 1.5 Copilot<br/>(45x Token Compression + Tool Calling)"]
-        SAR["ReportLab PDF Engine<br/>(FIU-IND Form 17B 2-Page SAR)"]
+    subgraph AsyncPlane["Asynchronous Forensic and Federation Plane"]
+        NX["NetworkX Directed Fraud Graph (Tarjan Cycle and Ring Detection)"]
+        ADAPT["Institutional Adapters (NPCI MuleHunter, DPIP, PSP)"]
+        DB[("PostgreSQL 16 asyncpg + SQLite/In-Memory Fallback")]
+        GEMINI["Layer 4: Google Gemini 1.5 Copilot (45x Token Compression)"]
+        SAR["ReportLab PDF Engine (FIU-IND Form 17B 2-Page SAR)"]
     end
 
-    subgraph Egress["🖥️ Real-Time Egress & SOC UI"]
-        WS["WebSocket Hub (/ws)<br/>Self-Healing Broadcast"]
-        FCM["FCM Push Service<br/>(Mobile Victim Alerts)"]
-        SPA["React 18 Executive SOC<br/>(Overview, Topology, Threat Intel)"]
+    subgraph Egress["Real-Time Egress and SOC UI"]
+        WS["WebSocket Hub (/ws) Self-Healing Broadcast"]
+        FCM["FCM Push Service (Mobile Victim Alerts)"]
+        SPA["React 18 Executive SOC (Overview, Topology, Threat Intel)"]
     end
 
-    TX --> InlineGate
-    INTEL & TELEM & FED_IN --> NX
+    TX --> HOT
+    INTEL --> NX
+    TELEM --> NX
+    FED_IN --> NX
     NX -.->|"Pre-Armed Risk"| HOT
     ENS ==>|"Immediate Verdict"| TX
-    ENS -.->|"Async Task"| AsyncPlane
-    AsyncPlane --> WS & FCM
+    ENS -.->|"Async Task"| NX
+    ENS -.->|"Async Task"| DB
+    ENS -.->|"Async Task"| ADAPT
+    NX --> WS
+    ADAPT --> FCM
     WS ==> SPA
-    GEMINI --> SAR --> SPA
+    DB --> GEMINI
+    GEMINI --> SAR
+    SAR --> SPA
 ```
 
 ### Key Architectural Pillars
@@ -255,38 +262,43 @@ Located in [`./lomdi-guard/`](./lomdi-guard) (cloned from [`ashish757/lomdi-guar
 
 ```mermaid
 flowchart TD
-    subgraph Sensors["📡 Android OS Background Observers"]
-        S_CALL["📞 CallReceiver & NotificationListener<br/>(PSTN & WhatsApp/Telegram VoIP Calls)"]
-        S_SMS["💬 SmsReceiver<br/>(Incoming SMS Stream)"]
-        S_CLIP["📋 ClipboardGuard & AccessibilityNodeInfo<br/>(Copied UPI IDs, URLs & Screen Text)"]
-        S_ENV["🔍 Device & App Exploit Scanners<br/>(Root, AnyDesk/TeamViewer, Screen Cast, Overlays)"]
+    subgraph Sensors["Android OS Background Observers"]
+        S_CALL["CallReceiver and NotificationListener (PSTN and VoIP Calls)"]
+        S_SMS["SmsReceiver (Incoming SMS Stream)"]
+        S_CLIP["ClipboardGuard and AccessibilityNodeInfo (Copied UPI IDs and URLs)"]
+        S_ENV["Device and App Exploit Scanners (Root, AnyDesk, Screen Cast, Overlays)"]
     end
 
-    subgraph EdgeML["🧠 Hybrid SMS & FastText Engine (Offline)"]
+    subgraph EdgeML["Hybrid SMS and FastText Engine (Offline)"]
         N1["Node 1: Institutional Sender Check"]
-        N2["Node 2: SmsLinkExtractor (APK / UPI Deep-link)"]
-        N3["Node 3: Urgency & Bait Heuristics"]
-        FT["FoxGuardModel (.foxg Custom Binary)<br/>587-Word Vocab × 32-Dim Float32 Matrix<br/>Pure Kotlin Softmax Classifier (No JNI/NDK)"]
-        N1 --> N2 --> N3 --> FT
+        N2["Node 2: SmsLinkExtractor (APK and UPI Deep-link)"]
+        N3["Node 3: Urgency and Bait Heuristics"]
+        FT["FoxGuardModel (.foxg Custom Binary) 587-Word Vocab x 32-Dim Float32 Matrix"]
+        N1 --> N2
+        N2 --> N3
+        N3 --> FT
     end
 
-    subgraph Brain["⚡ Context Fusion Engine (RiskManager.kt)"]
-        STORES["Reactive State Stores<br/>(CallStateStore, ClipboardStore, AppSecurityStore)"]
-        FUSION["Confluence Severity Coefficient (0–100%)<br/>• Unsaved Call + Remote App/Screen Share = CRITICAL (100%)<br/>• Rooted Device = CRITICAL (100%)<br/>• Unsaved Call + Sensitive UPI Clipboard = HIGH (70%)"]
+    subgraph Brain["Context Fusion Engine (RiskManager.kt)"]
+        STORES["Reactive State Stores (CallStateStore, ClipboardStore, AppSecurityStore)"]
+        FUSION["Confluence Severity Coefficient (0 to 100%)"]
         STORES --> FUSION
     end
 
-    subgraph Action["🚨 Real-Time Pre-Payment Intervention"]
-        ACC["LomdiAccessibilityService<br/>Detects launch of GPay / PhonePe / Paytm"]
-        ALERT["ThreatNotificationManager<br/>Full-Screen Red CallStyle Heads-Up Block<br/>(Bypasses FLAG_SECURE Overlay Limits)"]
-        SYNC["SAMPATI V2 Cloud Telemetry Bridge<br/>POST /telemetry/events & /telemetry/overrides"]
+    subgraph Action["Real-Time Pre-Payment Intervention"]
+        ACC["LomdiAccessibilityService (Detects launch of GPay, PhonePe, Paytm)"]
+        ALERT["ThreatNotificationManager (Full-Screen Red CallStyle Heads-Up Block)"]
+        SYNC["SAMPATI V2 Cloud Telemetry Bridge (POST /telemetry/events)"]
     end
 
-    S_SMS --> EdgeML --> STORES
-    S_CALL & S_CLIP & S_ENV --> STORES
+    S_SMS --> N1
+    FT --> STORES
+    S_CALL --> STORES
+    S_CLIP --> STORES
+    S_ENV --> STORES
     FUSION --> ACC
-    ACC ==>|"If Risk == CRITICAL"| ALERT
-    ALERT -.->|"Telemetry & User Overrides"| SYNC
+    ACC ==>|"If Risk is CRITICAL (100%)"| ALERT
+    ALERT -.->|"Telemetry and User Overrides"| SYNC
 ```
 
 ### Core Capabilities of `lomdi-guard`
