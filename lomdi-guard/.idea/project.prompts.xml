@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PromptTemplates">
+    <option name="builtInPromptOverrides">
+      <list>
+        <BuiltInPromptOverride>
+          <option name="groupId" value="rules" />
+          <option name="promptId" value="project" />
+          <option name="text" value="* Always provide production-ready code without unnecessary conversational filler.&#10;* Write all Android code strictly in Kotlin, utilizing Coroutines for asynchronous operations.&#10;* Use Jetpack Compose for all UI components and Material Design 3 guidelines.&#10;* When providing architectural solutions, default to Clean Architecture principles." />
+        </BuiltInPromptOverride>
+      </list>
+    </option>
+    <option name="prompts">
+      <list>
+        <PromptTemplate>
+          <option name="enabled" value="true" />
+          <option name="name" value="Generate Room Schema" />
+          <option name="text" value="Act as a Senior Android Developer. Based on the following data model requirements: $SELECTION.&#10;Please design a complete Room Database schema. Generate the Kotlin @Entity data class, the @Dao interface with standard CRUD operations, and the @Database abstract class. Ensure the indexing strategy is optimized for fast local queries to minimize on-device latency." />
+        </PromptTemplate>
+        <PromptTemplate>
+          <option name="enabled" value="true" />
+          <option name="name" value="The UI-to-PR Workflow" />
+          <option name="text" value="Review the following Jetpack Compose UI component modifications: $CURRENT_FILE.&#10;Generate a clean, professional Pull Request description detailing what was changed in this file, the state management approach used, and any potential side effects on the broader application flow." />
+        </PromptTemplate>
+        <PromptTemplate>
+          <option name="enabled" value="true" />
+          <option name="name" value="Audit Security Vulnerabilities" />
+          <option name="text" value="Act as a Mobile Security Researcher. Analyze the following local transaction interception logic: $SELECTION.&#10;Identify any potential memory leaks, unhandled exceptions that could crash the background service, or vulnerabilities where malicious apps could spoof the data being read." />
+        </PromptTemplate>
+      </list>
+    </option>
+  </component>
+</project>

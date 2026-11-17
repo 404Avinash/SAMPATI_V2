@@ -18,43 +18,32 @@ class TestGeoMuleMapOfflineContract(unittest.TestCase):
     def test_geomulemap_exists(self):
         self.assertTrue(os.path.exists(GEOMULEMAP_PATH), "GeoMuleMap.jsx must exist")
 
-    def test_react_simple_maps_imports(self):
+    def test_leaflet_bundled_imports(self):
         with open(GEOMULEMAP_PATH, "r", encoding="utf-8") as f:
             content = f.read()
-        self.assertIn("react-simple-maps", content, "Must import from react-simple-maps")
-        self.assertIn("ComposableMap", content)
-        self.assertIn("Geographies", content)
-        self.assertIn("Geography", content)
-        self.assertIn("Marker", content)
-        self.assertIn("Line", content)
+        self.assertIn("leaflet", content, "Must import leaflet")
+        self.assertIn("leaflet/dist/leaflet.css", content, "Must import leaflet CSS")
 
-    def test_topojson_file_embedded_and_imported(self):
-        self.assertTrue(os.path.exists(TOPOJSON_PATH), "india-topo.json must exist")
-        with open(GEOMULEMAP_PATH, "r", encoding="utf-8") as f:
-            content = f.read()
-        self.assertTrue(
-            "india-topo.json" in content or "indiaTopo" in content,
-            "Must import india-topo.json",
-        )
-
-    def test_no_external_network_requests(self):
+    def test_no_dynamic_cdn_loading(self):
         with open(GEOMULEMAP_PATH, "r", encoding="utf-8") as f:
             content = f.read()
         external_patterns = [
             "unpkg.com",
-            "cartocdn.com",
-            "tile.openstreetmap",
-            "mapbox.com",
-            "http://",
-            "https://",
             "loadLeaflet",
         ]
         for pat in external_patterns:
             self.assertNotIn(
                 pat,
                 content,
-                f"GeoMuleMap.jsx must not reference external resource {pat}",
+                f"GeoMuleMap.jsx must not dynamically load script from {pat}",
             )
+
+    def test_directional_arrows_and_stable_interaction(self):
+        with open(GEOMULEMAP_PATH, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("mule-flow-arrow", content, "Must render directional flow arrows")
+        self.assertIn("autoPan: false", content, "Must disable autoPan to prevent sliding on click")
+        self.assertIn("stopPropagation(e.originalEvent)", content, "Must stop native DOM click propagation")
 
 
 class TestIndiaTopoJsonValidity(unittest.TestCase):

@@ -1,57 +1,46 @@
-# Handoff Report — Victory Audit: SAMPATI V2 Sprint 2 Continuation (M2–M5)
+# Handoff Report — Victory Auditor
 
 ## 1. Observation
-- **Original Requirements (`ORIGINAL_REQUEST.md`)**:
-  - R1: SAR PDF Endpoint (`GET /cases/{case_id}/sar/pdf` and `GET /upi/cases/{case_id}/sar/pdf`) generating valid PDF binary using ReportLab / matplotlib backend without WeasyPrint, returning 404 for nonexistent cases.
-  - R2: 7×24 Workload Heatmap grid (168 cells, day 0..6 × hour 0..23) tracking flagged case volume from rolling 30-day window in `/stats/analytics` and `/upi/stats/analytics`.
-  - R3: Live Auto-Feed Engine (`POST /upi/autofeed/start`, `GET /upi/autofeed/status`, `POST /upi/autofeed/stop`) with async background generator, live pipeline evaluation, WebSocket broadcasting, idempotency, and max 50 TPS.
-  - R4: Frontend Dashboard Updates (CaseDrawer DMV gauge + Export SAR button, Analytics 7×24 heatmap + Top VPAs by DMV Score table, ControlBar Live Auto-Feed toggle).
-  - R5: Single structured commit on `main`, zero regressions (>=559 original tests passing), all Sprint 2 suite tests passing, clean frontend build.
-
-- **Independent Execution Results**:
-  - `tests/test_sprint2_e2e_suite.py`: 62/62 passed in 20.55s (0 failures).
-  - `tests/ --ignore=tests/test_sprint2_e2e_suite.py`: 648 passed in 92.44s (0 failures, exceeding >=559 threshold).
-  - `tests/frontend_contracts_test.py`: 23/23 passed in 1.14s.
-  - `./.venv/bin/ruff check app tests`: Clean ("All checks passed!").
-  - `cd frontend && npm run lint`: 0 errors, 0 warnings with `--max-warnings 0`.
-  - `cd frontend && npm run build`: Built cleanly in 12.38s, outputting `dist/` bundle.
-  - `git log -1 --stat`: Commit `7238cb70790096e9e1170e31ba0c9b10d648c3ad` on `main`.
-
-- **Forensics & Integrity**:
-  - Zero hardcoded mock responses or test bypassing found in `app/`.
-  - Zero `@pytest.mark.skip` or `@pytest.mark.xfail` in `tests/test_sprint2_e2e_suite.py`.
-  - Genuine ReportLab PDF generation in `app/forensics/sar_pdf.py`.
-  - Real thread-safe background generator in `app/services/autofeed.py`.
-  - Escalating scoring points implemented in `app/engine/upi_rules.py`.
+- **Codebase Artifacts Inspected**:
+  - `app/models/telemetry.py`: Lines 62-246 define `ThreatEvent(Base)` with `Mapped[...] = mapped_column(...)` and `relationship("UserOverride", ...)`. Lines 248-360 define `UserOverride(Base)` with `Mapped[...] = mapped_column(...)` and `relationship("ThreatEvent", ...)`. Zero imports or uses of SQLAlchemy legacy `Column`.
+  - Pydantic schemas in `app/models/telemetry.py` lines 364-1026: `ThreatEventCreate`, `ThreatEventResponse`, `ThreatEventListResponse`, `UserOverrideCreate`, `UserOverrideResponse`, `UserOverrideListResponse`, `TelemetryStatsResponse`. All contain `model_config = ConfigDict(json_schema_extra={"example": ...})` with complete OpenAPI examples, docstrings, and custom field validators.
+  - `app/api/telemetry.py`: Lines 81-323 implement `APIRouter(tags=["Telemetry"])` with routes `POST /events` (201 Created), `POST /overrides` (201 Created), `GET /events`, `GET /events/{event_id}`, `GET /overrides`, and `GET /stats`.
+  - `app/main.py`: Lines 227-229 include `telemetry_router.router` at `/telemetry` and `/upi/telemetry`.
+  - `app/db/session.py`: Registers `app.models.telemetry` with `Base.metadata` for `init_db()` table creation.
+- **Verification Execution Results**:
+  - Programmatic launch: `await init_db()` executed cleanly. `/openapi.json` exposed all 4 `/telemetry` routes.
+  - Test command `./.venv/bin/pytest tests/test_telemetry.py -v`: 42 passed in 6.49s.
+  - Linter `./.venv/bin/ruff check app tests`: All checks passed!
+  - Frontend lint `cd frontend && npm run lint`: 0 warnings, exit code 0.
+  - Frontend build `cd frontend && npm run build`: Vite build completed in 12.37s, exit code 0.
+  - Full test suite `./.venv/bin/pytest tests/`: 1,019 passed, 0 failed in 150.61s.
 
 ## 2. Logic Chain
-1. **Requirements Adherence**: Each requirement R1 through R5 from `ORIGINAL_REQUEST.md` has been matched to concrete, functioning code in `app/` and `frontend/`.
-2. **Authenticity Verification**: Forensic checks confirmed that core functionality (PDF stream generation, rolling window heatmap calculation, synthetic traffic generation, live evaluation, and WebSocket broadcast) is genuinely implemented with real domain logic, not facades or hardcoded dummy values.
-3. **Regression Safety**: Independent test execution demonstrated that not only are all 62 Sprint 2 tests passing, but the full 648-test baseline suite passes with 0 regressions.
-4. **Build & Lint Integrity**: Python and JavaScript linters and production compilers pass cleanly with 0 warnings/errors.
-5. **Conclusion Link**: Therefore, all criteria for victory verification are satisfied.
+1. `ORIGINAL_REQUEST.md` demanded SQLAlchemy 2.0 style models (`Mapped`, `mapped_column`, `relationship`) without legacy `Column` assignments, cross-dialect compatibility, Pydantic schemas with OpenAPI examples, endpoints returning 201 Created, clean table initialization without circular imports, and zero regressions across all repository test suites.
+2. Direct inspection of `app/models/telemetry.py` confirmed that every persistent column uses `Mapped[T] = mapped_column(...)` and relationships use `Mapped[T] = relationship(...)`. `Column` is neither imported nor used.
+3. Programmatic invocation of `init_db()` and querying `/openapi.json` confirmed that all models initialize without circular dependencies and routes are registered.
+4. Independent execution of the 42 test suite in `tests/test_telemetry.py`, full 1,019 test repository suite, Ruff linter, frontend ESLint, and Vite build all exited with code 0.
+5. Therefore, the implementation is authentic, complete, robust, and free of regressions.
 
 ## 3. Caveats
-- Production deployment will use live PostgreSQL/Redis in AWS environment when configured, though in-memory caching modes were thoroughly validated and function with full fidelity.
+- No caveats regarding code functionality or test suite execution.
+- As noted in the team's open issues ledger, production scale across physical multi-node PostgreSQL RDS clusters with network latency should be monitored under live deployment.
 
 ## 4. Conclusion
-**VICTORY CONFIRMED**. All milestone requirements (M2–M5), frontend dashboard updates, scoring fixes, and regression suites are genuinely implemented, fully validated, and committed to `main`.
+**VICTORY CONFIRMED**. The telemetry and threat logging feature meets 100% of the requirements and acceptance criteria specified in `ORIGINAL_REQUEST.md`.
 
 ## 5. Verification Method
-To independently reproduce:
+To independently reproduce the audit findings, run:
 ```bash
-# 1. Sprint 2 E2E Suite
-./.venv/bin/pytest tests/test_sprint2_e2e_suite.py -v
+# 1. Verify telemetry test suite
+./.venv/bin/pytest tests/test_telemetry.py -v
 
-# 2. Full Regression Suite
-./.venv/bin/pytest tests/ --ignore=tests/test_sprint2_e2e_suite.py -q
-
-# 3. Python Linter
+# 2. Verify repository Python linting
 ./.venv/bin/ruff check app tests
 
-# 4. Frontend ESLint
-cd frontend && npm run lint
+# 3. Verify frontend linting and build
+cd frontend && npm run lint && npm run build && cd ..
 
-# 5. Frontend Build
-cd frontend && npm run build
+# 4. Programmatic check of app launch and openapi.json
+./.venv/bin/python -c "import asyncio; from app.main import app; from app.db.session import init_db; from fastapi.testclient import TestClient; asyncio.run(init_db()); c = TestClient(app); paths = c.get('/openapi.json').json()['paths']; assert all(p in paths for p in ['/telemetry/events', '/telemetry/overrides', '/telemetry/events/{event_id}', '/telemetry/stats'])"
 ```

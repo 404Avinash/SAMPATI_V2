@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Anti Lomdi</string>
+    <string name="system_secure_title">SYSTEM SECURE</string>
+    <string name="system_secure_subtitle">Real-time AI monitoring active</string>
+    <string name="threat_detected_title">THREAT DETECTED</string>
+    <string name="threat_detected_subtitle">1 Active Threat: High Vulnerability</string>
+    <string name="simulate_threat_toggle">Simulate Threat</string>
+    <string name="language_picker_title">Select Language</string>
+    <string name="accessibility_description">Fox Guard protects your UPI transactions by monitoring for phishing and remote access threats.</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_home">Home</string>
+    <string name="tab_dashboard">Dashboard</string>
+    <string name="tab_logs">Logs</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Home Screen -->
+    <string name="system_threat_level">System Threat Level</string>
+    <string name="overall_risk_score">OVERALL RISK SCORE</string>
+    <string name="quick_actions_title">Quick Actions</string>
+    <string name="quick_scan_title">Quick Scan</string>
+    <string name="parameters_title">Parameters</string>
+
+    <!-- Dashboard Screen -->
+    <string name="security_dashboard_title">Security Dashboard</string>
+    <string name="security_dashboard_subtitle">Live status of all on-device fraud detection parameters</string>
+    <string name="category_app_system_security">App &amp; System Security</string>
+    <string name="category_communication_security">Communication Security</string>
+    <string name="category_session_monitors">Real-Time Session Monitors</string>
+    <string name="category_device_integrity">Device Integrity</string>
+
+    <!-- Module Names -->
+    <string name="module_clipboard_guard">Clipboard Guard</string>
+    <string name="module_overlay_detection">Overlay Detection</string>
+    <string name="module_keyboard_auditor">Keyboard Auditor</string>
+    <string name="module_permission_monitor">Permission Monitor</string>
+    <string name="module_app_sandbox">App Sandbox Isolation</string>
+    <string name="module_sms_guard">SMS Guard</string>
+    <string name="module_call_monitor">Call Monitor</string>
+    <string name="module_screenshare_detection">Screen Share Detection</string>
+    <string name="module_remote_access">Remote Access</string>
+    <string name="module_root_scanner">Root &amp; Jailbreak Scanner</string>
+
+    <!-- Status Labels -->
+    <string name="status_secure">SECURE</string>
+    <string name="status_active">ACTIVE</string>
+    <string name="status_risk">RISK</string>
+    <string name="status_trusted">TRUSTED</string>
+    <string name="status_untrusted">UNTRUSTED</string>
+    <string name="status_secured">SECURED</string>
+    <string name="status_monitoring">MONITORING</string>
+    <string name="status_idle">IDLE</string>
+    <string name="status_none">NONE</string>
+    <string name="status_threat">THREAT</string>
+    <string name="status_blocked">BLOCKED</string>
+    <string name="status_rooted">ROOTED</string>
+    <string name="status_intact">INTACT</string>
+    <string name="status_0_suspicious">0 Suspicious</string>
+    <string name="status_intercepted">INTERCEPTED</string>
+    <string name="clipboard_intercept_desc">Malicious app attempted to read sensitive data.</string>
+    <string name="btn_view_details">VIEW DETAILS</string>
+
+    <!-- Logs Screen -->
+    <string name="activity_logs_title">Activity Logs</string>
+    <string name="activity_logs_subtitle">Historical intercept events &amp; system audit logs</string>
+    <string name="no_logs_recorded">No activity logs recorded.</string>
+    <string name="btn_add_sample_event">Add Sample Event</string>
+    <string name="lbl_time">Time: %1$s</string>
+    <string name="lbl_risk_score">Risk Score: %1$s</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Profile &amp; Security Settings</string>
+    <string name="settings_subtitle">Manage your verified phone number and trusted UPI handles to prevent false positives.</string>
+    <string name="phone_number_title">Phone Number</string>
+    <string name="phone_number_desc">Enter your primary mobile number. This assists in recognizing self-contact activity during call &amp; SMS analysis.</string>
+    <string name="lbl_mobile_number">Mobile Number</string>
+    <string name="btn_save_phone_number">Save Phone Number</string>
+    <string name="msg_phone_saved">Phone number saved successfully!</string>
+    <string name="registered_upi_ids_title">Registered UPI IDs</string>
+    <string name="registered_upi_ids_desc">Add your personal or business UPI handles (e.g. user@okaxis, 9876543210@paytm). You can add multiple UPI IDs.</string>
+    <string name="lbl_new_upi_id">New UPI ID</string>
+    <string name="btn_add_upi_id">Add UPI ID</string>
+    <string name="your_saved_handles">Your Saved Handles</string>
+    <string name="no_upi_registered">No UPI IDs registered yet.</string>
+    <string name="no_upi_registered_sub">Add your handles above to facilitate legitimate verification.</string>
+    <string name="verified_handle">Verified Handle</string>
+</resources>

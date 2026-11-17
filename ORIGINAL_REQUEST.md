@@ -619,3 +619,106 @@ Ensure the frontend builds successfully and the correct static assets (without L
 - [ ] `cd frontend && npm run build` succeeds.
 - [ ] The old Leaflet dependencies are no longer causing the GitHub Action to fail.
 </USER_REQUEST>
+
+## 2026-09-04T19:06:12Z
+
+<USER_REQUEST>
+Fix the "India Mule Corridors" map component in the SAMPATI_V2 frontend so that it loads reliably, correctly renders transaction flow lines, and doesn't slide when clicked. This is a single self-contained fix; keep it small and focused.
+
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: development
+
+## Requirements
+
+### R1. Reliable Map Loading
+The map component must load reliably and quickly without showing a blank ("blind") state or failing to initialize.
+
+### R2. Transaction Flow Visualization
+The map must display directional arrows connecting the data points (dots) to clearly indicate the flow of transactions.
+
+### R3. Stable Interaction
+Clicking on the map or its data points must not cause the map panel to slide out of view, collapse, or behave erratically.
+
+## Acceptance Criteria
+
+### Verification Method: Agent-as-Judge
+- [ ] An independent agent can load the dashboard and visually confirm the map renders its tiles immediately upon initialization.
+- [ ] An independent agent can visually verify that directional arrows are rendered between the dots on the map.
+- [ ] An independent agent can click on the map and its data points without the map panel sliding out of view or collapsing.
+</USER_REQUEST>
+
+## 2026-09-04T22:05:40Z
+
+<USER_REQUEST>
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+> Requested team: [none — teamwork routes from the description]
+
+Write a single, highly detailed master Markdown report providing a comprehensive, all-encompassing technical documentation covering the entire SAMPATI V2 codebase from scratch to the top.
+
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: demo
+
+## Requirements
+
+### R1. Comprehensive Architecture Documentation
+Produce a single master Markdown file that documents the entire SAMPATI V2 architecture. It must cover the frontend (React/Vite), backend (FastAPI), data flow, and database/cache layers (PostgreSQL, Redis).
+
+### R2. ML & AI Engine Breakdown
+The report must include a detailed section analyzing the machine learning pipeline, explaining the layers of defense (Rules, Isolation Forest, Random Forest) and how Generative AI (Gemini) is integrated into the codebase.
+
+## Acceptance Criteria
+
+### Documentation Quality
+- [ ] The final Markdown file contains sections for Frontend, Backend, Data Pipeline, and ML Architecture.
+- [ ] The report accurately references actual file paths or folder structures present in the repository.
+</USER_REQUEST>
+
+## 2026-09-05T10:46:57Z
+
+<USER_REQUEST>
+# Teamwork Project Prompt
+
+> Status: Launched
+> Goal: Execute the delegated task via teamwork_preview
+> Requested team: Small focused team (one implementer doing a self-contained change)
+
+This is a single self-contained feature addition; keep it small and focused.
+Implement a telemetry and threat logging feature in the FastAPI backend to ingest on-device threat events and user feedback. This includes adding SQLAlchemy 2.0 models, Pydantic schemas, and documented API endpoints while strictly adhering to the existing codebase architecture.
+
+Working directory: /home/avi/Downloads/Sampati_v2
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. Codebase Alignment
+Inspect the repository first to adhere to existing architectural patterns for database models, async sessions, Pydantic schemas, and FastAPI routers. Do not introduce conflicting boilerplate.
+
+### R2. Database Models
+Define `ThreatEvent` and `UserOverride` models using SQLAlchemy 2.0 style (`Mapped`, `mapped_column`, `relationship`). Models must be compatible with both PostgreSQL and SQLite (using generic types). 
+
+### R3. Schemas & Documentation
+Create Pydantic input and response schemas for both models with descriptive docstrings, type annotations, validation, and OpenAPI examples (`model_config`).
+
+### R4. API Endpoints
+Implement `POST /telemetry/events` and `POST /telemetry/overrides` (or equivalent). The endpoints must handle async DB sessions, return 201 Created on success, and leverage FastAPI's OpenAPI documentation features.
+
+### R5. Migrations
+Generate necessary Alembic migrations (if used) or verify table initialization. Ensure the app launches cleanly without circular import errors.
+
+## Acceptance Criteria
+
+### Implementation Quality
+- [ ] An independent code review confirms that `ThreatEvent` and `UserOverride` use SQLAlchemy 2.0 syntax (`Mapped`) rather than older declarative styles.
+- [ ] An independent code review confirms Pydantic schemas correctly define required validations and OpenAPI mock payloads.
+
+### Functional Verification
+- [ ] The FastAPI app launches programmatically without throwing circular import or configuration errors.
+- [ ] A programmatic check of the `/openapi.json` endpoint verifies that the new `/telemetry` routes are successfully registered and exposed.
+
+---
+*Next: when approved → delegate via invoke_subagent (see Delegation Protocol)*
+</USER_REQUEST>
+

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">অ্যান্টি লোমডি</string>
+    <string name="system_secure_title">সিস্টেম নিরাপদ</string>
+    <string name="system_secure_subtitle">রিয়েল-টাইম এআই নজরদারি সক্রিয়</string>
+    <string name="threat_detected_title">হুমকি সনাক্ত করা হয়েছে</string>
+    <string name="threat_detected_subtitle">১টি সক্রিয় হুমকি: উচ্চ ঝুঁকি</string>
+    <string name="simulate_threat_toggle">হুমকি অনুকরণ করুন</string>
+    <string name="language_picker_title">ভাষা নির্বাচন করুন</string>
+    <string name="accessibility_description">ফক্স গার্ড ফিিশিং এবং রিমোট অ্যাক্সেস হুমকি পর্যবেক্ষণ করে আপনার UPI লেনদেন রক্ষা করে।</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_home">হোম</string>
+    <string name="tab_dashboard">ড্যাশবোর্ড</string>
+    <string name="tab_logs">লগ</string>
+    <string name="tab_settings">সেটিংস</string>
+
+    <!-- Home Screen -->
+    <string name="system_threat_level">সিস্টেমের হুমকির মাত্রা</string>
+    <string name="overall_risk_score">মোট ঝুঁকি স্কোর</string>
+    <string name="quick_actions_title">দ্রুত পদক্ষেপ</string>
+    <string name="quick_scan_title">দ্রুত স্ক্যান</string>
+    <string name="parameters_title">প্যারামিটার</string>
+
+    <!-- Dashboard Screen -->
+    <string name="security_dashboard_title">সুরক্ষা ড্যাশবোর্ড</string>
+    <string name="security_dashboard_subtitle">ডিভাইসের সমস্ত জালিয়াতি সনাক্তকরণ প্যারামিটারের লাইভ স্ট্যাটাস</string>
+    <string name="category_app_system_security">অ্যাপ ও সিস্টেম সুরক্ষা</string>
+    <string name="category_communication_security">যোগাযোগ সুরক্ষা</string>
+    <string name="category_session_monitors">রিয়েল-টাইম সেশন মনিটর</string>
+    <string name="category_device_integrity">ডিভাইসের অখণ্ডতা</string>
+
+    <!-- Module Names -->
+    <string name="module_clipboard_guard">ক্লিপবোর্ড গার্ড</string>
+    <string name="module_overlay_detection">ওভারলে সনাক্তকরণ</string>
+    <string name="module_keyboard_auditor">কীবোর্ড অডিটর</string>
+    <string name="module_permission_monitor">অনুমতি মনিটর</string>
+    <string name="module_app_sandbox">অ্যাপ স্যান্ডবক্স আইসোলেশন</string>
+    <string name="module_sms_guard">এসএমএস গার্ড</string>
+    <string name="module_call_monitor">কল মনিটর</string>
+    <string name="module_screenshare_detection">স্ক্রীন শেয়ার সনাক্তকরণ</string>
+    <string name="module_remote_access">রিমোট অ্যাক্সেস</string>
+    <string name="module_root_scanner">রুট এবং জেলব্রেক স্ক্যানার</string>
+
+    <!-- Status Labels -->
+    <string name="status_secure">নিরাপদ</string>
+    <string name="status_active">সক্রিয়</string>
+    <string name="status_risk">ঝুঁকি</string>
+    <string name="status_trusted">বিশ্বস্ত</string>
+    <string name="status_untrusted">অবিশ্বস্ত</string>
+    <string name="status_secured">সুরক্ষিত</string>
+    <string name="status_monitoring">পর্যবেক্ষণ করা হচ্ছে</string>
+    <string name="status_idle">নিষ্ক্রিয়</string>
+    <string name="status_none">কিছুই না</string>
+    <string name="status_threat">হুমকি</string>
+    <string name="status_blocked">ব্লক করা হয়েছে</string>
+    <string name="status_rooted">রুট করা হয়েছে</string>
+    <string name="status_intact">অক্ষত</string>
+    <string name="status_0_suspicious">০ সন্দেহজনক</string>
+    <string name="status_intercepted">আটকানো হয়েছে</string>
+    <string name="clipboard_intercept_desc">ক্ষতিকারক অ্যাপ সংবেদনশীল ডেটা পড়ার চেষ্টা করেছে।</string>
+    <string name="btn_view_details">বিস্তারিত দেখুন</string>
+
+    <!-- Logs Screen -->
+    <string name="activity_logs_title">কার্যকলাপের লগ</string>
+    <string name="activity_logs_subtitle">ঐতিহাসিক ইভেন্ট এবং সিস্টেম অডিট লগ</string>
+    <string name="no_logs_recorded">কোনো কার্যকলাপ লগ করা হয়নি।</string>
+    <string name="btn_add_sample_event">নমুনা ইভেন্ট যোগ করুন</string>
+    <string name="lbl_time">সময়: %1$s</string>
+    <string name="lbl_risk_score">ঝুঁকি স্কোর: %1$s</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">প্রোফাইল ও সুরক্ষা সেটিংস</string>
+    <string name="settings_subtitle">আপনার যাচাইকৃত ফোন নম্বর এবং UPI হ্যান্ডেলগুলি পরিচালনা করুন।</string>
+    <string name="phone_number_title">ফোন নম্বর</string>
+    <string name="phone_number_desc">আপনার প্রাথমিক মোবাইল নম্বর দিন।</string>
+    <string name="lbl_mobile_number">মোবাইল নম্বর</string>
+    <string name="btn_save_phone_number">ফোন নম্বর সংরক্ষণ করুন</string>
+    <string name="msg_phone_saved">ফোন নম্বর সফলভাবে সংরক্ষিত হয়েছে!</string>
+    <string name="registered_upi_ids_title">নিবন্ধিত UPI আইডি</string>
+    <string name="registered_upi_ids_desc">আপনার ব্যক্তিগত বা ব্যবসায়িক UPI হ্যান্ডেলগুলি যোগ করুন।</string>
+    <string name="lbl_new_upi_id">নতুন UPI আইডি</string>
+    <string name="btn_add_upi_id">UPI আইডি যোগ করুন</string>
+    <string name="your_saved_handles">আপনার সংরক্ষিত হ্যান্ডেলগুলি</string>
+    <string name="no_upi_registered">এখনও কোনো UPI আইডি নিবন্ধিত হয়নি।</string>
+    <string name="no_upi_registered_sub">যাচাইকরণের সুবিধার জন্য উপরে আপনার হ্যান্ডেল যোগ করুন।</string>
+    <string name="verified_handle">যাচাইকৃত হ্যান্ডেল</string>
+</resources>

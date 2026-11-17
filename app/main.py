@@ -93,6 +93,12 @@ try:
 except Exception:
     notifications_router = None
 
+# On-Device Threat Telemetry & User Overrides
+try:
+    from app.api import telemetry as telemetry_router
+except Exception:
+    telemetry_router = None
+
 
 # DB + settings
 try:
@@ -218,6 +224,9 @@ if adapters_router and hasattr(adapters_router, "router"):
 if notifications_router and hasattr(notifications_router, "router"):
     app.include_router(notifications_router.router, prefix="/notifications", tags=["Notifications"])
     app.include_router(notifications_router.router, prefix="/upi/notifications", tags=["Notifications"])
+if telemetry_router and hasattr(telemetry_router, "router"):
+    app.include_router(telemetry_router.router, prefix="/telemetry", tags=["Telemetry"])
+    app.include_router(telemetry_router.router, prefix="/upi/telemetry", tags=["Telemetry"])
 
 
 
@@ -465,6 +474,7 @@ if FASTAPI_AVAILABLE:
             "/threat-intel",
             "/adapters",
             "/notifications",
+            "/telemetry",
         )
         is_ui_page = path in ("/threat-intel", "/threat-intel/")
         is_api = any(path.startswith(prefix) for prefix in api_prefixes) and not is_ui_page

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ஆண்டி லோம்டி</string>
+    <string name="system_secure_title">சிஸ்டம் பாதுகாப்பானது</string>
+    <string name="system_secure_subtitle">நிகழ்நேர AI கண்காணிப்பு செயல்படுகிறது</string>
+    <string name="threat_detected_title">அச்சுறுத்தல் கண்டறியப்பட்டது</string>
+    <string name="threat_detected_subtitle">1 செயலில் உள்ள அச்சுறுத்தல்: அதிக அபாயம்</string>
+    <string name="simulate_threat_toggle">அச்சுறுத்தலை மாதிரி செய்க</string>
+    <string name="language_picker_title">மொழியைத் தேர்ந்தெடுக்கவும்</string>
+    <string name="accessibility_description">ஃபாக்ஸ் கார்டு ஃபிஷிங் மற்றும் ரிமோட் அணுகல் அச்சுறுத்தல்களைக் கண்காணிப்பதன் மூலம் உங்கள் யுபிஐ பரிவர்த்தனைகளைப் பாதுகாக்கிறது.</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_home">முகப்பு</string>
+    <string name="tab_dashboard">டாஷ்போர்டு</string>
+    <string name="tab_logs">பதிவுகள்</string>
+    <string name="tab_settings">அமைப்புகள்</string>
+
+    <!-- Home Screen -->
+    <string name="system_threat_level">அமைப்பின் அபாய நிலை</string>
+    <string name="overall_risk_score">மொத்த அபாய மதிப்பெண்</string>
+    <string name="quick_actions_title">விரைவு చర్యகள்</string>
+    <string name="quick_scan_title">விரைவு ஸ்கேன்</string>
+    <string name="parameters_title">அளவீடுகள்</string>
+
+    <!-- Dashboard Screen -->
+    <string name="security_dashboard_title">பாதுகாப்பு டாஷ்போர்டு</string>
+    <string name="security_dashboard_subtitle">சாதனத்தில் உள்ள அனைத்து மோசடி கண்டறிதல் அளவீடுகளின் நேரலை நிலை</string>
+    <string name="category_app_system_security">செயலி &amp; கணினி பாதுகாப்பு</string>
+    <string name="category_communication_security">தொடர்பு பாதுகாப்பு</string>
+    <string name="category_session_monitors">நிகழ்நேர அமர்வு கண்காணிப்புகள்</string>
+    <string name="category_device_integrity">சாதனத்தின் பாதுகாப்புத் தன்மை</string>
+
+    <!-- Module Names -->
+    <string name="module_clipboard_guard">கிளிப்போர்டு காப்பகம்</string>
+    <string name="module_overlay_detection">திரைமேல் மறைப்புக் கண்டறிதல்</string>
+    <string name="module_keyboard_auditor">விசைப்பலகை தணிக்கையாளர்</string>
+    <string name="module_permission_monitor">அனுமதி கண்காணிப்பு</string>
+    <string name="module_app_sandbox">செயலி தனிமைப்படுத்தல்</string>
+    <string name="module_sms_guard">குறுஞ்செய்தி பாதுகாப்பு</string>
+    <string name="module_call_monitor">அழைப்பு கண்காணிப்பு</string>
+    <string name="module_screenshare_detection">திரை பகிர்வு கண்டறிதல்</string>
+    <string name="module_remote_access">தொலைநிலை அணுகல்</string>
+    <string name="module_root_scanner">ரூட் ஸ்கேனர்</string>
+
+    <!-- Status Labels -->
+    <string name="status_secure">பாதுகாப்பானது</string>
+    <string name="status_active">செயலில் உள்ளது</string>
+    <string name="status_risk">அபாயம்</string>
+    <string name="status_trusted">நம்பகமானது</string>
+    <string name="status_untrusted">நம்பகமற்றது</string>
+    <string name="status_secured">பாதுகாக்கப்பட்டது</string>
+    <string name="status_monitoring">கண்காணிக்கப்படுகிறது</string>
+    <string name="status_idle">செயலற்றது</string>
+    <string name="status_none">எதுவுமில்லை</string>
+    <string name="status_threat">அச்சுறுத்தல்</string>
+    <string name="status_blocked">தடுக்கப்பட்டது</string>
+    <string name="status_rooted">ரூட் செய்யப்பட்டது</string>
+    <string name="status_intact">பாதிக்கப்படவில்லை</string>
+    <string name="status_0_suspicious">0 சந்தேகத்திற்கிடமானது</string>
+    <string name="status_intercepted">தடுக்கப்பட்டது</string>
+    <string name="clipboard_intercept_desc">தீங்கிழைக்கும் செயலி முக்கியமானத் தரவைப் படிக்க முயன்றது.</string>
+    <string name="btn_view_details">விவரங்களைக் காண்</string>
+
+    <!-- Logs Screen -->
+    <string name="activity_logs_title">செயல்பாட்டுப் பதிவுகள்</string>
+    <string name="activity_logs_subtitle">வரலாற்று நிகழ்வுகள் மற்றும் தணிக்கைப் பதிவுகள்</string>
+    <string name="no_logs_recorded">பதிவுகள் எதுவும் பதிவு செய்யப்படவில்லை.</string>
+    <string name="btn_add_sample_event">மாதிரி நிகழ்வைச் சேர்</string>
+    <string name="lbl_time">நேரம்: %1$s</string>
+    <string name="lbl_risk_score">அபாய மதிப்பெண்: %1$s</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">சுயவிவரம் &amp; பாதுகாப்பு அமைப்புகள்</string>
+    <string name="settings_subtitle">உங்கள் தொலைபேசி எண் மற்றும் UPI முகவரிகளை நிர்வகிக்கவும்.</string>
+    <string name="phone_number_title">தொலைபேசி எண்</string>
+    <string name="phone_number_desc">உங்கள் முதன்மை கைபேசி எண்ணை உள்ளிடவும்.</string>
+    <string name="lbl_mobile_number">கைபேசி எண்</string>
+    <string name="btn_save_phone_number">எண்ணைச் சேமிக்க</string>
+    <string name="msg_phone_saved">தொலைபேசி எண் வெற்றிகரமாக சேமிக்கப்பட்டது!</string>
+    <string name="registered_upi_ids_title">பதிவுசெய்த UPI முகவரிகள்</string>
+    <string name="registered_upi_ids_desc">உங்கள் தனிப்பட்ட அல்லது வணிக UPI முகவரிகளைச் சேர்க்கவும்.</string>
+    <string name="lbl_new_upi_id">புதிய UPI முகவரி</string>
+    <string name="btn_add_upi_id">UPI முகவரியைச் சேர்</string>
+    <string name="your_saved_handles">சேமிக்கப்பட்ட முகவரிகள்</string>
+    <string name="no_upi_registered">இன்னும் எந்த UPI முகவரியும் பதிவு செய்யப்படவில்லை.</string>
+    <string name="no_upi_registered_sub">சரிபார்ப்பை எளிதாக்க உங்கள் முகவரிகளை மேலே சேர்க்கவும்.</string>
+    <string name="verified_handle">சரிபார்க்கப்பட்ட முகவரி</string>
+</resources>

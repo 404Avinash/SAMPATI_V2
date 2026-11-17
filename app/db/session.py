@@ -19,6 +19,12 @@ from sqlalchemy.ext.asyncio import (
 
 from app.models.upi_persistence import Base as UpiBase
 
+# Register telemetry models in Base metadata
+try:
+    import app.models.telemetry  # noqa: F401
+except Exception:
+    pass
+
 logger = logging.getLogger("sampati.db")
 
 # Re-export Base for compatibility

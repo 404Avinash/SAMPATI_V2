@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">एंटी लोमडी</string>
+    <string name="system_secure_title">सिस्टम सुरक्षित आहे</string>
+    <string name="system_secure_subtitle">रिअल-टाइम एआय देखरेख सक्रिय</string>
+    <string name="threat_detected_title">धोका आढळला</string>
+    <string name="threat_detected_subtitle">1 सक्रिय धोका: उच्च धोका</string>
+    <string name="simulate_threat_toggle">धोक्याचे सिम्युलेशन</string>
+    <string name="language_picker_title">भाषा निवडा</string>
+    <string name="accessibility_description">फॉक्स गार्ड फिशिंग आणि रिमोट ॲक्सेस धोक्यांवर लक्ष ठेवून तुमच्या UPI व्यवहारांचे रक्षण करतो.</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_home">होम</string>
+    <string name="tab_dashboard">डॅशबोर्ड</string>
+    <string name="tab_logs">लॉग्स</string>
+    <string name="tab_settings">सेटिंग्ज</string>
+
+    <!-- Home Screen -->
+    <string name="system_threat_level">सिस्टम धोका पातळी</string>
+    <string name="overall_risk_score">एकूण धोका गुण</string>
+    <string name="quick_actions_title">जलद कृती</string>
+    <string name="quick_scan_title">जलद स्कॅन</string>
+    <string name="parameters_title">मापदंड</string>
+
+    <!-- Dashboard Screen -->
+    <string name="security_dashboard_title">सुरक्षा डॅशबोर्ड</string>
+    <string name="security_dashboard_subtitle">सर्व फसवणूक शोध मापदंडांची थेट स्थिती</string>
+    <string name="category_app_system_security">ॲप आणि सिस्टम सुरक्षा</string>
+    <string name="category_communication_security">संवादात्मक सुरक्षा</string>
+    <string name="category_session_monitors">रिअल-टाइम सत्र मॉनिटर</string>
+    <string name="category_device_integrity">डिव्हाइस अखंडता</string>
+
+    <!-- Module Names -->
+    <string name="module_clipboard_guard">क्लिपबोर्ड गार्ड</string>
+    <string name="module_overlay_detection">ओव्हरले शोध</string>
+    <string name="module_keyboard_auditor">कीबोर्ड ऑडिओर</string>
+    <string name="module_permission_monitor">परवानगी मॉनिटर</string>
+    <string name="module_app_sandbox">ॲप सँडबॉक्स अलिप्तता</string>
+    <string name="module_sms_guard">एसएमएस गार्ड</string>
+    <string name="module_call_monitor">कॉल मॉनिटर</string>
+    <string name="module_screenshare_detection">स्क्रीन शेअर शोध</string>
+    <string name="module_remote_access">रिमोट ॲक्सेस</string>
+    <string name="module_root_scanner">रूट आणि जेलब्रेक स्कॅनर</string>
+
+    <!-- Status Labels -->
+    <string name="status_secure">सुरक्षित</string>
+    <string name="status_active">सक्रिय</string>
+    <string name="status_risk">धोका</string>
+    <string name="status_trusted">विश्वसनीय</string>
+    <string name="status_untrusted">अविश्वसनीय</string>
+    <string name="status_secured">सुरक्षित केले</string>
+    <string name="status_monitoring">देखरेख सुरू</string>
+    <string name="status_idle">निष्क्रिय</string>
+    <string name="status_none">काहीही नाही</string>
+    <string name="status_threat">धोका</string>
+    <string name="status_blocked">ब्लॉक केले</string>
+    <string name="status_rooted">रूट केले</string>
+    <string name="status_intact">अखंड</string>
+    <string name="status_0_suspicious">0 संशयास्पद</string>
+    <string name="status_intercepted">रोखले</string>
+    <string name="clipboard_intercept_desc">संशयित ॲपने संवेदनशील डेटा वाचण्याचा प्रयत्न केला.</string>
+    <string name="btn_view_details">तपशील पहा</string>
+
+    <!-- Logs Screen -->
+    <string name="activity_logs_title">काही नोंदी</string>
+    <string name="activity_logs_subtitle">ऐतिहासिक घटना आणि ऑडिट नोंदी</string>
+    <string name="no_logs_recorded">कोणत्याही नोंदी आढळल्या नाहीत.</string>
+    <string name="btn_add_sample_event">नमूना नोंद जोडा</string>
+    <string name="lbl_time">वेळ: %1$s</string>
+    <string name="lbl_risk_score">धोका गुण: %1$s</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">प्रोफाइल आणि सुरक्षा सेटिंग्ज</string>
+    <string name="settings_subtitle">तुमचा फोन नंबर आणि UPI आयडी व्यवस्थापित करा.</string>
+    <string name="phone_number_title">फोन नंबर</string>
+    <string name="phone_number_desc">तुमचा प्राथमिक मोबाइल नंबर प्रविष्ट करा.</string>
+    <string name="lbl_mobile_number">मोबाइल नंबर</string>
+    <string name="btn_save_phone_number">फोन नंबर जतन करा</string>
+    <string name="msg_phone_saved">फोन नंबर यशस्वीरीत्या जतन केला!</string>
+    <string name="registered_upi_ids_title">नोंदणीकृत UPI आयडी</string>
+    <string name="registered_upi_ids_desc">तुमचे वैयक्तिक किंवा व्यावसायिक UPI आयडी जोडा.</string>
+    <string name="lbl_new_upi_id">नवीन UPI आयडी</string>
+    <string name="btn_add_upi_id">UPI आयडी जोडा</string>
+    <string name="your_saved_handles">तुमचे जतन केलेले आयडी</string>
+    <string name="no_upi_registered">अजून कोणताही UPI आयडी नोंदणीकृत नाही.</string>
+    <string name="no_upi_registered_sub">पडताळणी सुलभ करण्यासाठी वर तुमचे आयडी जोडा.</string>
+    <string name="verified_handle">सत्यापित आयडी</string>
+</resources>

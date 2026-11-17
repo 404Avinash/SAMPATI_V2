@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">యాంటీ లోమ్డీ</string>
+    <string name="system_secure_title">సిస్టమ్ సురక్షితంగా ఉంది</string>
+    <string name="system_secure_subtitle">రియల్-టైమ్ AI పర్యవేక్షణ క్రియాశీలంగా ఉంది</string>
+    <string name="threat_detected_title">ముప్పు కనుగొనబడింది</string>
+    <string name="threat_detected_subtitle">1 సక్రియ ముప్పు: తీవ్రమైన ముప్పు</string>
+    <string name="simulate_threat_toggle">బెదిరింపును అనుకరించండి</string>
+    <string name="language_picker_title">భాషను ఎంచుకోండి</string>
+    <string name="accessibility_description">ఫాక్స్ గార్డ్ ఫిషింగ్ మరియు రిమోట్ యాక్సెస్ బెదిరింపులను పర్యవేక్షించడం ద్వారా మీ UPI లావాదేవీలను రక్షిస్తుంది.</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_home">హోమ్</string>
+    <string name="tab_dashboard">డాష్‌బోర్డ్</string>
+    <string name="tab_logs">లాగ్‌లు</string>
+    <string name="tab_settings">సెట్టింగ్‌లు</string>
+
+    <!-- Home Screen -->
+    <string name="system_threat_level">సిస్టమ్ ప్రమాద స్థాయి</string>
+    <string name="overall_risk_score">మొత్తం ముప్పు స్కోరు</string>
+    <string name="quick_actions_title">త్వరిత చర్యలు</string>
+    <string name="quick_scan_title">త్వరిత స్కాన్</string>
+    <string name="parameters_title">పారామితులు</string>
+
+    <!-- Dashboard Screen -->
+    <string name="security_dashboard_title">భద్రతా డాష్‌బోర్డ్</string>
+    <string name="security_dashboard_subtitle">పరికరంలో అన్ని మోసాల గుర్తింపు పారామితుల ప్రత్యక్ష స్థితి</string>
+    <string name="category_app_system_security">యాప్ &amp; సిస్టమ్ సెక్యూరిటీ</string>
+    <string name="category_communication_security">కమ్యూనికేషన్ సెక్యూరిటీ</string>
+    <string name="category_session_monitors">రియల్-టైమ్ సెషన్ మోనిటర్లు</string>
+    <string name="category_device_integrity">పరికర సమగ్రత</string>
+
+    <!-- Module Names -->
+    <string name="module_clipboard_guard">క్లిప్‌బోర్డ్ గార్డ్</string>
+    <string name="module_overlay_detection">ఓవర్‌లే గుర్తింపు</string>
+    <string name="module_keyboard_auditor">కీబోర్డ్ ఆడిటర్</string>
+    <string name="module_permission_monitor">అనుమతి మోనిటర్</string>
+    <string name="module_app_sandbox">యాప్ శాండ్‌బాక్స్ విరుద్ధత</string>
+    <string name="module_sms_guard">SMS గార్డ్</string>
+    <string name="module_call_monitor">కాల్ మోనిటర్</string>
+    <string name="module_screenshare_detection">స్క్రీన్ షేర్ గుర్తింపు</string>
+    <string name="module_remote_access">రిమోట్ యాక్సెస్</string>
+    <string name="module_root_scanner">రూట్ &amp; జైల్‌బ్రేక్ స్కానర్</string>
+
+    <!-- Status Labels -->
+    <string name="status_secure">సురక్షితం</string>
+    <string name="status_active">సక్రియం</string>
+    <string name="status_risk">ప్రమాదం</string>
+    <string name="status_trusted">నమ్మదగినది</string>
+    <string name="status_untrusted">నమ్మదగనిది</string>
+    <string name="status_secured">సురక్షితం చేయబడింది</string>
+    <string name="status_monitoring">పర్యవేక్షణలో ఉంది</string>
+    <string name="status_idle">నిష్క్రియం</string>
+    <string name="status_none">ఏమీ లేదు</string>
+    <string name="status_threat">ముప్పు</string>
+    <string name="status_blocked">బ్లాక్ చేయబడింది</string>
+    <string name="status_rooted">రూట్ చేయబడింది</string>
+    <string name="status_intact">క్షేమంగా ఉంది</string>
+    <string name="status_0_suspicious">0 అనుమానాస్పద</string>
+    <string name="status_intercepted">అడ్డుకోబడింది</string>
+    <string name="clipboard_intercept_desc">హానికరమైన యాప్ సున్నితమైన డేటాను చదవడానికి ప్రయత్నించింది.</string>
+    <string name="btn_view_details">వివరాలను చూడండి</string>
+
+    <!-- Logs Screen -->
+    <string name="activity_logs_title">కార్యాచరణ లాగ్‌లు</string>
+    <string name="activity_logs_subtitle">చారిత్రక సంఘటనలు మరియు ఆడిట్ లాగ్‌లు</string>
+    <string name="no_logs_recorded">ఏ కార్యాచరణ నమోదు కాలేదు.</string>
+    <string name="btn_add_sample_event">నమూనా ఈవెంట్‌ను జోడించండి</string>
+    <string name="lbl_time">సమయం: %1$s</string>
+    <string name="lbl_risk_score">ప్రమాద స్కోరు: %1$s</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">ప్రొఫైల్ &amp; భద్రతా సెట్టింగ్‌లు</string>
+    <string name="settings_subtitle">మీ ఫ్లో నంబర్ మరియు UPI ఐడీలను నిర్వహించండి.</string>
+    <string name="phone_number_title">ఫోన్ నంబర్</string>
+    <string name="phone_number_desc">మీ ప్రాథమిక మొబైల్ నంబర్‌ను ఎంటర్ చేయండి.</string>
+    <string name="lbl_mobile_number">మొబైల్ నంబర్</string>
+    <string name="btn_save_phone_number">ఫోన్ నంబర్‌ను సేవ్ చేయండి</string>
+    <string name="msg_phone_saved">ఫోన్ నంబర్ విజయవంతంగా సేవ్ చేయబడింది!</string>
+    <string name="registered_upi_ids_title">నమోదిత UPI IDలు</string>
+    <string name="registered_upi_ids_desc">మీ వ్యక్తిగత లేదా వ్యాపార UPI IDలను జోడించండి.</string>
+    <string name="lbl_new_upi_id">కొత్త UPI ID</string>
+    <string name="btn_add_upi_id">UPI ID జోడించండి</string>
+    <string name="your_saved_handles">సేవ్ చేసిన ఐడీలు</string>
+    <string name="no_upi_registered">ఇంకా ఏ UPI ID నమోదు కాలేదు.</string>
+    <string name="no_upi_registered_sub">ధృవీకరణ కోసం పైన మీ IDలను జోడించండి.</string>
+    <string name="verified_handle">ధృవీకరించబడిన ఐడీ</string>
+</resources>

@@ -1,26 +1,30 @@
 # Original User Request
 
-## Initial Request — 2026-09-04T23:23:06+05:30
+## Initial Request — 2026-09-05T10:48:18Z
 
 You are the SWE Light orchestrator for SAMPATI V2.
-Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_swe_3
+Your working directory is: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_swe_5
 Project root: /home/avi/Downloads/Sampati_v2
 Original request file: /home/avi/Downloads/Sampati_v2/.agents/ORIGINAL_REQUEST.md
-Dispatch file: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_swe_3/DISPATCH.md
+Dispatch file: /home/avi/Downloads/Sampati_v2/.agents/teamwork_preview_swe_5/DISPATCH.md
 
 Task:
-Single self-contained fix: Update frontend/package-lock.json to resolve new map dependencies (`react-simple-maps`, `d3-geo`, `topojson-client`) so that `npm ci` passes strictly in the CI environment and frontend builds cleanly without Leaflet dependency issues.
-Small focused team requested.
+Implement a telemetry and threat logging feature in the FastAPI backend to ingest on-device threat events and user feedback. This includes adding SQLAlchemy 2.0 models, Pydantic schemas, and documented API endpoints while strictly adhering to the existing codebase architecture.
+
+Small focused team requested (SWE Light loop).
 
 Requirements:
-1. R1. Fix Frontend Dependencies: Update `frontend/package-lock.json` to correctly resolve the new map dependencies so that `npm ci` passes strictly in the CI environment.
-2. R2. Verify Deployment: Ensure the frontend builds successfully and the correct static assets (without Leaflet) are bundled.
+1. R1. Codebase Alignment: Inspect the repository first to adhere to existing architectural patterns for database models, async sessions, Pydantic schemas, and FastAPI routers. Do not introduce conflicting boilerplate.
+2. R2. Database Models: Define `ThreatEvent` and `UserOverride` models using SQLAlchemy 2.0 style (`Mapped`, `mapped_column`, `relationship`). Models must be compatible with both PostgreSQL and SQLite (using generic types).
+3. R3. Schemas & Documentation: Create Pydantic input and response schemas for both models with descriptive docstrings, type annotations, validation, and OpenAPI examples (`model_config`).
+4. R4. API Endpoints: Implement `POST /telemetry/events` and `POST /telemetry/overrides` (or equivalent). The endpoints must handle async DB sessions, return 201 Created on success, and leverage FastAPI's OpenAPI documentation features.
+5. R5. Migrations: Generate necessary Alembic migrations (if used) or verify table initialization. Ensure the app launches cleanly without circular import errors.
 
 Acceptance Criteria:
-- `cd frontend && npm ci` succeeds without throwing lockfile sync errors.
-- `cd frontend && npm run build` succeeds.
-- The old Leaflet dependencies are no longer causing the GitHub Action to fail.
-- All repo standards pass: `.venv/bin/pytest tests/` passes with 0 failures, `.venv/bin/ruff check app tests` passes, `cd frontend && npm run lint` passes with 0 warnings.
-- Safe-push commit & push if required / when validated per repository guidelines.
+- An independent code review confirms that `ThreatEvent` and `UserOverride` use SQLAlchemy 2.0 syntax (`Mapped`) rather than older declarative styles.
+- An independent code review confirms Pydantic schemas correctly define required validations and OpenAPI mock payloads.
+- The FastAPI app launches programmatically without throwing circular import or configuration errors.
+- A programmatic check of the `/openapi.json` endpoint verifies that the new `/telemetry` routes are successfully registered and exposed.
+- All repo standards pass: `.venv/bin/pytest tests/` passes with 0 failures, `.venv/bin/ruff check app tests` passes, `cd frontend && npm run lint` passes with 0 warnings, `cd frontend && npm run build` succeeds.
 
-Execute the SWE Light protocol (implementer, reviewer, test verification) and report back when finished.
+Execute the SWE Light protocol (implementer, reviewer rounds with cumulative open-issues ledger, test verification) and report back when finished.
