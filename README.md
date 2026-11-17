@@ -256,7 +256,7 @@ Implemented in [`app/services/gemini_service.py`](./app/services/gemini_service.
 
 ---
 
-## 🦊 5. Fox Guard (`lomdi-guard`) — On-Device Android Firewall
+## 🦊 5. Fox Guard On-Device Android Firewall
 
 Located in [`./lomdi-guard/`](./lomdi-guard) (cloned from [`ashish757/lomdi-guard`](https://github.com/ashish757/lomdi-guard.git)), **Fox Guard** is a native Kotlin & Jetpack Compose Android security middleware that protects users at the operating-system level *before* a fraudulent payment can be authorized.
 
